@@ -14,6 +14,8 @@
 
 <p align="center">
   <a href="#demo">Demo</a> ·
+  <a href="#the-problem">Problem</a> ·
+  <a href="#the-idea">Idea</a> ·
   <a href="#current-features">Features</a> ·
   <a href="#tech-stack">Tech Stack</a> ·
   <a href="#local-development">Setup</a> ·
@@ -32,11 +34,46 @@ GitHub does not reliably stream `.mov` files inline in the README. Clone the rep
 
 ---
 
-## About MindVault
+## The Problem
 
-Useful information comes from everywhere—articles, documentation, tutorials, conversations, code snippets, links, quotes, and personal notes. Most of it is consumed once and then lost across tabs, apps, and memory.
+We already save things everywhere — just not in one place built for keeping knowledge.
 
-MindVault is a personal knowledge vault: one private place to **capture**, **organize**, and **browse** what you want to keep. The current build focuses on a secure, polished foundation for saving and managing knowledge. AI-assisted capture, search, and insights are planned next—not shipped yet.
+A useful link gets sent to ourselves on WhatsApp. A code snippet ends up in Notes. An explanation stays buried in a ChatGPT conversation. A tutorial goes into YouTube Watch Later. A repo gets bookmarked on GitHub. An idea becomes a screenshot we may never open again.
+
+Most of us do this constantly:
+
+- messaging links and ideas to ourselves on WhatsApp
+- using “Message Yourself” as temporary storage
+- forwarding something to a friend just to find it later
+- taking screenshots and forgetting about them
+- keeping random browser bookmarks
+- copying information into notes apps
+- leaving useful browser tabs open
+- saving AI responses somewhere ad hoc
+
+The problem is not that we *cannot* save information. The problem is that our knowledge becomes **scattered**:
+
+```
+WhatsApp → Notes → Screenshots → Bookmarks → ChatGPT → GitHub → YouTube → Random documents
+```
+
+Weeks later, we remember that we saved something — but not **where** we saved it.
+
+The apps above are where knowledge often lives today. They are **not** integrated with MindVault. They illustrate the behavior MindVault is designed to solve.
+
+---
+
+## The Idea
+
+**What if the things worth remembering had one home?**
+
+MindVault gives useful knowledge one personal vault — a private place to capture what matters and organize it by type and category.
+
+**What works today:** sign in, capture notes/links/quotes/code/articles, assign categories, browse and filter your vault, edit or delete entries, and see real dashboard statistics for what you have saved.
+
+**What comes next:** AI-assisted understanding and retrieval — helping you organize smarter and find things by meaning, not just by remembering which app you used.
+
+That longer-term vision is the direction. The current build is the secure foundation: capture once, keep it organized, and browse it in one place.
 
 ---
 
