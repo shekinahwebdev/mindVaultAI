@@ -1,0 +1,92 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Minimum persisted shape for MindVault authentication. Login/session
+// logic, roles, OAuth, and profile data are deliberately out of scope
+// until they're designed.
+model User {
+  id String @id @default(cuid())
+
+  // Application code must store this trimmed and lowercased so the
+  // unique constraint behaves as a case-insensitive match in practice.
+  email String @unique
+
+  // Never store a plaintext password — this is a hash only.
+  passwordHash String @map("password_hash")
+
+  // Nullable at the database level: the current sign-up form always
+  // collects a name, but future entry points (e.g. invites, OAuth)
+  // may not.
+  name String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  notes      Note[]
+  categories Category[]
+
+  @@map("users")
+}
+
+enum NoteType {
+  NOTE
+  LINK
+  QUOTE
+  CODE
+  ARTICLE
+  OTHER
+}
+
+model Category {
+  id String @id @default(cuid())
+
+  // Application code must store this trimmed so the per-user unique
+  // constraint behaves predictably.
+  name String
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  notes Note[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@map("categories")
+}
+
+model Note {
+  id String @id @default(cuid())
+
+  title   String
+  content String @db.Text
+  type    NoteType @default(NOTE)
+
+  sourceUrl String? @map("source_url")
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  categoryId String?   @map("category_id")
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([categoryId])
+  @@map("notes")
+}
