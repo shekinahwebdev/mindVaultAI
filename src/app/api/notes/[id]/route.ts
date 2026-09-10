@@ -12,6 +12,7 @@ import {
   parseUpdateNoteBody,
 } from "@/lib/note-validation";
 import { categoryBelongsToUser } from "@/lib/notes/category-ownership";
+import { generateAndStoreNoteEmbedding } from "@/lib/notes/embedding-service";
 import { noteSelect, serializeNote } from "@/lib/notes/serialize";
 
 type RouteContext = {
@@ -103,7 +104,7 @@ export async function PATCH(request: Request, context: RouteContext) {
         id,
         userId: session.userId,
       },
-      select: { id: true },
+      select: { id: true, title: true, content: true },
     });
 
     if (!existing) {
@@ -115,6 +116,23 @@ export async function PATCH(request: Request, context: RouteContext) {
       data: parsed.data,
       select: noteSelect,
     });
+
+    // Only title/content changes affect what the embedding should
+    // represent — a category or source-url-only edit (or resubmitting
+    // the same title/content, which the edit form always does) must not
+    // trigger a wasted embedding API call.
+    const titleChanged =
+      parsed.data.title !== undefined && parsed.data.title !== existing.title;
+    const contentChanged =
+      parsed.data.content !== undefined && parsed.data.content !== existing.content;
+
+    if (titleChanged || contentChanged) {
+      try {
+        await generateAndStoreNoteEmbedding(note);
+      } catch (error) {
+        console.error("[ai:embed-note] unexpected error:", error);
+      }
+    }
 
     return NextResponse.json({ ok: true, note: serializeNote(note) });
   } catch (error) {
