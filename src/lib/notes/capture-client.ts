@@ -1,3 +1,4 @@
+import { NoteType } from "@/generated/prisma/enums";
 import { readAuthJson } from "@/lib/auth/client";
 
 import type { CaptureCreatePayload, CaptureFormValues } from "./capture-validation";
@@ -130,3 +131,28 @@ export async function deleteNoteRequest(id: string) {
 }
 
 export const NOTE_DELETE_FLASH_KEY = "vault-note-delete-flash";
+
+export type NoteAnalysisSuggestion = {
+  title: string;
+  type: NoteType;
+  categoryId: string | null;
+};
+
+export type AnalyzeNoteApiResponse =
+  | { ok: true; suggestion: NoteAnalysisSuggestion }
+  | { ok: false; message?: string };
+
+export async function analyzeNoteRequest(
+  content: string,
+  signal?: AbortSignal,
+) {
+  const response = await fetch("/api/notes/analyze", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content }),
+    signal,
+  });
+
+  const data = await readAuthJson<AnalyzeNoteApiResponse>(response);
+  return { response, data };
+}

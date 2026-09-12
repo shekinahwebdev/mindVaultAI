@@ -13,6 +13,7 @@ import {
   parseNotesListQuery,
 } from "@/lib/note-validation";
 import { categoryBelongsToUser } from "@/lib/notes/category-ownership";
+import { generateAndStoreNoteEmbedding } from "@/lib/notes/embedding-service";
 import { buildNotesListWhere } from "@/lib/notes/list-query";
 import { noteSelect, serializeNote } from "@/lib/notes/serialize";
 
@@ -128,6 +129,15 @@ export async function POST(request: Request) {
       },
       select: noteSelect,
     });
+
+    // Best-effort and isolated from the response: the note is already
+    // saved above, so an embedding-provider outage must never turn a
+    // successful save into a failed request. See embedding-service.ts.
+    try {
+      await generateAndStoreNoteEmbedding(note);
+    } catch (error) {
+      console.error("[ai:embed-note] unexpected error:", error);
+    }
 
     return NextResponse.json(
       { ok: true, note: serializeNote(note) },

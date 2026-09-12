@@ -14,9 +14,12 @@ import { cn } from "@/lib/utils";
 
 type NoteCardProps = {
   note: SerializedNote;
+  // Optional dev/testing affordance (e.g. a semantic-search match score).
+  // Undefined by default, so existing callers render exactly as before.
+  matchLabel?: string;
 };
 
-export function NoteCard({ note }: NoteCardProps) {
+export function NoteCard({ note, matchLabel }: NoteCardProps) {
   const preview = truncateNoteContent(note.content);
   const typeLabel = noteTypeLabels[note.type] ?? note.type;
   const dateLabel = formatNoteDate(note.updatedAt);
@@ -30,8 +33,15 @@ export function NoteCard({ note }: NoteCardProps) {
         <h2 className="min-w-0 flex-1 text-[0.95rem] leading-snug text-white/90 group-hover:text-brand-ink">
           {note.title}
         </h2>
-        <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[0.62rem] tracking-[0.12em] text-white/45 uppercase">
-          {typeLabel}
+        <span className="flex shrink-0 items-center gap-1.5">
+          {matchLabel ? (
+            <span className="rounded-full border border-white/14 bg-white/[0.06] px-2 py-0.5 text-[0.62rem] tracking-[0.1em] text-white/60">
+              {matchLabel}
+            </span>
+          ) : null}
+          <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[0.62rem] tracking-[0.12em] text-white/45 uppercase">
+            {typeLabel}
+          </span>
         </span>
       </div>
 

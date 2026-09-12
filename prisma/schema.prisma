@@ -83,10 +83,36 @@ model Note {
   categoryId String?   @map("category_id")
   category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
+  embedding NoteEmbedding?
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([userId])
   @@index([categoryId])
   @@map("notes")
+}
+
+// One vector per note (note-level semantic search, not chunk-level RAG).
+// Prisma has no native vector scalar, so the column is declared
+// Unsupported and every read/write to `embedding` goes through raw SQL
+// (see src/lib/notes/embedding-repository.ts) — everything else on this
+// model (create/delete bookkeeping) still goes through the normal client.
+model NoteEmbedding {
+  id String @id @default(cuid())
+
+  noteId String @unique @map("note_id")
+  note   Note   @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  // gemini-embedding-001 at outputDimensionality: 768. Recorded per-row
+  // (not just assumed) so a future model/dimension change can be detected
+  // and backfilled instead of silently comparing incompatible vectors.
+  embedding  Unsupported("vector(768)")
+  model      String
+  dimensions Int
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("note_embeddings")
 }

@@ -26,3 +26,14 @@ export const CAPTURE_UNAUTHORIZED =
 
 export const CAPTURE_DISCARD_CONFIRM =
   "Discard this capture? Your unsaved work will be lost.";
+
+export const CAPTURE_ANALYZE_MIN_LENGTH = 20;
+
+export const CAPTURE_ANALYZE_LABEL = "Analyze with AI";
+
+export const CAPTURE_ANALYZING_LABEL = "MindVault is organizing this...";
+
+export const CAPTURE_ANALYZE_ERROR =
+  "MindVault couldn't analyze this right now. You can still organize and save it manually.";
+
+export const CAPTURE_SUGGESTED_LABEL = "Suggested by MindVault";

@@ -13,14 +13,20 @@ import {
 } from "react";
 
 import {
+  CAPTURE_ANALYZE_ERROR,
+  CAPTURE_ANALYZE_LABEL,
+  CAPTURE_ANALYZE_MIN_LENGTH,
+  CAPTURE_ANALYZING_LABEL,
   CAPTURE_DISCARD_CONFIRM,
   CAPTURE_SERVER_ERROR,
   CAPTURE_SUCCESS_MESSAGE,
+  CAPTURE_SUGGESTED_LABEL,
   CAPTURE_UNAUTHORIZED,
   captureNoteTypeOptions,
 } from "@/lib/notes/capture-config";
 import type { CaptureFormValues } from "@/lib/notes/capture-client";
 import {
+  analyzeNoteRequest,
   captureFormIsDirty,
   createNoteRequest,
   emptyCaptureValues,
@@ -58,11 +64,23 @@ export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
   const [formError, setFormError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analyzeError, setAnalyzeError] = useState("");
+  const [suggestedKeys, setSuggestedKeys] = useState<
+    Set<"title" | "type" | "categoryId">
+  >(new Set());
+  const analyzeAbortRef = useRef<AbortController | null>(null);
   const {
     categories,
     loading: categoriesLoading,
     error: categoriesError,
   } = useCategories();
+
+  useEffect(() => {
+    return () => {
+      analyzeAbortRef.current?.abort();
+    };
+  }, []);
 
   useEffect(() => {
     contentRef.current?.focus();
@@ -109,6 +127,72 @@ export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
     setValues((current) => ({ ...current, [key]: value }));
     setErrors((current) => ({ ...current, [key]: undefined }));
     setFormError("");
+
+    if (key === "title" || key === "type" || key === "categoryId") {
+      setSuggestedKeys((current) => {
+        if (!current.has(key)) {
+          return current;
+        }
+        const next = new Set(current);
+        next.delete(key);
+        return next;
+      });
+    }
+  }
+
+  async function handleAnalyze() {
+    if (
+      analyzing ||
+      loading ||
+      success ||
+      values.content.trim().length < CAPTURE_ANALYZE_MIN_LENGTH
+    ) {
+      return;
+    }
+
+    analyzeAbortRef.current?.abort();
+    const controller = new AbortController();
+    analyzeAbortRef.current = controller;
+
+    setAnalyzing(true);
+    setAnalyzeError("");
+
+    try {
+      const { data } = await analyzeNoteRequest(values.content, controller.signal);
+
+      if (!data || !data.ok) {
+        setAnalyzeError(CAPTURE_ANALYZE_ERROR);
+        return;
+      }
+
+      const { suggestion } = data;
+      setValues((current) => ({
+        ...current,
+        title: suggestion.title || current.title,
+        type: suggestion.type,
+        categoryId: suggestion.categoryId ?? current.categoryId,
+      }));
+      setErrors({});
+      setSuggestedKeys(() => {
+        const next = new Set<"title" | "type" | "categoryId">(["type"]);
+        if (suggestion.title) {
+          next.add("title");
+        }
+        if (suggestion.categoryId) {
+          next.add("categoryId");
+        }
+        return next;
+      });
+    } catch (error) {
+      if ((error as { name?: string }).name !== "AbortError") {
+        setAnalyzeError(CAPTURE_ANALYZE_ERROR);
+      }
+    } finally {
+      if (analyzeAbortRef.current === controller) {
+        setAnalyzing(false);
+        analyzeAbortRef.current = null;
+      }
+    }
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -177,6 +261,22 @@ export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
           ref={contentRef}
           id="capture-content"
           label="What do you want to remember?"
+          labelAddon={
+            <button
+              type="button"
+              onClick={handleAnalyze}
+              disabled={
+                analyzing ||
+                loading ||
+                success ||
+                values.content.trim().length < CAPTURE_ANALYZE_MIN_LENGTH
+              }
+              aria-busy={analyzing}
+              className="inline-flex shrink-0 items-center justify-center rounded-full border border-white/12 px-3 py-1 text-[0.65rem] tracking-[0.1em] text-white/58 uppercase transition-colors hover:border-white/20 hover:text-white/80 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {analyzing ? CAPTURE_ANALYZING_LABEL : CAPTURE_ANALYZE_LABEL}
+            </button>
+          }
           value={values.content}
           onChange={(event) => updateField("content", event.target.value)}
           placeholder="Paste an idea, quote, link, code, thought, or anything worth keeping..."
@@ -186,6 +286,22 @@ export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
           textareaClassName="min-h-0 flex-1 resize-none"
         />
 
+        <AnimatePresence mode="wait">
+          {analyzeError ? (
+            <motion.p
+              key="analyze-error"
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.18, ease: vaultEase }}
+              className="shrink-0 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-[0.82rem] text-white/62"
+              role="alert"
+            >
+              {analyzeError}
+            </motion.p>
+          ) : null}
+        </AnimatePresence>
+
         <CaptureInputField
           id="capture-title"
           label="Title"
@@ -194,6 +310,7 @@ export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
           placeholder="Give this capture a name"
           disabled={loading || success}
           error={errors.title}
+          hint={suggestedKeys.has("title") ? CAPTURE_SUGGESTED_LABEL : undefined}
           autoComplete="off"
           className="shrink-0"
         />
@@ -206,6 +323,7 @@ export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
             onChange={(event) => updateField("type", event.target.value)}
             disabled={loading || success}
             error={errors.type}
+            hint={suggestedKeys.has("type") ? CAPTURE_SUGGESTED_LABEL : undefined}
             options={captureNoteTypeOptions.map((option) => ({
               value: option.value,
               label: option.label,
@@ -224,7 +342,9 @@ export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
                 ? CATEGORY_LOAD_ERROR
                 : categoriesLoading
                   ? "Loading categories..."
-                  : undefined
+                  : suggestedKeys.has("categoryId")
+                    ? CAPTURE_SUGGESTED_LABEL
+                    : undefined
             }
             options={[
               { value: "", label: "None / Uncategorized" },
