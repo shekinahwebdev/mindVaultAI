@@ -11,6 +11,8 @@ import type { AgentTraceStep } from "@/lib/agent/types";
 import { createNoteRequest } from "@/lib/notes/capture-client";
 import { noteDetailPath, noteTypeLabels } from "@/lib/notes/note-display";
 import { askVaultRequest, CHAT_LOAD_ERROR, type AskVaultSource } from "@/lib/rag/chat-client";
+import { usePreferences } from "@/lib/settings/preferences-context";
+import { vaultRoutes } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 import { vaultEase } from "../vault-motion";
@@ -46,6 +48,7 @@ type ChatTurn = {
 };
 
 export function ChatView() {
+  const { preferences, loading: preferencesLoading } = usePreferences();
   const [mode, setMode] = useState<ChatMode>("ask");
   const [turns, setTurns] = useState<ChatTurn[]>([]);
   const [input, setInput] = useState("");
@@ -148,6 +151,30 @@ export function ChatView() {
 
   const hasTurns = turns.length > 0;
   const examples = mode === "ask" ? ASK_EXAMPLES : AGENT_EXAMPLES;
+
+  if (!preferencesLoading && !preferences.ragEnabled) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col gap-5">
+        <div>
+          <h1 className="font-editorial text-[1.55rem] text-brand-ink italic sm:text-[1.85rem]">
+            Ask your vault
+          </h1>
+          <p className="mt-2 max-w-xl text-[0.88rem] leading-relaxed text-white/46">
+            Ask MindVault is turned off in your settings. Enable it under AI &amp; Search to
+            question your saved notes.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4 text-[0.88rem] text-white/58">
+          <a
+            href={`${vaultRoutes.settings}/ai`}
+            className="text-white/80 underline decoration-white/20 underline-offset-4 transition-colors hover:text-white"
+          >
+            Open AI &amp; Search settings
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <motion.div
