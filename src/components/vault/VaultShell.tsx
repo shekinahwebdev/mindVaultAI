@@ -7,6 +7,8 @@ import type { SessionData } from "@/lib/auth/session";
 import { vaultRoutes } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
+import { PreferencesProvider } from "@/lib/settings/preferences-context";
+
 import { VaultMobileHeader } from "./VaultMobileHeader";
 import { VaultMobileNav } from "./VaultMobileNav";
 import { VaultSessionProvider } from "./VaultSessionProvider";
@@ -24,6 +26,7 @@ export function VaultShell({ session, children }: VaultShellProps) {
 
   return (
     <VaultSessionProvider session={session}>
+      <PreferencesProvider>
       <div
         className={cn(
           "flex bg-brand-void text-brand-ink",
@@ -56,6 +59,7 @@ export function VaultShell({ session, children }: VaultShellProps) {
 
         {!isCapture ? <VaultMobileNav /> : null}
       </div>
+      </PreferencesProvider>
     </VaultSessionProvider>
   );
 }

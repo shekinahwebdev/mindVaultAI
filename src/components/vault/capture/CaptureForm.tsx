@@ -7,6 +7,7 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useMemo,
   useRef,
   useState,
   type FormEvent,
@@ -35,6 +36,7 @@ import {
 import { routes, vaultRoutes } from "@/lib/routes";
 import { CATEGORY_LOAD_ERROR } from "@/lib/categories/category-client";
 import { useCategories } from "@/lib/categories/use-categories";
+import { usePreferences } from "@/lib/settings/preferences-context";
 import { cn } from "@/lib/utils";
 
 import { vaultEase } from "../vault-motion";
@@ -75,6 +77,19 @@ export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
     loading: categoriesLoading,
     error: categoriesError,
   } = useCategories();
+  const { preferences, loading: preferencesLoading } = usePreferences();
+
+  const formValues = useMemo<CaptureFormValues>(() => {
+    if (preferencesLoading || captureFormIsDirty(values)) {
+      return values;
+    }
+
+    return {
+      ...values,
+      type: preferences.defaultNoteType,
+      categoryId: preferences.defaultCategoryId ?? "",
+    };
+  }, [preferences.defaultCategoryId, preferences.defaultNoteType, preferencesLoading, values]);
 
   useEffect(() => {
     return () => {
@@ -91,7 +106,7 @@ export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
       return;
     }
 
-    if (!captureFormIsDirty(values)) {
+    if (!captureFormIsDirty(formValues)) {
       onRequestClose();
       return;
     }
@@ -99,7 +114,7 @@ export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
     if (window.confirm(CAPTURE_DISCARD_CONFIRM)) {
       onRequestClose();
     }
-  }, [loading, onRequestClose, success, values]);
+  }, [loading, onRequestClose, success, formValues]);
 
   useImperativeHandle(ref, () => ({ requestClose }), [requestClose]);
 
@@ -145,7 +160,7 @@ export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
       analyzing ||
       loading ||
       success ||
-      values.content.trim().length < CAPTURE_ANALYZE_MIN_LENGTH
+      formValues.content.trim().length < CAPTURE_ANALYZE_MIN_LENGTH
     ) {
       return;
     }
@@ -158,7 +173,7 @@ export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
     setAnalyzeError("");
 
     try {
-      const { data } = await analyzeNoteRequest(values.content, controller.signal);
+      const { data } = await analyzeNoteRequest(formValues.content, controller.signal);
 
       if (!data || !data.ok) {
         setAnalyzeError(CAPTURE_ANALYZE_ERROR);
@@ -202,7 +217,7 @@ export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
       return;
     }
 
-    const parsed = validateCaptureForm(values);
+    const parsed = validateCaptureForm(formValues);
     if (!parsed.success) {
       setErrors(parsed.errors);
       return;
@@ -262,22 +277,24 @@ export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
           id="capture-content"
           label="What do you want to remember?"
           labelAddon={
-            <button
-              type="button"
-              onClick={handleAnalyze}
-              disabled={
-                analyzing ||
-                loading ||
-                success ||
-                values.content.trim().length < CAPTURE_ANALYZE_MIN_LENGTH
-              }
-              aria-busy={analyzing}
-              className="inline-flex shrink-0 items-center justify-center rounded-full border border-white/12 px-3 py-1 text-[0.65rem] tracking-[0.1em] text-white/58 uppercase transition-colors hover:border-white/20 hover:text-white/80 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {analyzing ? CAPTURE_ANALYZING_LABEL : CAPTURE_ANALYZE_LABEL}
-            </button>
+            preferences.aiAssistanceEnabled ? (
+              <button
+                type="button"
+                onClick={handleAnalyze}
+                disabled={
+                  analyzing ||
+                  loading ||
+                  success ||
+                  formValues.content.trim().length < CAPTURE_ANALYZE_MIN_LENGTH
+                }
+                aria-busy={analyzing}
+                className="inline-flex shrink-0 items-center justify-center rounded-full border border-white/12 px-3 py-1 text-[0.65rem] tracking-[0.1em] text-white/58 uppercase transition-colors hover:border-white/20 hover:text-white/80 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {analyzing ? CAPTURE_ANALYZING_LABEL : CAPTURE_ANALYZE_LABEL}
+              </button>
+            ) : null
           }
-          value={values.content}
+          value={formValues.content}
           onChange={(event) => updateField("content", event.target.value)}
           placeholder="Paste an idea, quote, link, code, thought, or anything worth keeping..."
           disabled={loading || success}
@@ -305,7 +322,7 @@ export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
         <CaptureInputField
           id="capture-title"
           label="Title"
-          value={values.title}
+          value={formValues.title}
           onChange={(event) => updateField("title", event.target.value)}
           placeholder="Give this capture a name"
           disabled={loading || success}
@@ -319,7 +336,7 @@ export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
           <CaptureSelectField
             id="capture-type"
             label="Type"
-            value={values.type}
+            value={formValues.type}
             onChange={(event) => updateField("type", event.target.value)}
             disabled={loading || success}
             error={errors.type}
@@ -333,7 +350,7 @@ export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
           <CaptureSelectField
             id="capture-category"
             label="Category"
-            value={values.categoryId}
+            value={formValues.categoryId}
             onChange={(event) => updateField("categoryId", event.target.value)}
             disabled={loading || success || categoriesLoading}
             error={errors.categoryId}
@@ -361,7 +378,7 @@ export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
           label="Source URL"
           type="url"
           inputMode="url"
-          value={values.sourceUrl}
+          value={formValues.sourceUrl}
           onChange={(event) => updateField("sourceUrl", event.target.value)}
           placeholder="Optional..."
           disabled={loading || success}

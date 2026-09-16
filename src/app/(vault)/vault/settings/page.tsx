@@ -1,10 +1,7 @@
-import { VaultPlaceholder } from "@/components/vault/VaultPlaceholder";
+import { redirect } from "next/navigation";
 
-export default function VaultSettingsPage() {
-  return (
-    <VaultPlaceholder
-      title="Settings"
-      description="Account and vault preferences will live here. This is a route placeholder for navigation."
-    />
-  );
+import { SETTINGS_DEFAULT_SECTION } from "@/lib/settings/settings-config";
+
+export default function VaultSettingsIndexPage() {
+  redirect(`/vault/settings/${SETTINGS_DEFAULT_SECTION}`);
 }

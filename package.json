@@ -11,10 +11,12 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "embeddings:backfill": "tsx scripts/backfill-embeddings.ts"
+    "embeddings:backfill": "tsx scripts/backfill-embeddings.ts",
+    "mcp": "tsx scripts/mcp-server.ts"
   },
   "dependencies": {
     "@google/genai": "^2.21.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "7.10.0",
     "bcryptjs": "^3.0.3",

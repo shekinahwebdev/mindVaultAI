@@ -17,6 +17,15 @@ export async function POST(request: Request) {
 
   const { session } = auth;
 
+  const { getUserPreferenceFlags } = await import("@/lib/settings/preferences-server");
+  const flags = await getUserPreferenceFlags(session.userId);
+  if (!flags.aiAssistanceEnabled) {
+    return NextResponse.json(
+      { ok: false, message: "AI-assisted organization is disabled in Settings." },
+      { status: 403 },
+    );
+  }
+
   let body: unknown;
   try {
     body = await request.json();

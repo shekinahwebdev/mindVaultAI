@@ -13,5 +13,6 @@ export const vaultRoutes = {
   search: "/vault/search",
   chat: "/vault/chat",
   settings: "/vault/settings",
+  subscription: "/vault/subscription",
   capture: "/vault/capture",
 } as const;

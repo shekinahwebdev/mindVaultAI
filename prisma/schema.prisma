@@ -33,10 +33,35 @@ model User {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  notes      Note[]
-  categories Category[]
+  notes       Note[]
+  categories  Category[]
+  preferences UserPreferences?
 
   @@map("users")
+}
+
+enum SearchMode {
+  KEYWORD
+  SEMANTIC
+}
+
+model UserPreferences {
+  id String @id @default(cuid())
+
+  userId String @unique @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  defaultNoteType     NoteType   @default(NOTE) @map("default_note_type")
+  defaultCategoryId   String?    @map("default_category_id")
+  defaultSearchMode   SearchMode @default(KEYWORD) @map("default_search_mode")
+  aiAssistanceEnabled Boolean    @default(true) @map("ai_assistance_enabled")
+  ragEnabled          Boolean    @default(true) @map("rag_enabled")
+  reducedMotion       Boolean    @default(false) @map("reduced_motion")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("user_preferences")
 }
 
 enum NoteType {

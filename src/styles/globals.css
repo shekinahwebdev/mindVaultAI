@@ -178,6 +178,31 @@
   }
 }
 
+html[data-reduced-motion="true"] .problem-card-float,
+html[data-reduced-motion="true"] .magic-scan,
+html[data-reduced-motion="true"] .magic-caret,
+html[data-reduced-motion="true"] .magic-analyze-glow,
+html[data-reduced-motion="true"] .magic-demo:not(.magic-demo-instant) .magic-capture-layer,
+html[data-reduced-motion="true"] .magic-demo:not(.magic-demo-instant) .magic-result-layer,
+html[data-reduced-motion="true"] .magic-demo:not(.magic-demo-instant) .magic-paste-text,
+html[data-reduced-motion="true"] .magic-demo:not(.magic-demo-instant) .magic-analyze-chip,
+html[data-reduced-motion="true"] .remember-demo:not(.remember-demo-instant) .remember-query-text,
+html[data-reduced-motion="true"] .remember-demo:not(.remember-demo-instant) .remember-caret,
+html[data-reduced-motion="true"] .remember-search-pulse,
+html[data-reduced-motion="true"] .remember-demo:not(.remember-demo-instant) .remember-answer,
+html[data-reduced-motion="true"] .remember-demo:not(.remember-demo-instant) .remember-source {
+  animation: none !important;
+}
+
+html[data-reduced-motion="true"] *,
+html[data-reduced-motion="true"] *::before,
+html[data-reduced-motion="true"] *::after {
+  scroll-behavior: auto !important;
+  transition-duration: 0.01ms !important;
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+}
+
 @keyframes intro-step-enter-next {
   from {
     opacity: 0;

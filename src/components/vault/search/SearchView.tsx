@@ -11,6 +11,7 @@ import {
   type SemanticSearchMatch,
 } from "@/lib/notes/semantic-search-client";
 import type { SerializedNote } from "@/lib/notes/serialize";
+import { usePreferences } from "@/lib/settings/preferences-context";
 import { cn } from "@/lib/utils";
 
 import { vaultEase } from "../vault-motion";
@@ -20,7 +21,11 @@ type SearchMode = "keyword" | "semantic";
 const KEYWORD_DEBOUNCE_MS = 300;
 
 export function SearchView() {
-  const [mode, setMode] = useState<SearchMode>("keyword");
+  const { preferences, loading: preferencesLoading } = usePreferences();
+  const [modeOverride, setModeOverride] = useState<SearchMode | null>(null);
+  const preferredMode: SearchMode =
+    preferences.defaultSearchMode === "SEMANTIC" ? "semantic" : "keyword";
+  const mode = modeOverride ?? (preferencesLoading ? "keyword" : preferredMode);
   const [input, setInput] = useState("");
 
   const [keywordResults, setKeywordResults] = useState<SerializedNote[]>([]);
@@ -126,7 +131,7 @@ export function SearchView() {
   }
 
   function handleModeChange(nextMode: SearchMode) {
-    setMode(nextMode);
+    setModeOverride(nextMode);
     // Each mode keeps its own result set — switching tabs never fires an
     // API call by itself, especially not a Gemini one for semantic mode.
   }
