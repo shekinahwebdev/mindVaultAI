@@ -1,4 +1,4 @@
-import { NoteType, SearchMode } from "@/generated/prisma/enums";
+import { NoteType, SearchMode, ThemeMode } from "@/generated/prisma/enums";
 
 const NOTE_TYPES = new Set<string>(Object.values(NoteType));
 const SEARCH_MODES = new Set<string>(Object.values(SearchMode));
@@ -22,6 +22,7 @@ export type UpdatePreferencesPayload = {
   aiAssistanceEnabled?: boolean;
   ragEnabled?: boolean;
   reducedMotion?: boolean;
+  theme?: string;
 };
 
 export type DeleteAccountPayload = {
@@ -169,6 +170,15 @@ export function parseUpdatePreferencesBody(body: unknown):
       errors.reducedMotion = "Invalid value.";
     } else {
       data.reducedMotion = body.reducedMotion;
+    }
+  }
+
+  if ("theme" in body) {
+    const value = typeof body.theme === "string" ? body.theme : "";
+    if (!Object.values(ThemeMode).includes(value as ThemeMode)) {
+      errors.theme = "Invalid theme.";
+    } else {
+      data.theme = value;
     }
   }
 

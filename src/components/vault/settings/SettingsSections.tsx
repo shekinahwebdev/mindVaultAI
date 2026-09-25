@@ -39,15 +39,34 @@ import type {
 import { usePreferences } from "@/lib/settings/preferences-context";
 import { getVaultInitials } from "@/lib/vault/user-display";
 import { useVaultSession } from "@/components/vault/VaultSessionProvider";
+import { useTheme } from "@/components/theme/ThemeProvider";
+import { toastError, toastSuccess } from "@/lib/vault-toast";
+import {
+  prismaThemeToPreference,
+  preferenceToPrismaTheme,
+  type ThemePreference,
+} from "@/lib/theme";
 import { cn } from "@/lib/utils";
+
+import {
+  vaultActionShape,
+  vaultDestructiveButton,
+  vaultPrimaryButton,
+  vaultSecondaryButton,
+} from "../vault-controls";
 
 import {
   SettingsDangerPanel,
   SettingsField,
+  SettingsFormFooter,
+  SettingsMetadataRow,
   SettingsPanel,
+  SettingsProfileSummary,
   SettingsReadOnlyValue,
+  SettingsSectionLoading,
   SettingsStatus,
   SettingsToggleRow,
+  settingsFormStackClassName,
   settingsInputClassName,
   settingsSelectClassName,
 } from "./settings-ui";
@@ -111,7 +130,6 @@ export function AccountSettingsSection() {
   const name = nameDraft ?? seedName;
   const [fieldError, setFieldError] = useState("");
   const [formError, setFormError] = useState("");
-  const [success, setSuccess] = useState("");
   const [saving, setSaving] = useState(false);
   const submittingRef = useRef(false);
 
@@ -123,12 +141,11 @@ export function AccountSettingsSection() {
     setSaving(true);
     setFieldError("");
     setFormError("");
-    setSuccess("");
 
     const { data: response } = await updateAccountRequest(name.trim());
 
     if (response?.ok) {
-      setSuccess(ACCOUNT_UPDATE_SUCCESS);
+      toastSuccess(ACCOUNT_UPDATE_SUCCESS);
       setNameDraft(null);
       await reload();
       await refreshPreferences();
@@ -136,7 +153,7 @@ export function AccountSettingsSection() {
     } else if (response && !response.ok && response.errors?.name) {
       setFieldError(response.errors.name);
     } else {
-      setFormError(response?.message || SETTINGS_SERVER_ERROR);
+      toastError(response?.message || SETTINGS_SERVER_ERROR);
     }
 
     submittingRef.current = false;
@@ -144,7 +161,7 @@ export function AccountSettingsSection() {
   }
 
   if (loading) {
-    return <p className="text-[0.84rem] text-white/42">Loading account...</p>;
+    return <SettingsSectionLoading message="Loading account…" />;
   }
 
   if (error || !data) {
@@ -162,22 +179,13 @@ export function AccountSettingsSection() {
       title="Your account"
       description="Profile details for your MindVault workspace."
     >
-      <div className="flex items-center gap-3">
-        <div
-          aria-hidden
-          className="flex size-12 items-center justify-center rounded-full border border-white/12 bg-white/[0.04] text-[0.9rem] text-white/72"
-        >
-          {initials}
-        </div>
-        <div>
-          <p className="text-[0.88rem] text-white/82">
-            {data.account.name || "MindVault user"}
-          </p>
-          <p className="text-[0.78rem] text-white/38">{data.account.email}</p>
-        </div>
-      </div>
+      <SettingsProfileSummary
+        initials={initials}
+        name={data.account.name || "MindVault user"}
+        email={data.account.email}
+      />
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className={settingsFormStackClassName}>
         <SettingsField id="account-name" label="Name" error={fieldError}>
           <input
             id="account-name"
@@ -185,7 +193,6 @@ export function AccountSettingsSection() {
             onChange={(event) => {
               setNameDraft(event.target.value);
               setFieldError("");
-              setSuccess("");
             }}
             disabled={saving}
             className={settingsInputClassName}
@@ -195,23 +202,18 @@ export function AccountSettingsSection() {
 
         <SettingsReadOnlyValue label="Email" value={data.account.email} />
 
-        <SettingsReadOnlyValue
+        <SettingsMetadataRow
           label="Member since"
           value={formatNoteDate(data.account.createdAt)}
         />
 
-        {success ? <SettingsStatus message={success} /> : null}
         {formError ? <SettingsStatus message={formError} tone="error" /> : null}
 
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            disabled={saving}
-            className="inline-flex min-h-10 items-center rounded-full bg-brand-ink px-5 text-[0.74rem] tracking-[0.14em] text-brand-void uppercase disabled:opacity-70"
-          >
-            {saving ? "Saving..." : "Save Changes"}
+        <SettingsFormFooter>
+          <button type="submit" disabled={saving} className={vaultPrimaryButton}>
+            {saving ? "Saving…" : "Save Changes"}
           </button>
-        </div>
+        </SettingsFormFooter>
       </form>
     </SettingsPanel>
   );
@@ -220,59 +222,112 @@ export function AccountSettingsSection() {
 export function AppearanceSettingsSection() {
   const { data, loading, error, reload } = useSettingsData();
   const { setPreferences } = usePreferences();
-  const [success, setSuccess] = useState("");
-  const [formError, setFormError] = useState("");
+  const { preference, setPreference } = useTheme();
   const [saving, setSaving] = useState(false);
 
-  async function saveReducedMotion(next: boolean) {
+  async function saveAppearance(
+    patch: Partial<SerializedPreferences>,
+    nextTheme?: ThemePreference,
+  ) {
+    if (nextTheme) {
+      setPreference(nextTheme);
+    }
+
     setSaving(true);
-    setSuccess("");
-    setFormError("");
 
     const { data: response } = await updatePreferencesRequest({
-      reducedMotion: next,
+      ...patch,
+      ...(nextTheme ? { theme: preferenceToPrismaTheme(nextTheme) } : {}),
     });
 
     if (response?.ok) {
       setPreferences(response.preferences);
-      setSuccess(PREFERENCES_UPDATE_SUCCESS);
+      toastSuccess(PREFERENCES_UPDATE_SUCCESS);
       await reload();
     } else {
-      setFormError(response?.message || SETTINGS_SERVER_ERROR);
+      toastError(response?.message || SETTINGS_SERVER_ERROR);
     }
 
     setSaving(false);
   }
 
   if (loading) {
-    return <p className="text-[0.84rem] text-white/42">Loading appearance...</p>;
+    return <SettingsSectionLoading message="Loading appearance…" />;
   }
 
   if (error || !data) {
     return <SettingsStatus message={error || SETTINGS_LOAD_ERROR} tone="error" />;
   }
 
+  const currentTheme = prismaThemeToPreference(data.preferences.theme);
+  const selectedTheme = preference || currentTheme;
+
+  const themeOptions: Array<{
+    value: ThemePreference;
+    label: string;
+    description: string;
+  }> = [
+    {
+      value: "light",
+      label: "Light",
+      description: "Clean neutral surfaces for daytime reading.",
+    },
+    {
+      value: "dark",
+      label: "Dark",
+      description: "Near-black workspace with charcoal panels.",
+    },
+    {
+      value: "system",
+      label: "System",
+      description: "Follow your operating system preference.",
+    },
+  ];
+
   return (
     <SettingsPanel
       title="Appearance"
-      description="MindVault is designed as a dark, focused workspace."
+      description="Choose a light, dark, or system workspace. The preference is saved to your account and remembered on this device."
     >
-      <SettingsReadOnlyValue label="Theme" value="Dark" />
-      <p className="text-[0.78rem] text-white/32">
-        Light and System themes are coming soon. MindVault&apos;s current interface
-        is built for a dark, minimal reading experience.
-      </p>
+      <div>
+        <p className="mb-2 text-[0.8125rem] font-medium text-foreground">Theme</p>
+        <div className="grid gap-2 sm:grid-cols-3">
+          {themeOptions.map((option) => {
+            const active = selectedTheme === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                aria-pressed={active}
+                disabled={saving}
+                onClick={() => void saveAppearance({}, option.value)}
+                className={cn(
+                  "rounded-[8px] border px-3.5 py-3 text-left transition-colors",
+                  active
+                    ? "border-primary/25 bg-surface"
+                    : "border-border bg-mv-panel hover:border-foreground/20",
+                  saving && "opacity-70",
+                )}
+              >
+                <span className="block text-[0.84rem] font-medium text-foreground">
+                  {option.label}
+                </span>
+                <span className="mt-1 block text-[0.72rem] leading-snug text-muted-foreground">
+                  {option.description}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       <SettingsToggleRow
         label="Reduced motion"
         description="Minimize non-essential animations across the vault."
         checked={data.preferences.reducedMotion}
-        onChange={(checked) => void saveReducedMotion(checked)}
+        onChange={(checked) => void saveAppearance({ reducedMotion: checked })}
         disabled={saving}
       />
-
-      {success ? <SettingsStatus message={success} /> : null}
-      {formError ? <SettingsStatus message={formError} tone="error" /> : null}
     </SettingsPanel>
   );
 }
@@ -281,30 +336,28 @@ export function VaultPreferencesSection() {
   const { categories, loading: categoriesLoading } = useCategories();
   const { data, loading, error, reload } = useSettingsData();
   const { setPreferences } = usePreferences();
-  const [success, setSuccess] = useState("");
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
 
   async function savePreferences(patch: Partial<SerializedPreferences>) {
     setSaving(true);
-    setSuccess("");
     setFormError("");
 
     const { data: response } = await updatePreferencesRequest(patch);
 
     if (response?.ok) {
       setPreferences(response.preferences);
-      setSuccess(PREFERENCES_UPDATE_SUCCESS);
+      toastSuccess(PREFERENCES_UPDATE_SUCCESS);
       await reload();
     } else {
-      setFormError(response?.message || SETTINGS_SERVER_ERROR);
+      toastError(response?.message || SETTINGS_SERVER_ERROR);
     }
 
     setSaving(false);
   }
 
   if (loading) {
-    return <p className="text-[0.84rem] text-white/42">Loading preferences...</p>;
+    return <SettingsSectionLoading message="Loading preferences…" />;
   }
 
   if (error || !data) {
@@ -330,7 +383,7 @@ export function VaultPreferencesSection() {
             <option
               key={option.value}
               value={option.value}
-              className="bg-[#111114] text-brand-ink"
+              className="bg-surface text-foreground"
             >
               {option.label}
             </option>
@@ -350,14 +403,14 @@ export function VaultPreferencesSection() {
           }
           className={settingsSelectClassName}
         >
-          <option value="" className="bg-[#111114] text-brand-ink">
+          <option value="" className="bg-surface text-foreground">
             None / Uncategorized
           </option>
           {categories.map((category) => (
             <option
               key={category.id}
               value={category.id}
-              className="bg-[#111114] text-brand-ink"
+              className="bg-surface text-foreground"
             >
               {category.name}
             </option>
@@ -365,12 +418,11 @@ export function VaultPreferencesSection() {
         </select>
       </SettingsField>
 
-      <p className="text-[0.78rem] text-white/32">
+      <p className="text-[0.78rem] text-mv-faint">
         Capture opens as a focused full-screen flow. More capture behavior
         options may come later.
       </p>
 
-      {success ? <SettingsStatus message={success} /> : null}
       {formError ? <SettingsStatus message={formError} tone="error" /> : null}
     </SettingsPanel>
   );
@@ -379,30 +431,28 @@ export function VaultPreferencesSection() {
 export function AiSearchSettingsSection() {
   const { data, loading, error, reload } = useSettingsData();
   const { setPreferences } = usePreferences();
-  const [success, setSuccess] = useState("");
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
 
   async function savePreferences(patch: Partial<SerializedPreferences>) {
     setSaving(true);
-    setSuccess("");
     setFormError("");
 
     const { data: response } = await updatePreferencesRequest(patch);
 
     if (response?.ok) {
       setPreferences(response.preferences);
-      setSuccess(PREFERENCES_UPDATE_SUCCESS);
+      toastSuccess(PREFERENCES_UPDATE_SUCCESS);
       await reload();
     } else {
-      setFormError(response?.message || SETTINGS_SERVER_ERROR);
+      toastError(response?.message || SETTINGS_SERVER_ERROR);
     }
 
     setSaving(false);
   }
 
   if (loading) {
-    return <p className="text-[0.84rem] text-white/42">Loading AI settings...</p>;
+    return <SettingsSectionLoading message="Loading AI settings…" />;
   }
 
   if (error || !data) {
@@ -434,10 +484,10 @@ export function AiSearchSettingsSection() {
           }
           className={settingsSelectClassName}
         >
-          <option value="KEYWORD" className="bg-[#111114] text-brand-ink">
+          <option value="KEYWORD" className="bg-surface text-foreground">
             Keyword
           </option>
-          <option value="SEMANTIC" className="bg-[#111114] text-brand-ink">
+          <option value="SEMANTIC" className="bg-surface text-foreground">
             Semantic
           </option>
         </select>
@@ -451,7 +501,6 @@ export function AiSearchSettingsSection() {
         disabled={saving}
       />
 
-      {success ? <SettingsStatus message={success} /> : null}
       {formError ? <SettingsStatus message={formError} tone="error" /> : null}
     </SettingsPanel>
   );
@@ -464,7 +513,6 @@ export function PrivacySecuritySection() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState("");
-  const [success, setSuccess] = useState("");
   const [saving, setSaving] = useState(false);
   const submittingRef = useRef(false);
 
@@ -476,7 +524,6 @@ export function PrivacySecuritySection() {
     setSaving(true);
     setErrors({});
     setFormError("");
-    setSuccess("");
 
     const { data } = await changePasswordRequest({
       currentPassword,
@@ -485,7 +532,7 @@ export function PrivacySecuritySection() {
     });
 
     if (data?.ok) {
-      setSuccess(PASSWORD_UPDATE_SUCCESS);
+      toastSuccess(PASSWORD_UPDATE_SUCCESS);
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
@@ -510,7 +557,7 @@ export function PrivacySecuritySection() {
           value={session.email}
         />
 
-        <form onSubmit={handlePasswordSubmit} className="space-y-4">
+        <form onSubmit={handlePasswordSubmit} className={settingsFormStackClassName}>
           <SettingsField
             id="current-password"
             label="Current password"
@@ -559,28 +606,26 @@ export function PrivacySecuritySection() {
             />
           </SettingsField>
 
-          {success ? <SettingsStatus message={success} /> : null}
           {formError ? <SettingsStatus message={formError} tone="error" /> : null}
 
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              disabled={saving}
-              className="inline-flex min-h-10 items-center rounded-full bg-brand-ink px-5 text-[0.74rem] tracking-[0.14em] text-brand-void uppercase disabled:opacity-70"
-            >
-              {saving ? "Updating..." : "Change Password"}
+          <SettingsFormFooter>
+            <button type="submit" disabled={saving} className={vaultPrimaryButton}>
+              {saving ? "Updating…" : "Change Password"}
             </button>
-          </div>
+          </SettingsFormFooter>
         </form>
 
-        <div className="border-t border-white/[0.06] pt-4">
+        <div className="border-t border-border pt-5">
           <VaultLogoutAction
             label="Log out"
-            className="w-full justify-center rounded-full border border-white/12 px-4 py-2.5"
+            className={cn(
+              "w-full justify-center border border-border px-4 py-2.5",
+              vaultActionShape,
+            )}
           />
         </div>
 
-        <p className="text-[0.76rem] leading-relaxed text-white/32">
+        <p className="text-[0.76rem] leading-relaxed text-mv-faint">
           Individual device sessions are not tracked. Logging out clears this
           browser&apos;s session cookie.
         </p>
@@ -593,7 +638,7 @@ export function DataStorageSection() {
   const { data, loading, error } = useSettingsData();
 
   if (loading) {
-    return <p className="text-[0.84rem] text-white/42">Loading storage...</p>;
+    return <SettingsSectionLoading message="Loading storage…" />;
   }
 
   if (error || !data) {
@@ -616,30 +661,32 @@ export function DataStorageSection() {
 
       {Object.keys(storage.typeCounts).length > 0 ? (
         <div className="space-y-2">
-          <p className="text-[0.62rem] tracking-[0.16em] text-white/38 uppercase">
+          <p className="text-[0.75rem] font-medium text-muted-foreground">
             By type
           </p>
           <ul className="space-y-1.5">
             {Object.entries(storage.typeCounts).map(([type, count]) => (
               <li
                 key={type}
-                className="flex items-center justify-between rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-[0.82rem]"
+                className="flex items-center justify-between rounded-lg border border-border bg-mv-panel px-3 py-2 text-[0.82rem]"
               >
-                <span className="text-white/62">{type}</span>
-                <span className="text-white/38">{count}</span>
+                <span className="text-muted-foreground">{type}</span>
+                <span className="text-mv-faint">{count}</span>
               </li>
             ))}
           </ul>
         </div>
       ) : null}
 
-      <p className="text-[0.78rem] text-white/32">
+      <p className="text-[0.78rem] text-mv-faint">
         MindVault does not track approximate file storage size yet.
       </p>
 
       <a
         href={exportVaultDownloadUrl()}
-        className="inline-flex min-h-10 items-center rounded-full border border-white/12 px-4 text-[0.74rem] tracking-[0.12em] text-white/72 uppercase transition-colors hover:border-white/20 hover:text-white/88"
+        className={cn(
+          vaultSecondaryButton,
+        )}
       >
         Export Vault (JSON)
       </a>
@@ -649,11 +696,9 @@ export function DataStorageSection() {
 
 function StatItem({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3.5 py-3">
-      <dt className="text-[0.62rem] tracking-[0.16em] text-white/38 uppercase">
-        {label}
-      </dt>
-      <dd className="mt-1.5 font-editorial text-[1.35rem] text-brand-ink italic">
+    <div className="rounded-[10px] border border-border bg-mv-panel/40 px-3.5 py-3">
+      <dt className="text-[0.75rem] font-medium text-muted-foreground">{label}</dt>
+      <dd className="mt-1 text-[1.125rem] font-semibold tabular-nums tracking-[-0.02em] text-foreground">
         {value.toLocaleString()}
       </dd>
     </div>
@@ -709,18 +754,18 @@ export function AdvancedSettingsSection() {
         });
       }
     } else {
-      setFormError(response?.message || SETTINGS_SERVER_ERROR);
+      toastError(response?.message || SETTINGS_SERVER_ERROR);
     }
 
     setRebuilding(false);
   }
 
   if (loading) {
-    return <p className="text-[0.84rem] text-white/42">Loading advanced...</p>;
+    return <SettingsSectionLoading message="Loading advanced…" />;
   }
 
   return (
-    <>
+    <div className="space-y-5">
       <SettingsPanel
         title="Advanced"
         description="Technical status for semantic search. Only missing or outdated embeddings are rebuilt."
@@ -738,13 +783,14 @@ export function AdvancedSettingsSection() {
           onClick={() => void handleRebuild()}
           disabled={rebuilding || (status?.missingEmbeddings ?? 0) === 0}
           className={cn(
-            "inline-flex min-h-10 items-center rounded-full border border-white/12 px-4 text-[0.74rem] tracking-[0.12em] text-white/72 uppercase transition-colors hover:border-white/20 hover:text-white/88 disabled:cursor-not-allowed disabled:opacity-50",
+            "inline-flex min-h-10 items-center border border-border px-4 text-[0.74rem] text-[0.875rem] font-medium text-foreground/90 transition-colors hover:border-foreground/20 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50",
+            vaultActionShape,
           )}
         >
           {rebuilding ? "Rebuilding..." : "Rebuild Missing Embeddings"}
         </button>
 
-        <p className="text-[0.78rem] text-white/32">
+        <p className="text-[0.78rem] text-mv-faint">
           This only generates embeddings for notes that are missing them or use
           an outdated model configuration. It does not regenerate every note.
         </p>
@@ -754,7 +800,7 @@ export function AdvancedSettingsSection() {
       </SettingsPanel>
 
       <DeleteAccountSection />
-    </>
+    </div>
   );
 }
 
@@ -804,7 +850,7 @@ function DeleteAccountSection() {
       title="Danger Zone"
       description="Permanently delete your account and all notes, categories, and embeddings. This cannot be undone."
     >
-      <form onSubmit={handleDelete} className="space-y-4">
+      <form onSubmit={handleDelete} className={settingsFormStackClassName}>
         <SettingsField
           id="delete-password"
           label="Current password"
@@ -841,9 +887,11 @@ function DeleteAccountSection() {
         <button
           type="submit"
           disabled={deleting}
-          className="inline-flex min-h-10 items-center rounded-full border border-red-400/30 bg-red-400/[0.08] px-4 text-[0.72rem] tracking-[0.12em] text-red-200/90 uppercase disabled:opacity-70"
+          className={cn(
+            vaultDestructiveButton,
+          )}
         >
-          {deleting ? "Deleting..." : "Delete Account"}
+          {deleting ? "Deleting…" : "Delete account"}
         </button>
       </form>
     </SettingsDangerPanel>

@@ -1,7 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   forwardRef,
   useCallback,
@@ -14,7 +13,6 @@ import {
 } from "react";
 
 import {
-  CAPTURE_ANALYZE_ERROR,
   CAPTURE_ANALYZE_LABEL,
   CAPTURE_ANALYZE_MIN_LENGTH,
   CAPTURE_ANALYZING_LABEL,
@@ -37,9 +35,15 @@ import { routes, vaultRoutes } from "@/lib/routes";
 import { CATEGORY_LOAD_ERROR } from "@/lib/categories/category-client";
 import { useCategories } from "@/lib/categories/use-categories";
 import { usePreferences } from "@/lib/settings/preferences-context";
+import { toastError, toastSuccess } from "@/lib/vault-toast";
 import { cn } from "@/lib/utils";
 
-import { vaultEase } from "../vault-motion";
+import {
+  vaultGhostButton,
+  vaultPrimaryButton,
+  vaultSecondaryButton,
+} from "../vault-controls";
+
 import {
   CaptureInputField,
   CaptureSelectField,
@@ -59,15 +63,15 @@ type CaptureFieldErrors = Partial<Record<keyof CaptureFormValues, string>>;
 export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
   function CaptureForm({ onRequestClose }, ref) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const contentRef = useRef<HTMLTextAreaElement>(null);
   const submittingRef = useRef(false);
   const [values, setValues] = useState<CaptureFormValues>(emptyCaptureValues);
   const [errors, setErrors] = useState<CaptureFieldErrors>({});
-  const [formError, setFormError] = useState("");
+  const [, setFormError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
-  const [analyzeError, setAnalyzeError] = useState("");
   const [suggestedKeys, setSuggestedKeys] = useState<
     Set<"title" | "type" | "categoryId">
   >(new Set());
@@ -90,6 +94,23 @@ export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
       categoryId: preferences.defaultCategoryId ?? "",
     };
   }, [preferences.defaultCategoryId, preferences.defaultNoteType, preferencesLoading, values]);
+
+  useEffect(() => {
+    const typeParam = searchParams.get("type");
+    if (!typeParam) {
+      return;
+    }
+    const isValid = captureNoteTypeOptions.some(
+      (option) => option.value === typeParam,
+    );
+    if (!isValid) {
+      return;
+    }
+    setValues((current) => ({
+      ...current,
+      type: typeParam as CaptureFormValues["type"],
+    }));
+  }, [searchParams]);
 
   useEffect(() => {
     return () => {
@@ -170,13 +191,12 @@ export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
     analyzeAbortRef.current = controller;
 
     setAnalyzing(true);
-    setAnalyzeError("");
 
     try {
       const { data } = await analyzeNoteRequest(formValues.content, controller.signal);
 
       if (!data || !data.ok) {
-        setAnalyzeError(CAPTURE_ANALYZE_ERROR);
+        toastError("MindVault couldn't analyze this right now.");
         return;
       }
 
@@ -200,7 +220,7 @@ export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
       });
     } catch (error) {
       if ((error as { name?: string }).name !== "AbortError") {
-        setAnalyzeError(CAPTURE_ANALYZE_ERROR);
+        toastError("MindVault couldn't analyze this right now.");
       }
     } finally {
       if (analyzeAbortRef.current === controller) {
@@ -249,20 +269,23 @@ export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
 
         if ("message" in data && data.message) {
           setFormError(data.message);
+          toastError(data.message);
         } else {
           setFormError(CAPTURE_SERVER_ERROR);
+          toastError(CAPTURE_SERVER_ERROR);
         }
         return;
       }
 
       setSuccess(true);
+      toastSuccess(CAPTURE_SUCCESS_MESSAGE);
       router.refresh();
 
       window.setTimeout(() => {
         router.push(vaultRoutes.dashboard);
       }, 900);
     } catch {
-      setFormError(CAPTURE_SERVER_ERROR);
+      toastError(CAPTURE_SERVER_ERROR);
     } finally {
       submittingRef.current = false;
       setLoading(false);
@@ -288,7 +311,10 @@ export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
                   formValues.content.trim().length < CAPTURE_ANALYZE_MIN_LENGTH
                 }
                 aria-busy={analyzing}
-                className="inline-flex shrink-0 items-center justify-center rounded-full border border-white/12 px-3 py-1 text-[0.65rem] tracking-[0.1em] text-white/58 uppercase transition-colors hover:border-white/20 hover:text-white/80 disabled:cursor-not-allowed disabled:opacity-40"
+                className={cn(
+                  vaultGhostButton,
+                  "h-8 shrink-0 border border-border px-3 text-[0.8125rem]",
+                )}
               >
                 {analyzing ? CAPTURE_ANALYZING_LABEL : CAPTURE_ANALYZE_LABEL}
               </button>
@@ -302,22 +328,6 @@ export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
           className="flex min-h-0 flex-1 flex-col"
           textareaClassName="min-h-0 flex-1 resize-none"
         />
-
-        <AnimatePresence mode="wait">
-          {analyzeError ? (
-            <motion.p
-              key="analyze-error"
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.18, ease: vaultEase }}
-              className="shrink-0 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-[0.82rem] text-white/62"
-              role="alert"
-            >
-              {analyzeError}
-            </motion.p>
-          ) : null}
-        </AnimatePresence>
 
         <CaptureInputField
           id="capture-title"
@@ -386,47 +396,15 @@ export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
           autoComplete="off"
           className="shrink-0"
         />
-
-        <AnimatePresence mode="wait">
-          {formError ? (
-            <motion.p
-              key={formError}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.18, ease: vaultEase }}
-              className="rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-[0.82rem] text-white/62"
-              role="alert"
-            >
-              {formError}
-            </motion.p>
-          ) : null}
-        </AnimatePresence>
-
-        <AnimatePresence mode="wait">
-          {success ? (
-            <motion.p
-              key="success"
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.22, ease: vaultEase }}
-              className="rounded-xl border border-white/14 bg-white/[0.05] px-3.5 py-3 text-[0.86rem] text-brand-ink"
-              role="status"
-            >
-              {CAPTURE_SUCCESS_MESSAGE}
-            </motion.p>
-          ) : null}
-        </AnimatePresence>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-20 shrink-0 border-t border-white/[0.08] bg-[#0a0a0c]/95 px-4 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] backdrop-blur-md md:static md:z-auto md:mt-3 md:border-t-0 md:bg-transparent md:px-0 md:py-0 md:pb-0">
+      <div className="fixed inset-x-0 bottom-0 z-20 shrink-0 border-t border-border bg-mv-panel/95 px-4 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] backdrop-blur-md md:static md:z-auto md:mt-3 md:border-t-0 md:bg-transparent md:px-0 md:py-0 md:pb-0">
         <div className="mx-auto flex max-w-2xl items-center justify-end gap-2.5">
           <button
             type="button"
             onClick={requestClose}
             disabled={loading || success}
-            className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/12 px-4 text-[0.74rem] tracking-[0.12em] text-white/58 uppercase transition-colors hover:border-white/20 hover:text-white/78 disabled:cursor-not-allowed disabled:opacity-50"
+            className={vaultSecondaryButton}
           >
             Cancel
           </button>
@@ -434,10 +412,7 @@ export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
             type="submit"
             disabled={loading || success}
             aria-busy={loading}
-            className={cn(
-              "inline-flex min-h-11 items-center justify-center rounded-full bg-brand-ink px-5 text-[0.74rem] tracking-[0.14em] text-brand-void uppercase transition-opacity disabled:cursor-not-allowed",
-              loading && "opacity-80",
-            )}
+            className={cn(vaultPrimaryButton, loading && "opacity-80")}
           >
             {loading ? "Saving..." : "Save to Vault"}
           </button>

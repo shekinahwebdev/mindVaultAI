@@ -17,15 +17,24 @@ import {
 import { useNotesList } from "@/lib/notes/use-notes-list";
 import { useCategories } from "@/lib/categories/use-categories";
 import { vaultRoutes } from "@/lib/routes";
+import { toastSuccess } from "@/lib/vault-toast";
 import { cn } from "@/lib/utils";
+
+import {
+  vaultMetaClassName,
+  vaultPageLeadClassName,
+  vaultPageTitleClassName,
+  vaultPrimaryButton,
+  vaultSecondaryButton,
+} from "../vault-controls";
 
 import { vaultEase } from "../vault-motion";
 
 const filterSelectClassName =
-  "min-h-10 w-full appearance-none rounded-xl border border-white/12 bg-white/[0.035] px-3 py-2 pr-8 text-[0.82rem] text-brand-ink outline-none focus:border-white/28";
+  "min-h-10 w-full appearance-none rounded-[var(--radius-input)] border border-border bg-mv-panel px-3 py-2 pr-8 text-[0.82rem] text-foreground outline-none focus:border-foreground/25";
 
 const filterLabelClassName =
-  "text-[0.62rem] tracking-[0.16em] text-white/42 uppercase";
+  "text-[0.72rem] font-medium text-mv-faint";
 
 function FilterSelect({
   id,
@@ -60,7 +69,7 @@ function FilterSelect({
             <option
               key={option.value}
               value={option.value}
-              className="bg-[#111114] text-brand-ink"
+              className="bg-surface text-foreground"
             >
               {option.label}
             </option>
@@ -68,7 +77,7 @@ function FilterSelect({
         </select>
         <span
           aria-hidden
-          className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-[0.65rem] text-white/35"
+          className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-[0.65rem] text-mv-faint"
         >
           ▼
         </span>
@@ -86,17 +95,14 @@ export function NotesView() {
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
-  const [flashMessage, setFlashMessage] = useState(() => {
-    if (typeof window === "undefined") {
-      return "";
-    }
 
+  useEffect(() => {
     const message = sessionStorage.getItem(NOTE_DELETE_FLASH_KEY);
     if (message) {
       sessionStorage.removeItem(NOTE_DELETE_FLASH_KEY);
+      toastSuccess(message);
     }
-    return message ?? "";
-  });
+  }, []);
 
   const { categories, loading: categoriesLoading } = useCategories();
   const { notes, total, totalPages, loading, loadingMore, error } = useNotesList(
@@ -197,51 +203,38 @@ export function NotesView() {
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="font-editorial text-[1.55rem] text-brand-ink italic sm:text-[1.85rem]">
-            All Notes
-          </h1>
-          <p className="mt-2 max-w-xl text-[0.88rem] leading-relaxed text-white/46">
+          <h1 className={vaultPageTitleClassName}>All notes</h1>
+          <p className={cn(vaultPageLeadClassName, "max-w-xl")}>
             Everything you&apos;ve saved, in one place.
           </p>
           {!loading && !error ? (
-            <p className="mt-2 text-[0.74rem] tracking-[0.1em] text-white/34 uppercase">
-              {noteCountLabel}
-            </p>
+            <p className={cn("mt-2", vaultMetaClassName)}>{noteCountLabel}</p>
           ) : null}
         </div>
         <Link
           href={vaultRoutes.capture}
-          className="inline-flex min-h-10 items-center gap-2 rounded-full bg-brand-ink px-4 text-[0.74rem] tracking-[0.14em] text-brand-void uppercase transition-opacity hover:opacity-90"
+          className={vaultPrimaryButton}
         >
           <Plus aria-hidden className="size-4" />
           Add Note
         </Link>
       </div>
 
-      {flashMessage ? (
-        <p
-          role="status"
-          className="rounded-xl border border-white/14 bg-white/[0.05] px-3.5 py-3 text-[0.84rem] text-brand-ink"
-        >
-          {flashMessage}
-        </p>
-      ) : null}
-
-      <section className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 shadow-[0_12px_32px_rgba(0,0,0,0.18)] sm:p-5">
+      <section className="rounded-[var(--radius-card)] border border-border bg-surface p-4 sm:p-5 shadow-[0_1px_2px_rgb(0_0_0/0.03)]">
         <div className="grid gap-3 lg:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,1fr))]">
           <label className="flex min-w-0 flex-col gap-1.5 lg:col-span-1">
             <span className={filterLabelClassName}>Search</span>
             <div className="relative">
               <Search
                 aria-hidden
-                className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-white/30"
+                className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-mv-faint"
               />
               <input
                 type="search"
                 value={searchInput}
                 onChange={(event) => handleSearchInputChange(event.target.value)}
                 placeholder="Search title or content..."
-                className="min-h-10 w-full rounded-xl border border-white/12 bg-white/[0.035] py-2 pr-3 pl-9 text-[0.82rem] text-brand-ink outline-none placeholder:text-white/28 focus:border-white/28"
+                className="min-h-10 w-full rounded-[var(--radius-input)] border border-border bg-mv-panel py-2 pr-3 pl-9 text-[0.82rem] text-foreground outline-none placeholder:text-mv-faint focus:border-foreground/25"
               />
             </div>
           </label>
@@ -274,37 +267,37 @@ export function NotesView() {
       </section>
 
       {error ? (
-        <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-3 text-[0.84rem] text-white/58">
+        <div className="rounded-xl border border-border bg-mv-panel px-3.5 py-3 text-[0.84rem] text-muted-foreground">
           {error}
         </div>
       ) : null}
 
       {loading ? (
-        <p className="py-16 text-center text-[0.84rem] text-white/42">
+        <p className="py-16 text-center text-[0.84rem] text-muted-foreground">
           Loading notes...
         </p>
       ) : showEmptyVault ? (
-        <section className="rounded-2xl border border-dashed border-white/[0.1] bg-black/10 px-6 py-14 text-center">
-          <p className="font-editorial text-[1.2rem] text-brand-ink italic sm:text-[1.35rem]">
+        <section className="rounded-2xl border border-dashed border-border bg-mv-panel px-6 py-14 text-center">
+          <p className="text-[1.2rem] font-medium text-foreground sm:text-[1.35rem]">
             Nothing in your vault yet.
           </p>
-          <p className="mt-2 text-[0.86rem] text-white/42">
+          <p className="mt-2 text-[0.86rem] text-muted-foreground">
             Capture something worth remembering.
           </p>
           <Link
             href={vaultRoutes.capture}
-            className="mt-6 inline-flex items-center gap-2 rounded-full border border-white/16 px-4 py-2 text-[0.74rem] tracking-[0.14em] text-white/72 uppercase transition-colors hover:border-white/24 hover:text-white/88"
+            className={`mt-6 ${vaultSecondaryButton}`}
           >
             <Plus aria-hidden className="size-3.5" />
             Add your first note
           </Link>
         </section>
       ) : showNoResults ? (
-        <section className="rounded-2xl border border-white/[0.08] bg-white/[0.02] px-6 py-14 text-center">
-          <p className="font-editorial text-[1.1rem] text-brand-ink italic">
+        <section className="rounded-2xl border border-border bg-mv-panel px-6 py-14 text-center">
+          <p className="text-[1.1rem] font-medium text-foreground">
             Nothing matches this view.
           </p>
-          <p className="mt-2 text-[0.86rem] text-white/42">
+          <p className="mt-2 text-[0.86rem] text-muted-foreground">
             Try changing your filters or search.
           </p>
         </section>
@@ -324,7 +317,7 @@ export function NotesView() {
                 type="button"
                 onClick={() => setPage((current) => current + 1)}
                 disabled={loadingMore}
-                className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/12 px-5 text-[0.74rem] tracking-[0.12em] text-white/62 uppercase transition-colors hover:border-white/20 hover:text-white/82 disabled:cursor-not-allowed disabled:opacity-60"
+                className={vaultSecondaryButton}
               >
                 {loadingMore ? "Loading..." : "Load more"}
               </button>

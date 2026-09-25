@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Search, Sparkles } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { NoteCard } from "@/components/vault/notes/NoteCard";
@@ -12,7 +13,15 @@ import {
 } from "@/lib/notes/semantic-search-client";
 import type { SerializedNote } from "@/lib/notes/serialize";
 import { usePreferences } from "@/lib/settings/preferences-context";
+import { toastError } from "@/lib/vault-toast";
 import { cn } from "@/lib/utils";
+
+import {
+  vaultPageLeadClassName,
+  vaultPageTitleClassName,
+  vaultPrimaryButton,
+} from "../vault-controls";
+import { VaultSegmentedControl } from "../VaultSegmentedControl";
 
 import { vaultEase } from "../vault-motion";
 
@@ -21,6 +30,7 @@ type SearchMode = "keyword" | "semantic";
 const KEYWORD_DEBOUNCE_MS = 300;
 
 export function SearchView() {
+  const searchParams = useSearchParams();
   const { preferences, loading: preferencesLoading } = usePreferences();
   const [modeOverride, setModeOverride] = useState<SearchMode | null>(null);
   const preferredMode: SearchMode =
@@ -87,11 +97,13 @@ export function SearchView() {
           data?.message ||
             "Semantic search isn't available right now. You can still search your vault normally.",
         );
+        toastError("Semantic search isn't available right now.");
         setSemanticResults([]);
       }
       setSemanticSearched(true);
     } catch (error) {
       if ((error as { name?: string }).name !== "AbortError") {
+        toastError("Semantic search isn't available right now.");
         setSemanticError(
           "Semantic search isn't available right now. You can still search your vault normally.",
         );
@@ -137,6 +149,16 @@ export function SearchView() {
   }
 
   useEffect(() => {
+    const initialQuery = searchParams.get("q")?.trim();
+    if (initialQuery) {
+      setInput(initialQuery);
+      void runKeywordSearch(initialQuery);
+    }
+    // Only hydrate from the URL once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  useEffect(() => {
     return () => {
       if (keywordDebounceRef.current) {
         window.clearTimeout(keywordDebounceRef.current);
@@ -159,46 +181,29 @@ export function SearchView() {
       className="space-y-5"
     >
       <div>
-        <h1 className="font-editorial text-[1.55rem] text-brand-ink italic sm:text-[1.85rem]">
-          Search
-        </h1>
-        <p className="mt-2 max-w-xl text-[0.88rem] leading-relaxed text-white/46">
+        <h1 className={vaultPageTitleClassName}>Search</h1>
+        <p className={cn(vaultPageLeadClassName, "max-w-xl")}>
           Find what you saved — by the exact words, or by what it means.
         </p>
       </div>
 
-      <section className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 shadow-[0_12px_32px_rgba(0,0,0,0.18)] sm:p-5">
-        <div className="mb-3 inline-flex rounded-full border border-white/12 bg-white/[0.03] p-1">
-          <button
-            type="button"
-            onClick={() => handleModeChange("keyword")}
-            className={cn(
-              "rounded-full px-3.5 py-1.5 text-[0.72rem] tracking-[0.1em] uppercase transition-colors",
-              mode === "keyword"
-                ? "bg-brand-ink text-brand-void"
-                : "text-white/52 hover:text-white/78",
-            )}
-          >
-            Keyword
-          </button>
-          <button
-            type="button"
-            onClick={() => handleModeChange("semantic")}
-            className={cn(
-              "rounded-full px-3.5 py-1.5 text-[0.72rem] tracking-[0.1em] uppercase transition-colors",
-              mode === "semantic"
-                ? "bg-brand-ink text-brand-void"
-                : "text-white/52 hover:text-white/78",
-            )}
-          >
-            Semantic
-          </button>
+      <section className="rounded-[var(--radius-card)] border border-border bg-surface p-4 sm:p-5 shadow-[0_1px_2px_rgb(0_0_0/0.03)]">
+        <div className="mb-3">
+          <VaultSegmentedControl
+            ariaLabel="Search mode"
+            value={mode}
+            onChange={handleModeChange}
+            options={[
+              { value: "keyword", label: "Keyword" },
+              { value: "semantic", label: "Semantic" },
+            ]}
+          />
         </div>
 
         <form onSubmit={handleSubmit} className="relative">
           <Search
             aria-hidden
-            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-white/30"
+            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-mv-faint"
           />
           <input
             type="search"
@@ -209,13 +214,16 @@ export function SearchView() {
                 ? "Search title or content..."
                 : "Describe what you're looking for..."
             }
-            className="min-h-11 w-full rounded-xl border border-white/12 bg-white/[0.035] py-2 pr-24 pl-9 text-[0.88rem] text-brand-ink outline-none placeholder:text-white/28 focus:border-white/28"
+            className="min-h-11 w-full rounded-[var(--radius-input)] border border-border bg-mv-panel py-2 pr-24 pl-9 text-[0.88rem] text-foreground outline-none placeholder:text-mv-faint focus:border-foreground/25"
           />
           {mode === "semantic" ? (
             <button
               type="submit"
               disabled={semanticLoading || !input.trim()}
-              className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded-full bg-brand-ink px-3.5 py-1.5 text-[0.68rem] tracking-[0.1em] text-brand-void uppercase transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
+              className={cn(
+                vaultPrimaryButton,
+                "absolute top-1/2 right-1.5 h-8 min-h-8 -translate-y-1/2 px-3 text-[0.78rem]",
+              )}
             >
               {semanticLoading ? "Searching..." : "Search"}
             </button>
@@ -223,7 +231,7 @@ export function SearchView() {
         </form>
 
         {mode === "semantic" ? (
-          <p className="mt-2.5 flex items-start gap-1.5 text-[0.76rem] leading-relaxed text-white/40">
+          <p className="mt-2.5 flex items-start gap-1.5 text-[0.76rem] leading-relaxed text-mv-faint">
             <Sparkles aria-hidden className="mt-0.5 size-3.5 shrink-0" />
             Search by meaning — find related notes even when the exact words are different.
           </p>
@@ -231,21 +239,21 @@ export function SearchView() {
       </section>
 
       {error ? (
-        <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-3 text-[0.84rem] text-white/58">
+        <div className="rounded-xl border border-border bg-mv-panel px-3.5 py-3 text-[0.84rem] text-muted-foreground">
           {error}
         </div>
       ) : null}
 
       {loading ? (
-        <p className="py-16 text-center text-[0.84rem] text-white/42">
+        <p className="py-16 text-center text-[0.84rem] text-muted-foreground">
           {mode === "semantic" ? "Searching by meaning..." : "Searching..."}
         </p>
       ) : !searched ? null : !hasResults ? (
-        <section className="rounded-2xl border border-white/[0.08] bg-white/[0.02] px-6 py-14 text-center">
-          <p className="font-editorial text-[1.1rem] text-brand-ink italic">
+        <section className="rounded-2xl border border-border bg-mv-panel px-6 py-14 text-center">
+          <p className="text-[1.1rem] font-medium text-foreground">
             Nothing matches this search.
           </p>
-          <p className="mt-2 text-[0.86rem] text-white/42">
+          <p className="mt-2 text-[0.86rem] text-muted-foreground">
             {mode === "semantic"
               ? "Try describing it a different way."
               : "Try different words, or switch to Semantic search."}

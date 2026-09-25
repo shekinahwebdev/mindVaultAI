@@ -45,6 +45,12 @@ enum SearchMode {
   SEMANTIC
 }
 
+enum ThemeMode {
+  LIGHT
+  DARK
+  SYSTEM
+}
+
 model UserPreferences {
   id String @id @default(cuid())
 
@@ -57,6 +63,7 @@ model UserPreferences {
   aiAssistanceEnabled Boolean    @default(true) @map("ai_assistance_enabled")
   ragEnabled          Boolean    @default(true) @map("rag_enabled")
   reducedMotion       Boolean    @default(false) @map("reduced_motion")
+  theme               ThemeMode  @default(LIGHT)
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

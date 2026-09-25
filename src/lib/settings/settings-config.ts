@@ -33,9 +33,9 @@ export const SETTINGS_SECTIONS: SettingsNavItem[] = [
 
 export const SETTINGS_DEFAULT_SECTION = "account" as const;
 
-export const ACCOUNT_UPDATE_SUCCESS = "Account updated.";
-export const PASSWORD_UPDATE_SUCCESS = "Password updated.";
-export const PREFERENCES_UPDATE_SUCCESS = "Preferences saved.";
+export const ACCOUNT_UPDATE_SUCCESS = "Settings updated.";
+export const PASSWORD_UPDATE_SUCCESS = "Settings updated.";
+export const PREFERENCES_UPDATE_SUCCESS = "Settings updated.";
 export const EXPORT_ERROR = "Could not export your vault. Please try again.";
 export const DELETE_ACCOUNT_SUCCESS = "Account deleted.";
 export const SETTINGS_LOAD_ERROR = "Could not load settings. Please try again.";

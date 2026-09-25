@@ -1,5 +1,16 @@
 import type { SessionData } from "@/lib/auth/session";
 
+export function getVaultTimeGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) {
+    return "Good morning";
+  }
+  if (hour < 17) {
+    return "Good afternoon";
+  }
+  return "Good evening";
+}
+
 export function getVaultGreetingName(session: SessionData) {
   const trimmed = session.name?.trim();
   if (trimmed) {

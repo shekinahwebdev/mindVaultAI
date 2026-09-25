@@ -7,10 +7,7 @@ import { useRef, useState } from "react";
 
 import { VaultDialog } from "@/components/vault/VaultDialog";
 import {
-  CATEGORY_ADDED_MESSAGE,
   CATEGORY_CLIENT_ERROR,
-  CATEGORY_DELETED_MESSAGE,
-  CATEGORY_RENAMED_MESSAGE,
   createCategory,
   deleteCategory,
   renameCategory,
@@ -19,6 +16,16 @@ import {
 import { validateCategoryNameField } from "@/lib/categories/category-validation-client";
 import { useCategories } from "@/lib/categories/use-categories";
 import { routes } from "@/lib/routes";
+import { toastError, toastSuccess } from "@/lib/vault-toast";
+import { cn } from "@/lib/utils";
+
+import {
+  vaultDestructiveButton,
+  vaultPageLeadClassName,
+  vaultPageTitleClassName,
+  vaultPrimaryButton,
+  vaultSecondaryButton,
+} from "../vault-controls";
 
 import { vaultEase } from "../vault-motion";
 import { CategoryNameField } from "./CategoryNameField";
@@ -43,7 +50,6 @@ export function CategoriesView() {
   const [name, setName] = useState("");
   const [fieldError, setFieldError] = useState("");
   const [formError, setFormError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -113,10 +119,10 @@ export function CategoriesView() {
       );
       setAddOpen(false);
       resetForm();
-      setSuccessMessage(CATEGORY_ADDED_MESSAGE);
+      toastSuccess("Category added.");
       router.refresh();
     } catch {
-      setFormError(CATEGORY_CLIENT_ERROR);
+      toastError(CATEGORY_CLIENT_ERROR);
     } finally {
       submittingRef.current = false;
       setSaving(false);
@@ -169,10 +175,10 @@ export function CategoriesView() {
       );
       setRenameTarget(null);
       resetForm();
-      setSuccessMessage(CATEGORY_RENAMED_MESSAGE);
+      toastSuccess("Category updated.");
       router.refresh();
     } catch {
-      setFormError(CATEGORY_CLIENT_ERROR);
+      toastError(CATEGORY_CLIENT_ERROR);
     } finally {
       submittingRef.current = false;
       setSaving(false);
@@ -209,10 +215,10 @@ export function CategoriesView() {
         current.filter((category) => category.id !== deleteTarget.id),
       );
       setDeleteTarget(null);
-      setSuccessMessage(CATEGORY_DELETED_MESSAGE);
+      toastSuccess("Removed from your vault.");
       router.refresh();
     } catch {
-      setFormError(CATEGORY_CLIENT_ERROR);
+      toastError(CATEGORY_CLIENT_ERROR);
     } finally {
       submittingRef.current = false;
       setDeleting(false);
@@ -228,10 +234,10 @@ export function CategoriesView() {
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="font-editorial text-[1.55rem] text-brand-ink italic sm:text-[1.85rem]">
+          <h1 className={vaultPageTitleClassName}>
             Categories
           </h1>
-          <p className="mt-2 max-w-xl text-[0.88rem] leading-relaxed text-white/46">
+          <p className={vaultPageLeadClassName}>
             Group what you&apos;ve saved into categories that fit the way you
             think.
           </p>
@@ -239,52 +245,43 @@ export function CategoriesView() {
         <button
           type="button"
           onClick={openAddDialog}
-          className="inline-flex min-h-10 items-center gap-2 rounded-full bg-brand-ink px-4 text-[0.74rem] tracking-[0.14em] text-brand-void uppercase transition-opacity hover:opacity-90"
+          className={vaultPrimaryButton}
         >
           <Plus aria-hidden className="size-4" />
           Add Category
         </button>
       </div>
 
-      {successMessage ? (
-        <p
-          role="status"
-          className="rounded-xl border border-white/14 bg-white/[0.05] px-3.5 py-3 text-[0.84rem] text-brand-ink"
-        >
-          {successMessage}
-        </p>
-      ) : null}
-
       {error ? (
-        <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-3 text-[0.84rem] text-white/58">
+        <div className="rounded-xl border border-border bg-mv-panel px-3.5 py-3 text-[0.84rem] text-muted-foreground">
           <p>{error}</p>
           <button
             type="button"
             onClick={() => void refresh()}
-            className="mt-2 text-[0.74rem] tracking-[0.1em] text-white/72 uppercase underline-offset-2 hover:underline"
+            className="mt-2 text-[0.8125rem] font-medium text-foreground underline-offset-2 hover:underline"
           >
             Try again
           </button>
         </div>
       ) : null}
 
-      <section className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 shadow-[0_12px_32px_rgba(0,0,0,0.18)] sm:p-5">
+      <section className="rounded-[var(--radius-card)] border border-border bg-surface p-4 sm:p-5 shadow-[0_1px_2px_rgb(0_0_0/0.03)]">
         {loading ? (
-          <p className="py-10 text-center text-[0.84rem] text-white/42">
+          <p className="py-10 text-center text-[0.84rem] text-muted-foreground">
             Loading categories...
           </p>
         ) : categories.length === 0 ? (
           <div className="py-10 text-center">
-            <p className="font-editorial text-[1.15rem] text-brand-ink italic">
+          <p className="text-[1.15rem] font-medium text-foreground">
               No categories yet.
             </p>
-            <p className="mt-2 text-[0.84rem] text-white/42">
+            <p className="mt-2 text-[0.84rem] text-muted-foreground">
               Create one when you want to group what you&apos;ve saved.
             </p>
             <button
               type="button"
               onClick={openAddDialog}
-              className="mt-5 inline-flex min-h-10 items-center gap-2 rounded-full border border-white/16 px-4 text-[0.74rem] tracking-[0.12em] text-white/72 uppercase transition-colors hover:border-white/24 hover:text-white/88"
+              className={cn(vaultSecondaryButton, "mt-5 gap-2")}
             >
               <Plus aria-hidden className="size-3.5" />
               Add Category
@@ -330,7 +327,7 @@ export function CategoriesView() {
           autoFocus
         />
         {formError ? (
-          <p className="mt-3 text-[0.78rem] text-white/55" role="alert">
+          <p className="mt-3 text-[0.78rem] text-muted-foreground" role="alert">
             {formError}
           </p>
         ) : null}
@@ -342,7 +339,7 @@ export function CategoriesView() {
               resetForm();
             }}
             disabled={saving}
-            className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/12 px-4 text-[0.72rem] tracking-[0.12em] text-white/58 uppercase"
+            className={vaultSecondaryButton}
           >
             Cancel
           </button>
@@ -350,7 +347,7 @@ export function CategoriesView() {
             type="button"
             onClick={() => void handleCreate()}
             disabled={saving}
-            className="inline-flex min-h-10 items-center justify-center rounded-full bg-brand-ink px-4 text-[0.72rem] tracking-[0.14em] text-brand-void uppercase disabled:opacity-70"
+            className={cn(vaultPrimaryButton, saving && "opacity-80")}
           >
             {saving ? "Saving..." : "Add Category"}
           </button>
@@ -381,7 +378,7 @@ export function CategoriesView() {
           autoFocus
         />
         {formError ? (
-          <p className="mt-3 text-[0.78rem] text-white/55" role="alert">
+          <p className="mt-3 text-[0.78rem] text-muted-foreground" role="alert">
             {formError}
           </p>
         ) : null}
@@ -393,7 +390,7 @@ export function CategoriesView() {
               resetForm();
             }}
             disabled={saving}
-            className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/12 px-4 text-[0.72rem] tracking-[0.12em] text-white/58 uppercase"
+            className={vaultSecondaryButton}
           >
             Cancel
           </button>
@@ -401,7 +398,7 @@ export function CategoriesView() {
             type="button"
             onClick={() => void handleRename()}
             disabled={saving}
-            className="inline-flex min-h-10 items-center justify-center rounded-full bg-brand-ink px-4 text-[0.72rem] tracking-[0.14em] text-brand-void uppercase disabled:opacity-70"
+            className={cn(vaultPrimaryButton, saving && "opacity-80")}
           >
             {saving ? "Saving..." : "Save Name"}
           </button>
@@ -420,9 +417,9 @@ export function CategoriesView() {
         }}
       >
         {deleteTarget ? (
-          <p className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-3.5 py-2.5 text-[0.86rem] text-white/72">
+          <p className="rounded-xl border border-border bg-mv-panel px-3.5 py-2.5 text-[0.86rem] text-foreground/80">
             {deleteTarget.name}
-            <span className="mt-1 block text-[0.74rem] text-white/38">
+            <span className="mt-1 block text-[0.74rem] text-mv-faint">
               {deleteTarget.noteCount === 1
                 ? "1 note will become uncategorized"
                 : `${deleteTarget.noteCount} notes will become uncategorized`}
@@ -430,7 +427,7 @@ export function CategoriesView() {
           </p>
         ) : null}
         {formError ? (
-          <p className="mt-3 text-[0.78rem] text-white/55" role="alert">
+          <p className="mt-3 text-[0.78rem] text-muted-foreground" role="alert">
             {formError}
           </p>
         ) : null}
@@ -442,7 +439,7 @@ export function CategoriesView() {
               setFormError("");
             }}
             disabled={deleting}
-            className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/12 px-4 text-[0.72rem] tracking-[0.12em] text-white/58 uppercase"
+            className={vaultSecondaryButton}
           >
             Cancel
           </button>
@@ -450,9 +447,9 @@ export function CategoriesView() {
             type="button"
             onClick={() => void handleDelete()}
             disabled={deleting}
-            className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/20 bg-white/[0.06] px-4 text-[0.72rem] tracking-[0.12em] text-white/78 uppercase disabled:opacity-70"
+            className={cn(vaultDestructiveButton, deleting && "opacity-80")}
           >
-            {deleting ? "Deleting..." : "Delete Category"}
+            {deleting ? "Deleting…" : "Delete category"}
           </button>
         </div>
       </VaultDialog>

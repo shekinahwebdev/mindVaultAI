@@ -10,8 +10,8 @@ export function NoteContentDisplay({ content, type }: NoteContentDisplayProps) {
     return (
       <pre
         className={cn(
-          "overflow-x-auto rounded-xl border border-white/[0.08] bg-black/30 px-4 py-4",
-          "font-mono text-[0.84rem] leading-relaxed whitespace-pre-wrap text-white/78",
+          "overflow-x-auto rounded-xl border border-border bg-mv-panel px-4 py-4",
+          "font-mono text-[0.84rem] leading-relaxed whitespace-pre-wrap text-foreground/85",
         )}
       >
         {content}
@@ -23,8 +23,8 @@ export function NoteContentDisplay({ content, type }: NoteContentDisplayProps) {
     return (
       <blockquote
         className={cn(
-          "rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 py-4",
-          "border-l-2 border-l-white/20 text-[0.94rem] leading-relaxed whitespace-pre-wrap text-white/72 italic",
+          "rounded-xl border border-border bg-mv-panel px-4 py-4",
+          "border-l-2 border-l-foreground/20 text-[0.94rem] leading-relaxed whitespace-pre-wrap text-foreground/80 italic",
         )}
       >
         {content}
@@ -33,7 +33,7 @@ export function NoteContentDisplay({ content, type }: NoteContentDisplayProps) {
   }
 
   return (
-    <div className="text-[0.94rem] leading-relaxed whitespace-pre-wrap text-white/78">
+    <div className="text-[0.94rem] leading-relaxed whitespace-pre-wrap text-foreground/85">
       {content}
     </div>
   );

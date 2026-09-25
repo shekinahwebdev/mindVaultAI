@@ -7,53 +7,67 @@ import type { ReactNode } from "react";
 import { SETTINGS_SECTIONS } from "@/lib/settings/settings-config";
 import { cn } from "@/lib/utils";
 
+import {
+  vaultPageLeadClassName,
+  vaultPageTitleClassName,
+} from "@/lib/vault/vault-typography";
+
+import {
+  settingsCompositionClassName,
+  settingsContentColumnClassName,
+  settingsGridClassName,
+  settingsNavWidthClassName,
+  settingsPageContainerClassName,
+} from "./settings-ui";
+
 export function SettingsShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-5">
-      <div className="space-y-2">
-        <h1 className="font-editorial text-[1.55rem] text-brand-ink italic sm:text-[1.85rem]">
-          Settings
-        </h1>
-        <p className="max-w-xl text-[0.88rem] leading-relaxed text-white/46">
-          Your account, vault preferences, and privacy controls.
-        </p>
-      </div>
+    <div className={cn(settingsPageContainerClassName, "pb-2 pt-2 lg:pt-4")}>
+      <div className={settingsCompositionClassName}>
+        <header className="mb-6 lg:mb-8">
+          <h1 className={vaultPageTitleClassName}>Settings</h1>
+          <p className={vaultPageLeadClassName}>
+            Your account, vault preferences, and privacy controls.
+          </p>
+        </header>
 
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
-        <nav
-          aria-label="Settings sections"
-          className="lg:w-[15rem] lg:shrink-0"
-        >
-          <ul className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0">
-            {SETTINGS_SECTIONS.map((item) => {
-              const active = item.external
-                ? pathname === item.href
-                : pathname === item.href ||
-                  (item.href !== "/vault/settings/account" &&
-                    pathname.startsWith(item.href));
+        <div className={settingsGridClassName}>
+          <nav
+            aria-label="Settings sections"
+            className={settingsNavWidthClassName}
+          >
+            <ul className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 md:mx-0 md:flex-col md:gap-0.5 md:overflow-visible md:px-0 md:pb-0">
+              {SETTINGS_SECTIONS.map((item) => {
+                const active = item.external
+                  ? pathname === item.href
+                  : pathname === item.href ||
+                    (item.href !== "/vault/settings/account" &&
+                      pathname.startsWith(item.href));
 
-              return (
-                <li key={item.id} className="shrink-0 lg:shrink">
-                  <Link
-                    href={item.href}
-                    className={cn(
-                      "inline-flex min-h-10 items-center rounded-xl border px-3.5 text-[0.78rem] tracking-[0.04em] whitespace-nowrap transition-colors lg:block lg:w-full",
-                      active
-                        ? "border-white/16 bg-white/[0.06] text-brand-ink"
-                        : "border-white/[0.06] bg-white/[0.02] text-white/52 hover:border-white/12 hover:text-white/78",
-                    )}
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
+                return (
+                  <li key={item.id} className="shrink-0 md:shrink">
+                    <Link
+                      href={item.href}
+                      aria-current={active ? "page" : undefined}
+                      className={cn(
+                        "inline-flex min-h-[42px] items-center rounded-[8px] border px-3 text-[0.8125rem] font-medium whitespace-nowrap transition-colors duration-200 md:block md:w-full",
+                        active
+                          ? "border-border bg-mv-panel text-foreground"
+                          : "border-transparent text-muted-foreground hover:bg-mv-panel/70 hover:text-foreground",
+                      )}
+                    >
+                      {item.label}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
 
-        <div className="min-w-0 flex-1 space-y-5">{children}</div>
+          <div className={settingsContentColumnClassName}>{children}</div>
+        </div>
       </div>
     </div>
   );

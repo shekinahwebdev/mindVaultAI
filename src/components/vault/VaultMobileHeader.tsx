@@ -2,21 +2,23 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Search } from "lucide-react";
 
 import { brand } from "@/lib/brand";
 import { vaultRoutes } from "@/lib/routes";
-import { getVaultInitials } from "@/lib/vault/user-display";
+import { cn } from "@/lib/utils";
 
-import { useVaultSession } from "./VaultSessionProvider";
+import { AddToVaultMenu } from "./AddToVaultMenu";
+import { useVaultCommand } from "./VaultCommandProvider";
+import { vaultActionFocus } from "./vault-controls";
+import { VaultProfileControl } from "./VaultProfileControl";
 
 export function VaultMobileHeader() {
-  const session = useVaultSession();
-  const initials = getVaultInitials(session);
+  const { setOpen } = useVaultCommand();
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between border-b border-white/[0.06] bg-brand-void/95 px-4 backdrop-blur-sm md:hidden">
-      <Link href="/vault" className="flex items-center gap-2.5">
+    <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border bg-mv-page/95 px-3 backdrop-blur-sm md:hidden">
+      <Link href={vaultRoutes.dashboard} className="flex min-w-0 items-center gap-2.5">
         <Image
           src={brand.logo.src}
           alt={brand.logo.alt}
@@ -24,26 +26,26 @@ export function VaultMobileHeader() {
           height={brand.logo.height}
           placeholder="empty"
           unoptimized
-          className="size-8 select-none"
+          className="mv-logo size-8 shrink-0 select-none"
         />
-        <span className="font-editorial text-[1rem] text-brand-ink italic">
+        <span className="truncate text-[0.95rem] font-semibold tracking-[-0.02em] text-foreground">
           MindVault
         </span>
       </Link>
-      <div className="flex items-center gap-2">
-        <div
-          aria-hidden
-          className="flex size-8 items-center justify-center rounded-full border border-white/12 bg-white/[0.04] text-[0.68rem] text-white/70"
+      <div className="flex items-center gap-1.5">
+        <button
+          type="button"
+          aria-label="Open search"
+          onClick={() => setOpen(true)}
+          className={cn(
+            "flex size-9 items-center justify-center rounded-[10px] border border-border bg-surface text-muted-foreground",
+            vaultActionFocus,
+          )}
         >
-          {initials}
-        </div>
-        <Link
-          href={vaultRoutes.capture}
-          aria-label="Add note"
-          className="inline-flex size-9 items-center justify-center rounded-full bg-brand-ink text-brand-void transition-opacity hover:opacity-90"
-        >
-          <Plus aria-hidden className="size-4" />
-        </Link>
+          <Search aria-hidden className="size-4" />
+        </button>
+        <AddToVaultMenu compact />
+        <VaultProfileControl compact />
       </div>
     </header>
   );

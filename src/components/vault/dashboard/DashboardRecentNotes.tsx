@@ -3,15 +3,18 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
 
-import type {
-  DashboardNotePreview,
-} from "@/lib/vault/dashboard-queries";
-import {
-  formatNoteDate,
-  noteDetailPath,
-  noteTypeLabels,
-} from "@/lib/notes/note-display";
+import type { DashboardNotePreview } from "@/lib/vault/dashboard-queries";
 import { vaultRoutes } from "@/lib/routes";
+import { cn } from "@/lib/utils";
+
+import { vaultActionShape } from "../vault-controls";
+
+import { DashboardSectionHeader } from "./DashboardSectionHeader";
+import { VaultItemRow } from "./VaultItemRow";
+import {
+  dashboardPanelClassName,
+  dashboardPanelPaddingClassName,
+} from "./dashboard-ui";
 
 type DashboardRecentNotesProps = {
   recentNotes: DashboardNotePreview[];
@@ -19,41 +22,21 @@ type DashboardRecentNotesProps = {
   isEmpty: boolean;
 };
 
-function NotePreviewRow({
-  note,
-  dateLabel,
+function NoteActivityList({
+  notes,
+  dateFor,
 }: {
-  note: DashboardNotePreview;
-  dateLabel: string;
+  notes: DashboardNotePreview[];
+  dateFor: (note: DashboardNotePreview) => string;
 }) {
-  const typeLabel = noteTypeLabels[note.type] ?? note.type;
-
   return (
-    <Link
-      href={noteDetailPath(note.id)}
-      className="block rounded-xl border border-white/[0.06] bg-white/[0.02] px-3.5 py-3 transition-colors hover:border-white/[0.12] hover:bg-white/[0.04]"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <p className="min-w-0 flex-1 text-[0.88rem] text-white/86">{note.title}</p>
-        <span className="shrink-0 rounded-full border border-white/10 px-2 py-0.5 text-[0.58rem] tracking-[0.1em] text-white/40 uppercase">
-          {typeLabel}
-        </span>
-      </div>
-      {note.preview ? (
-        <p className="mt-1.5 line-clamp-1 text-[0.78rem] text-white/38">
-          {note.preview}
-        </p>
-      ) : null}
-      <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.72rem] text-white/32">
-        {note.categoryName ? (
-          <span className="text-white/46">{note.categoryName}</span>
-        ) : (
-          <span>Uncategorized</span>
-        )}
-        <span aria-hidden>·</span>
-        <span>{dateLabel}</span>
-      </div>
-    </Link>
+    <ul className="space-y-0.5">
+      {notes.map((note) => (
+        <li key={note.id}>
+          <VaultItemRow note={note} dateLabel={dateFor(note)} />
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -63,63 +46,67 @@ export function DashboardRecentNotes({
   isEmpty,
 }: DashboardRecentNotesProps) {
   return (
-    <section className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5 shadow-[0_12px_32px_rgba(0,0,0,0.2)] sm:p-6">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-[0.92rem] text-white/88">Recent Notes</h2>
-        {!isEmpty ? (
-          <Link
-            href={vaultRoutes.notes}
-            className="text-[0.68rem] tracking-[0.12em] text-white/40 uppercase transition-colors hover:text-white/62"
-          >
-            View all notes
-          </Link>
-        ) : null}
-      </div>
+    <section
+      className={cn(dashboardPanelClassName, dashboardPanelPaddingClassName)}
+    >
+      <DashboardSectionHeader
+        title="Recent vault items"
+        action={
+          !isEmpty
+            ? { label: "View all notes", href: vaultRoutes.notes }
+            : undefined
+        }
+      />
 
       {isEmpty ? (
-        <div className="mt-8 flex min-h-[14rem] flex-col items-center justify-center rounded-xl border border-dashed border-white/[0.1] bg-black/10 px-6 py-10 text-center">
-          <p className="font-editorial text-[1.2rem] text-brand-ink italic sm:text-[1.35rem]">
+        <div className="mt-3 flex min-h-[10rem] flex-col items-center justify-center rounded-[12px] border border-dashed border-border bg-mv-panel px-4 py-6 text-center">
+          <p className="text-[1.15rem] font-semibold text-foreground sm:text-[1.25rem]">
             Your vault is waiting.
           </p>
-          <p className="mt-2 max-w-sm text-[0.86rem] leading-relaxed text-white/42">
+          <p className="mt-2 max-w-sm text-[0.84rem] leading-relaxed text-muted-foreground">
             Capture your first thought, link, quote, or piece of knowledge.
           </p>
           <Link
             href={vaultRoutes.capture}
-            className="mt-6 inline-flex items-center gap-2 rounded-full border border-white/16 px-4 py-2 text-[0.74rem] tracking-[0.14em] text-white/72 uppercase transition-colors hover:border-white/24 hover:text-white/88"
+            className={cn(
+              "mt-5 inline-flex min-h-10 items-center gap-2 border border-border px-3.5 py-2 text-[0.84rem] font-medium text-foreground/85 transition-colors duration-200 hover:border-foreground/25 hover:text-foreground",
+              vaultActionShape,
+            )}
           >
             <Plus aria-hidden className="size-3.5" />
             Capture something
           </Link>
         </div>
       ) : (
-        <div className="mt-4 space-y-5">
-          <ul className="space-y-2">
-            {recentNotes.map((note) => (
-              <li key={note.id}>
-                <NotePreviewRow
-                  note={note}
-                  dateLabel={`Created ${formatNoteDate(note.createdAt)}`}
-                />
-              </li>
-            ))}
-          </ul>
+        <div className="mt-3">
+          <NoteActivityList
+            notes={recentNotes}
+            dateFor={(note) =>
+              new Intl.DateTimeFormat("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              }).format(new Date(note.createdAt))
+            }
+          />
 
           {recentlyEdited.length > 0 ? (
-            <div className="border-t border-white/[0.06] pt-4">
-              <h3 className="text-[0.78rem] tracking-[0.1em] text-white/42 uppercase">
-                Recently Edited
+            <div className="mt-3 border-t border-border pt-3">
+              <h3 className="px-2 text-[0.75rem] font-medium text-muted-foreground sm:px-3">
+                Recently edited
               </h3>
-              <ul className="mt-3 space-y-2">
-                {recentlyEdited.map((note) => (
-                  <li key={`edited-${note.id}`}>
-                    <NotePreviewRow
-                      note={note}
-                      dateLabel={`Updated ${formatNoteDate(note.updatedAt)}`}
-                    />
-                  </li>
-                ))}
-              </ul>
+              <div className="mt-1.5">
+                <NoteActivityList
+                  notes={recentlyEdited}
+                  dateFor={(note) =>
+                    new Intl.DateTimeFormat("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    }).format(new Date(note.updatedAt))
+                  }
+                />
+              </div>
             </div>
           ) : null}
         </div>
