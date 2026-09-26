@@ -12,6 +12,8 @@ import {
 } from "@/lib/notes/note-display";
 import { cn } from "@/lib/utils";
 
+import { vaultMetaClassName } from "../vault-controls";
+
 type NoteCardProps = {
   note: SerializedNote;
   // Optional dev/testing affordance (e.g. a semantic-search match score).
@@ -27,40 +29,50 @@ export function NoteCard({ note, matchLabel }: NoteCardProps) {
   return (
     <Link
       href={noteDetailPath(note.id)}
-      className="group block rounded-xl border border-white/[0.08] bg-white/[0.025] px-4 py-3.5 transition-colors hover:border-white/[0.14] hover:bg-white/[0.04] sm:px-5 sm:py-4"
+      className="group block rounded-xl border border-border bg-surface px-4 py-3.5 shadow-[0_1px_2px_rgb(0_0_0/0.03)] transition-colors hover:border-border sm:px-5 sm:py-4"
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <h2 className="min-w-0 flex-1 text-[0.95rem] leading-snug text-white/90 group-hover:text-brand-ink">
+        <h2 className="min-w-0 flex-1 text-[0.95rem] leading-snug text-foreground group-hover:text-foreground">
           {note.title}
         </h2>
         <span className="flex shrink-0 items-center gap-1.5">
           {matchLabel ? (
-            <span className="rounded-full border border-white/14 bg-white/[0.06] px-2 py-0.5 text-[0.62rem] tracking-[0.1em] text-white/60">
+            <span
+              className={cn(
+                "rounded-md border border-border bg-mv-panel px-2 py-0.5",
+                vaultMetaClassName,
+              )}
+            >
               {matchLabel}
             </span>
           ) : null}
-          <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[0.62rem] tracking-[0.12em] text-white/45 uppercase">
+          <span
+            className={cn(
+              "rounded-md border border-border bg-mv-panel px-2 py-0.5 text-mv-faint",
+              vaultMetaClassName,
+            )}
+          >
             {typeLabel}
           </span>
         </span>
       </div>
 
       {preview ? (
-        <p className="mt-2 line-clamp-2 text-[0.82rem] leading-relaxed text-white/42">
+        <p className="mt-2 line-clamp-2 text-[0.82rem] leading-relaxed text-muted-foreground">
           {preview}
         </p>
       ) : null}
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.72rem] text-white/34">
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.72rem] text-mv-faint">
         {note.category ? (
-          <span className="rounded-full border border-white/10 px-2 py-0.5 text-white/52">
+          <span className="rounded-md border border-border px-2 py-0.5 text-muted-foreground">
             {note.category.name}
           </span>
         ) : (
-          <span className="text-white/28">Uncategorized</span>
+          <span className="text-mv-faint">Uncategorized</span>
         )}
         {note.sourceUrl ? (
-          <span className="inline-flex items-center gap-1 text-white/38">
+          <span className="inline-flex items-center gap-1 text-mv-faint">
             <ExternalLink aria-hidden className="size-3" />
             Source
           </span>

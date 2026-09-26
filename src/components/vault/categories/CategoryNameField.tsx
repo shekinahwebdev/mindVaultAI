@@ -33,7 +33,7 @@ export function CategoryNameField({
 
   return (
     <label className="flex w-full flex-col text-left">
-      <span className="text-[0.62rem] tracking-[0.16em] text-white/42 uppercase">
+      <span className="text-[0.8125rem] font-medium text-foreground">
         {label}
       </span>
       <input
@@ -46,14 +46,14 @@ export function CategoryNameField({
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : undefined}
         className={cn(
-          "mt-1.5 min-h-10 w-full rounded-xl border bg-white/[0.035] px-3.5 py-2 text-[0.9rem] text-brand-ink outline-none transition-colors placeholder:text-white/28",
+          "mt-1.5 min-h-10 w-full rounded-xl border bg-mv-panel px-3.5 py-2 text-[0.9rem] text-foreground outline-none transition-colors placeholder:text-mv-faint",
           error
-            ? "border-white/28"
-            : "border-white/12 focus:border-white/28",
+            ? "border-foreground/25"
+            : "border-border focus:border-foreground/25",
         )}
       />
       {error ? (
-        <span id={`${id}-error`} className="mt-1.5 text-[0.75rem] text-white/55">
+        <span id={`${id}-error`} className="mt-1.5 text-[0.75rem] text-muted-foreground">
           {error}
         </span>
       ) : null}

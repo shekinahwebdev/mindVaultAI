@@ -22,7 +22,6 @@ import {
   NOTE_EDIT_DISCARD_CONFIRM,
   NOTE_NOT_FOUND_MESSAGE,
   NOTE_UPDATE_ERROR,
-  NOTE_UPDATE_SUCCESS,
   noteEditFormIsDirty,
   noteValuesFromSerialized,
   validateCaptureForm,
@@ -34,7 +33,16 @@ import {
   noteTypeLabels,
 } from "@/lib/notes/note-display";
 import { routes, vaultRoutes } from "@/lib/routes";
+import { toastError, toastSuccess } from "@/lib/vault-toast";
 import { cn } from "@/lib/utils";
+
+import {
+  vaultDestructiveButton,
+  vaultMetaClassName,
+  vaultPageTitleClassName,
+  vaultPrimaryButton,
+  vaultSecondaryButton,
+} from "../vault-controls";
 
 import { vaultEase } from "../vault-motion";
 import { NoteContentDisplay } from "./NoteContentDisplay";
@@ -61,7 +69,6 @@ export function NoteDetailView({ noteId }: NoteDetailViewProps) {
   const [errors, setErrors] = useState<CaptureFieldErrors>({});
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
 
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -137,7 +144,6 @@ export function NoteDetailView({ noteId }: NoteDetailViewProps) {
     setValues((current) => (current ? { ...current, [key]: value } : current));
     setErrors((current) => ({ ...current, [key]: undefined }));
     setFormError("");
-    setSuccessMessage("");
   }
 
   function exitEditMode(force = false) {
@@ -157,7 +163,6 @@ export function NoteDetailView({ noteId }: NoteDetailViewProps) {
   }
 
   function handleEditClick() {
-    setSuccessMessage("");
     setEditing(true);
   }
 
@@ -197,10 +202,11 @@ export function NoteDetailView({ noteId }: NoteDetailViewProps) {
       if (!data || !response.ok || !data.ok) {
         if (data && !data.ok && data.errors) {
           setErrors(data.errors);
+        } else {
+          toastError(
+            data && !data.ok && data.message ? data.message : NOTE_UPDATE_ERROR,
+          );
         }
-        setFormError(
-          data && !data.ok && data.message ? data.message : NOTE_UPDATE_ERROR,
-        );
         return;
       }
 
@@ -209,9 +215,10 @@ export function NoteDetailView({ noteId }: NoteDetailViewProps) {
       setValues(nextValues);
       setOriginalValues(nextValues);
       setEditing(false);
-      setSuccessMessage(NOTE_UPDATE_SUCCESS);
+      toastSuccess("Note updated.");
       router.refresh();
     } catch {
+      toastError(NOTE_UPDATE_ERROR);
       setFormError(NOTE_UPDATE_ERROR);
     } finally {
       submittingRef.current = false;
@@ -265,7 +272,7 @@ export function NoteDetailView({ noteId }: NoteDetailViewProps) {
 
   if (loading) {
     return (
-      <p className="py-16 text-center text-[0.84rem] text-white/42">
+      <p className="py-16 text-center text-[0.84rem] text-muted-foreground">
         Loading note...
       </p>
     );
@@ -273,13 +280,13 @@ export function NoteDetailView({ noteId }: NoteDetailViewProps) {
 
   if (notFound) {
     return (
-      <section className="rounded-2xl border border-white/[0.08] bg-white/[0.025] px-6 py-14 text-center">
-        <p className="font-editorial text-[1.2rem] text-brand-ink italic">
+      <section className="rounded-2xl border border-border bg-surface px-6 py-14 text-center">
+        <p className="text-[1.2rem] font-medium text-foreground">
           {NOTE_NOT_FOUND_MESSAGE}
         </p>
         <Link
           href={vaultRoutes.notes}
-          className="mt-5 inline-flex items-center gap-2 text-[0.82rem] text-white/58 hover:text-white/78"
+          className="mt-5 inline-flex items-center gap-2 text-[0.82rem] text-muted-foreground hover:text-foreground/85"
         >
           <ArrowLeft aria-hidden className="size-3.5" />
           Back to All Notes
@@ -290,11 +297,11 @@ export function NoteDetailView({ noteId }: NoteDetailViewProps) {
 
   if (loadError || !note || !values) {
     return (
-      <section className="rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-10 text-center">
-        <p className="text-[0.86rem] text-white/58">{loadError || NOTE_DETAIL_LOAD_ERROR}</p>
+      <section className="rounded-2xl border border-border bg-mv-panel px-6 py-10 text-center">
+        <p className="text-[0.86rem] text-muted-foreground">{loadError || NOTE_DETAIL_LOAD_ERROR}</p>
         <Link
           href={vaultRoutes.notes}
-          className="mt-4 inline-flex items-center gap-2 text-[0.82rem] text-white/58 hover:text-white/78"
+          className="mt-4 inline-flex items-center gap-2 text-[0.82rem] text-muted-foreground hover:text-foreground/85"
         >
           <ArrowLeft aria-hidden className="size-3.5" />
           Back to All Notes
@@ -315,7 +322,7 @@ export function NoteDetailView({ noteId }: NoteDetailViewProps) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Link
           href={vaultRoutes.notes}
-          className="inline-flex items-center gap-2 text-[0.82rem] text-white/52 transition-colors hover:text-white/78"
+          className="inline-flex items-center gap-2 text-[0.82rem] text-muted-foreground transition-colors hover:text-foreground/85"
         >
           <ArrowLeft aria-hidden className="size-3.5" />
           Back to All Notes
@@ -326,7 +333,7 @@ export function NoteDetailView({ noteId }: NoteDetailViewProps) {
             <button
               type="button"
               onClick={handleEditClick}
-              className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/12 px-4 text-[0.72rem] tracking-[0.12em] text-white/62 uppercase transition-colors hover:border-white/20 hover:text-white/82"
+              className={cn(vaultSecondaryButton, "gap-2")}
             >
               <Pencil aria-hidden className="size-3.5" />
               Edit
@@ -337,7 +344,7 @@ export function NoteDetailView({ noteId }: NoteDetailViewProps) {
                 setDeleteError("");
                 setDeleteOpen(true);
               }}
-              className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/16 bg-white/[0.04] px-4 text-[0.72rem] tracking-[0.12em] text-white/68 uppercase transition-colors hover:border-white/24 hover:bg-white/[0.07] hover:text-white/86"
+              className={vaultSecondaryButton}
             >
               <Trash2 aria-hidden className="size-3.5" />
               Delete
@@ -345,15 +352,6 @@ export function NoteDetailView({ noteId }: NoteDetailViewProps) {
           </div>
         ) : null}
       </div>
-
-      {successMessage ? (
-        <p
-          role="status"
-          className="rounded-xl border border-white/14 bg-white/[0.05] px-3.5 py-3 text-[0.84rem] text-brand-ink"
-        >
-          {successMessage}
-        </p>
-      ) : null}
 
       {editing ? (
         <form onSubmit={handleSave} className="space-y-5">
@@ -372,7 +370,7 @@ export function NoteDetailView({ noteId }: NoteDetailViewProps) {
           {formError ? (
             <p
               role="alert"
-              className="rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-[0.82rem] text-white/62"
+              className="rounded-xl border border-border bg-mv-panel px-3.5 py-2.5 text-[0.82rem] text-muted-foreground"
             >
               {formError}
             </p>
@@ -385,7 +383,7 @@ export function NoteDetailView({ noteId }: NoteDetailViewProps) {
                 exitEditMode();
               }}
               disabled={saving}
-              className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/12 px-4 text-[0.74rem] tracking-[0.12em] text-white/58 uppercase"
+              className={vaultSecondaryButton}
             >
               Cancel
             </button>
@@ -393,29 +391,26 @@ export function NoteDetailView({ noteId }: NoteDetailViewProps) {
               type="submit"
               disabled={saving}
               aria-busy={saving}
-              className={cn(
-                "inline-flex min-h-11 items-center justify-center rounded-full bg-brand-ink px-5 text-[0.74rem] tracking-[0.14em] text-brand-void uppercase disabled:cursor-not-allowed",
-                saving && "opacity-80",
-              )}
+              className={cn(vaultPrimaryButton, saving && "opacity-80")}
             >
               {saving ? "Saving..." : "Save Changes"}
             </button>
           </div>
         </form>
       ) : (
-        <article className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5 shadow-[0_12px_32px_rgba(0,0,0,0.18)] sm:p-6">
+        <article className="rounded-[var(--radius-card)] border border-border bg-surface p-5 sm:p-6 shadow-[0_1px_2px_rgb(0_0_0/0.03)]">
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <h1 className="min-w-0 flex-1 font-editorial text-[1.65rem] leading-tight text-brand-ink italic sm:text-[1.9rem]">
+            <h1 className={cn("min-w-0 flex-1", vaultPageTitleClassName)}>
               {note.title}
             </h1>
-            <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-0.5 text-[0.62rem] tracking-[0.12em] text-white/45 uppercase">
+            <span className={cn("shrink-0 rounded-md border border-border bg-mv-panel px-2.5 py-0.5", vaultMetaClassName)}>
               {typeLabel}
             </span>
           </div>
 
-          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.74rem] text-white/36">
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.74rem] text-mv-faint">
             {note.category ? (
-              <span className="rounded-full border border-white/10 px-2 py-0.5 text-white/52">
+              <span className="rounded-md border border-border px-2 py-0.5 text-muted-foreground">
                 {note.category.name}
               </span>
             ) : (
@@ -430,14 +425,14 @@ export function NoteDetailView({ noteId }: NoteDetailViewProps) {
               href={note.sourceUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-4 inline-flex items-center gap-1.5 text-[0.82rem] text-white/52 underline-offset-2 hover:text-white/78 hover:underline"
+              className="mt-4 inline-flex items-center gap-1.5 text-[0.82rem] text-muted-foreground underline-offset-2 hover:text-foreground/85 hover:underline"
             >
               <ExternalLink aria-hidden className="size-3.5" />
               {note.sourceUrl}
             </a>
           ) : null}
 
-          <div className="mt-6 border-t border-white/[0.06] pt-6">
+          <div className="mt-6 border-t border-border pt-6">
             <NoteContentDisplay content={note.content} type={note.type} />
           </div>
         </article>
@@ -454,11 +449,11 @@ export function NoteDetailView({ noteId }: NoteDetailViewProps) {
           }
         }}
       >
-        <p className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-3.5 py-2.5 text-[0.86rem] text-white/72">
+        <p className="rounded-xl border border-border bg-mv-panel px-3.5 py-2.5 text-[0.86rem] text-foreground/80">
           {note.title}
         </p>
         {deleteError ? (
-          <p className="mt-3 text-[0.78rem] text-white/55" role="alert">
+          <p className="mt-3 text-[0.78rem] text-muted-foreground" role="alert">
             {deleteError}
           </p>
         ) : null}
@@ -470,7 +465,7 @@ export function NoteDetailView({ noteId }: NoteDetailViewProps) {
               setDeleteError("");
             }}
             disabled={deleting}
-            className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/12 px-4 text-[0.72rem] tracking-[0.12em] text-white/58 uppercase"
+            className={vaultSecondaryButton}
           >
             Cancel
           </button>
@@ -478,9 +473,9 @@ export function NoteDetailView({ noteId }: NoteDetailViewProps) {
             type="button"
             onClick={() => void handleDelete()}
             disabled={deleting}
-            className="inline-flex min-h-10 items-center justify-center rounded-full border border-red-400/30 bg-red-400/[0.08] px-4 text-[0.72rem] tracking-[0.12em] text-red-200/90 uppercase disabled:opacity-70"
+            className={cn(vaultDestructiveButton, deleting && "opacity-80")}
           >
-            {deleting ? "Deleting..." : "Delete Note"}
+            {deleting ? "Deleting…" : "Delete note"}
           </button>
         </div>
       </VaultDialog>

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { NoteType, SearchMode } from "@/generated/prisma/client";
+import { NoteType, SearchMode, ThemeMode } from "@/generated/prisma/client";
 import {
   isUnauthorizedResponse,
   requireApiSession,
@@ -68,6 +68,9 @@ export async function PATCH(request: Request) {
       ...(parsed.data.reducedMotion !== undefined
         ? { reducedMotion: parsed.data.reducedMotion }
         : {}),
+      ...(parsed.data.theme
+        ? { theme: parsed.data.theme as ThemeMode }
+        : {}),
     });
 
     return NextResponse.json({
@@ -79,6 +82,7 @@ export async function PATCH(request: Request) {
         aiAssistanceEnabled: preferences.aiAssistanceEnabled,
         ragEnabled: preferences.ragEnabled,
         reducedMotion: preferences.reducedMotion,
+        theme: preferences.theme,
       },
     });
   } catch (error) {

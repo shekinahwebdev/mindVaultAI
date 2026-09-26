@@ -20,6 +20,7 @@ const defaultPreferences: SerializedPreferences = {
   aiAssistanceEnabled: true,
   ragEnabled: true,
   reducedMotion: false,
+  theme: "LIGHT",
 };
 
 type PreferencesContextValue = {

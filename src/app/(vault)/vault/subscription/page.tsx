@@ -1,34 +1,45 @@
 import Link from "next/link";
 
+import {
+  settingsCompositionClassName,
+  settingsPageContainerClassName,
+  settingsPanelSurfaceClassName,
+} from "@/components/vault/settings/settings-ui";
 import { vaultRoutes } from "@/lib/routes";
+import { cn } from "@/lib/utils";
+
+import {
+  vaultPageLeadClassName,
+  vaultPageTitleClassName,
+  vaultPrimaryButton,
+  vaultSectionTitleClassName,
+} from "@/components/vault/vault-controls";
 
 export default function VaultSubscriptionPage() {
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-5">
-      <div className="space-y-2">
-        <h1 className="font-editorial text-[1.55rem] text-brand-ink italic sm:text-[1.85rem]">
-          Subscription & Billing
-        </h1>
-        <p className="text-[0.88rem] leading-relaxed text-white/46">
+    <div className={cn(settingsPageContainerClassName, "pt-2 lg:pt-4")}>
+      <div className={settingsCompositionClassName}>
+      <header className="mb-6 lg:mb-8">
+        <h1 className={vaultPageTitleClassName}>Subscription &amp; billing</h1>
+        <p className={cn(vaultPageLeadClassName, "max-w-prose")}>
           MindVault plans and billing will live here.
         </p>
-      </div>
+      </header>
 
-      <section className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-6">
-        <p className="font-editorial text-[1.1rem] text-brand-ink italic">
-          Coming soon
-        </p>
-        <p className="mt-2 text-[0.86rem] leading-relaxed text-white/42">
+      <section className={cn(settingsPanelSurfaceClassName, "max-w-[50rem] px-6 py-6")}>
+        <h2 className={vaultSectionTitleClassName}>Coming soon</h2>
+        <p className="mt-2 max-w-prose text-[0.875rem] leading-relaxed text-muted-foreground">
           Subscription management and payment processing are not implemented yet.
           This page is reserved for the next development phase.
         </p>
         <Link
           href={vaultRoutes.settings}
-          className="mt-5 inline-flex min-h-10 items-center rounded-full border border-white/12 px-4 text-[0.74rem] tracking-[0.12em] text-white/62 uppercase transition-colors hover:border-white/20 hover:text-white/82"
+          className={cn("mt-6 inline-flex", vaultPrimaryButton)}
         >
           Back to Settings
         </Link>
       </section>
+      </div>
     </div>
   );
 }

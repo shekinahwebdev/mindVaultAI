@@ -1,41 +1,25 @@
 "use client";
 
-import { motion } from "framer-motion";
-
 import { buildDashboardStatCards } from "@/lib/vault/dashboard-data";
-import type { DashboardStats } from "@/lib/vault/dashboard-queries";
+import type { DashboardStats as DashboardStatsData } from "@/lib/vault/dashboard-queries";
 
-import { vaultEase } from "../vault-motion";
+import { DashboardStatCard } from "./DashboardStatCard";
 
 type DashboardStatsProps = {
-  stats: DashboardStats;
+  stats: DashboardStatsData;
 };
 
 export function DashboardStats({ stats }: DashboardStatsProps) {
-  const statCards = buildDashboardStatCards(stats);
+  const [primary, ...secondary] = buildDashboardStatCards(stats);
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-      {statCards.map((stat, index) => (
-        <motion.article
-          key={stat.label}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{
-            duration: 0.4,
-            delay: index * 0.05,
-            ease: vaultEase,
-          }}
-          className="rounded-2xl border border-white/[0.08] bg-white/[0.025] px-4 py-4 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
-        >
-          <p className="text-[0.68rem] tracking-[0.14em] text-white/40 uppercase">
-            {stat.label}
-          </p>
-          <p className="mt-3 font-editorial text-[1.75rem] leading-none text-brand-ink italic">
-            {stat.value.toLocaleString()}
-          </p>
-        </motion.article>
-      ))}
+    <div className="grid gap-2.5 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.45fr)]">
+      <DashboardStatCard stat={primary} index={0} variant="hero" />
+      <div className="grid min-w-0 grid-cols-2 gap-2.5">
+        {secondary.map((stat, index) => (
+          <DashboardStatCard key={stat.label} stat={stat} index={index + 1} />
+        ))}
+      </div>
     </div>
   );
 }

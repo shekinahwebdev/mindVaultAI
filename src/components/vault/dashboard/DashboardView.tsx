@@ -1,16 +1,20 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 
 import type { SessionData } from "@/lib/auth/session";
 import type { DashboardData } from "@/lib/vault/dashboard-queries";
-import { getVaultGreetingName } from "@/lib/vault/user-display";
+import { getVaultGreetingName, getVaultTimeGreeting } from "@/lib/vault/user-display";
 
-import { DashboardAiInsight } from "./DashboardAiInsight";
-import { DashboardCategories } from "./DashboardCategories";
-import { DashboardRecentNotes } from "./DashboardRecentNotes";
-import { DashboardStats } from "./DashboardStats";
+import { useVaultCommand } from "../VaultCommandProvider";
 import { vaultEase } from "../vault-motion";
+
+import { DashboardActivityStream } from "./DashboardActivityStream";
+import { DashboardAiInsight } from "./DashboardAiInsight";
+import { DashboardAskBar } from "./DashboardAskBar";
+import { DashboardBentoStats } from "./DashboardBentoStats";
+import { DashboardCategoriesStrip } from "./DashboardCategoriesStrip";
+import { DashboardHero } from "./DashboardHero";
 
 type DashboardViewProps = {
   session: SessionData;
@@ -21,66 +25,93 @@ const container = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
-    transition: { staggerChildren: 0.08, delayChildren: 0.04 },
+    transition: { staggerChildren: 0.05, delayChildren: 0.02 },
   },
 };
 
 const item = {
-  hidden: { opacity: 0, y: 10 },
+  hidden: { opacity: 0, y: 8 },
   show: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.45, ease: vaultEase },
+    transition: { duration: 0.28, ease: vaultEase },
   },
 };
 
 export function DashboardView({ session, data }: DashboardViewProps) {
   const greetingName = getVaultGreetingName(session);
+  const greeting = getVaultTimeGreeting();
+  const reduceMotion = useReducedMotion();
+  const { setOpen } = useVaultCommand();
+
+  const lead = data.isEmpty
+    ? "Your vault is ready. Capture your first idea, link, or snippet to get started."
+    : "Your vault is ready. Pick up where you left off.";
 
   return (
     <motion.div
       variants={container}
-      initial="hidden"
+      initial={reduceMotion ? false : "hidden"}
       animate="show"
-      className="space-y-8"
+      className="flex flex-col gap-4 lg:gap-5"
     >
-      <motion.section variants={item} className="space-y-2">
-        <h1 className="font-editorial text-[1.75rem] leading-tight text-brand-ink italic sm:text-[2rem]">
-          Welcome back, {greetingName}.
-        </h1>
-        <p className="max-w-xl text-[0.92rem] leading-relaxed text-white/46">
-          {data.isEmpty
-            ? "Start building your personal knowledge vault."
-            : "Here's what's happening in your vault."}
-        </p>
-      </motion.section>
+      <motion.div variants={item}>
+        <DashboardHero greeting={greeting} name={greetingName} lead={lead} />
+      </motion.div>
+
+      <motion.div variants={item}>
+        <DashboardAskBar onOpenCommand={() => setOpen(true)} />
+      </motion.div>
 
       {!data.isEmpty ? (
-        <motion.div variants={item}>
-          <DashboardStats stats={data.stats} />
-        </motion.div>
-      ) : null}
-
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-        <motion.div variants={item}>
-          <DashboardRecentNotes
-            recentNotes={data.recentNotes}
-            recentlyEdited={data.recentlyEdited}
-            isEmpty={data.isEmpty}
-          />
-        </motion.div>
-        <div className="space-y-6">
-          <motion.div variants={item}>
-            <DashboardCategories
+        <>
+          <motion.div
+            variants={item}
+            className="grid gap-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(17rem,21rem)] lg:items-stretch"
+          >
+            <DashboardActivityStream
+              recentNotes={data.recentNotes}
+              recentlyEdited={data.recentlyEdited}
+              isEmpty={data.isEmpty}
+              className="h-full min-w-0 lg:min-h-[min(24rem,50vh)]"
+            />
+            <aside className="flex h-full min-h-0 w-full min-w-0 flex-col">
+              <DashboardBentoStats stats={data.stats} className="h-full min-h-0" />
+            </aside>
+          </motion.div>
+          <motion.div
+            variants={item}
+            className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"
+          >
+            <DashboardCategoriesStrip
               categories={data.categories}
               isEmpty={data.isEmpty}
             />
+            <DashboardAiInsight hasNotes />
           </motion.div>
-          <motion.div variants={item}>
-            <DashboardAiInsight hasNotes={!data.isEmpty} />
-          </motion.div>
-        </div>
-      </div>
+        </>
+      ) : (
+        <motion.div
+          variants={item}
+          className="grid gap-3 lg:grid-cols-2"
+        >
+          <DashboardAiInsight hasNotes={false} />
+          <DashboardCategoriesStrip
+            categories={data.categories}
+            isEmpty={data.isEmpty}
+          />
+        </motion.div>
+      )}
+
+      {data.isEmpty ? (
+        <motion.div variants={item}>
+          <DashboardActivityStream
+            recentNotes={data.recentNotes}
+            recentlyEdited={data.recentlyEdited}
+            isEmpty
+          />
+        </motion.div>
+      ) : null}
     </motion.div>
   );
 }

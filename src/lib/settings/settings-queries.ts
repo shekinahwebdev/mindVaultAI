@@ -1,4 +1,4 @@
-import { NoteType, SearchMode } from "@/generated/prisma/client";
+import { NoteType, SearchMode, ThemeMode } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
 import { EMBEDDING_DIMENSIONS, EMBEDDING_MODEL } from "@/lib/ai/embed-text";
 import { findNoteIdsNeedingEmbedding } from "@/lib/notes/embedding-repository";
@@ -11,6 +11,7 @@ export type SerializedPreferences = {
   aiAssistanceEnabled: boolean;
   ragEnabled: boolean;
   reducedMotion: boolean;
+  theme: string;
 };
 
 export type SerializedAccount = {
@@ -41,6 +42,7 @@ const defaultPreferencesSelect = {
   aiAssistanceEnabled: true,
   ragEnabled: true,
   reducedMotion: true,
+  theme: true,
 } as const;
 
 function serializePreferences(
@@ -51,6 +53,7 @@ function serializePreferences(
     aiAssistanceEnabled: boolean;
     ragEnabled: boolean;
     reducedMotion: boolean;
+    theme: ThemeMode;
   },
 ): SerializedPreferences {
   return {
@@ -60,6 +63,7 @@ function serializePreferences(
     aiAssistanceEnabled: prefs.aiAssistanceEnabled,
     ragEnabled: prefs.ragEnabled,
     reducedMotion: prefs.reducedMotion,
+    theme: prefs.theme,
   };
 }
 
@@ -149,6 +153,7 @@ export async function updateUserPreferences(
     aiAssistanceEnabled?: boolean;
     ragEnabled?: boolean;
     reducedMotion?: boolean;
+    theme?: ThemeMode;
   },
 ) {
   await getOrCreateUserPreferences(userId);

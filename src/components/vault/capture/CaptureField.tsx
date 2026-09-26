@@ -8,7 +8,10 @@ import {
   type TextareaHTMLAttributes,
 } from "react";
 
+import { vaultLabelClassName } from "@/lib/vault/vault-typography";
 import { cn } from "@/lib/utils";
+
+import { vaultInputClassName } from "../vault-controls";
 
 type CaptureFieldBaseProps = {
   id: string;
@@ -18,11 +21,9 @@ type CaptureFieldBaseProps = {
   className?: string;
 };
 
-const fieldLabelClassName =
-  "text-[0.62rem] tracking-[0.16em] text-white/42 uppercase";
+const fieldLabelClassName = vaultLabelClassName;
 
-const fieldInputClassName =
-  "w-full rounded-xl border bg-white/[0.035] text-[0.9rem] text-brand-ink outline-none transition-colors placeholder:text-white/28 border-white/12 focus:border-white/28";
+const fieldInputClassName = cn(vaultInputClassName, "bg-surface");
 
 function CaptureFieldMessage({
   id,
@@ -35,7 +36,7 @@ function CaptureFieldMessage({
 }) {
   if (error) {
     return (
-      <span id={`${id}-error`} className="mt-1.5 text-[0.75rem] text-white/55">
+      <span id={`${id}-error`} className="mt-1.5 text-[0.75rem] text-muted-foreground">
         {error}
       </span>
     );
@@ -43,7 +44,7 @@ function CaptureFieldMessage({
 
   if (hint) {
     return (
-      <span id={`${id}-hint`} className="mt-1.5 text-[0.75rem] text-white/32">
+      <span id={`${id}-hint`} className="mt-1.5 text-[0.75rem] text-mv-faint">
         {hint}
       </span>
     );
@@ -77,7 +78,7 @@ export function CaptureInputField({
         className={cn(
           fieldInputClassName,
           "mt-1.5 min-h-10 px-3.5 py-2",
-          error && "border-white/28",
+          error && "border-foreground/25",
         )}
         {...inputProps}
       />
@@ -127,7 +128,7 @@ export const CaptureTextareaField = forwardRef<
           fieldInputClassName,
           "mt-1.5 min-h-[11rem] resize-y px-3.5 py-3 leading-relaxed sm:min-h-[14rem]",
           textareaClassName,
-          error && "border-white/28",
+          error && "border-foreground/25",
         )}
         {...textareaProps}
       />
@@ -165,7 +166,7 @@ export function CaptureSelectField({
           className={cn(
             fieldInputClassName,
             "min-h-10 appearance-none px-3.5 py-2 pr-9",
-            error && "border-white/28",
+            error && "border-foreground/25",
             disabled && "cursor-not-allowed opacity-60",
           )}
           {...selectProps}
@@ -175,7 +176,7 @@ export function CaptureSelectField({
               key={option.value}
               value={option.value}
               disabled={option.disabled}
-              className="bg-[#111114] text-brand-ink"
+              className="bg-surface text-foreground"
             >
               {option.label}
             </option>
@@ -183,7 +184,7 @@ export function CaptureSelectField({
         </select>
         <span
           aria-hidden
-          className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-[0.65rem] text-white/35"
+          className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-[0.65rem] text-mv-faint"
         >
           ▼
         </span>
