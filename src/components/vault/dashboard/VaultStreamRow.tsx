@@ -28,7 +28,7 @@ export function VaultStreamRow({
     <Link
       href={noteDetailPath(note.id)}
       className={cn(
-        "group grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 py-3 pl-1 pr-2",
+        "group grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 py-2.5 pl-1 pr-2",
         "border-b border-border/50 last:border-b-0",
         "transition-colors hover:bg-mv-panel/50",
       )}

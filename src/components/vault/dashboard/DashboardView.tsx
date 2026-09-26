@@ -64,30 +64,44 @@ export function DashboardView({ session, data }: DashboardViewProps) {
       </motion.div>
 
       {!data.isEmpty ? (
+        <>
+          <motion.div
+            variants={item}
+            className="grid gap-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(17rem,21rem)] lg:items-stretch"
+          >
+            <DashboardActivityStream
+              recentNotes={data.recentNotes}
+              recentlyEdited={data.recentlyEdited}
+              isEmpty={data.isEmpty}
+              className="h-full min-w-0 lg:min-h-[min(24rem,50vh)]"
+            />
+            <aside className="flex h-full min-h-0 w-full min-w-0 flex-col">
+              <DashboardBentoStats stats={data.stats} className="h-full min-h-0" />
+            </aside>
+          </motion.div>
+          <motion.div
+            variants={item}
+            className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"
+          >
+            <DashboardCategoriesStrip
+              categories={data.categories}
+              isEmpty={data.isEmpty}
+            />
+            <DashboardAiInsight hasNotes />
+          </motion.div>
+        </>
+      ) : (
         <motion.div
           variants={item}
-          className="grid gap-3 lg:grid-cols-[minmax(0,1.55fr)_minmax(10.5rem,0.75fr)] lg:items-stretch"
+          className="grid gap-3 lg:grid-cols-2"
         >
-          <DashboardActivityStream
-            recentNotes={data.recentNotes}
-            recentlyEdited={data.recentlyEdited}
+          <DashboardAiInsight hasNotes={false} />
+          <DashboardCategoriesStrip
+            categories={data.categories}
             isEmpty={data.isEmpty}
-            className="lg:min-h-[22rem]"
           />
-          <DashboardBentoStats stats={data.stats} className="h-full content-start" />
         </motion.div>
-      ) : null}
-
-      <motion.div
-        variants={item}
-        className="grid gap-3 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]"
-      >
-        <DashboardAiInsight hasNotes={!data.isEmpty} />
-        <DashboardCategoriesStrip
-          categories={data.categories}
-          isEmpty={data.isEmpty}
-        />
-      </motion.div>
+      )}
 
       {data.isEmpty ? (
         <motion.div variants={item}>

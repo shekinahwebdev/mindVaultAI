@@ -11,6 +11,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
+    "test:ingestion:url": "tsx --test src/lib/ingestion/url/*.test.ts",
     "embeddings:backfill": "tsx scripts/backfill-embeddings.ts",
     "mcp": "tsx scripts/mcp-server.ts"
   },

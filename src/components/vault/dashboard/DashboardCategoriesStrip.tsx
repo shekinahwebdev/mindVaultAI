@@ -26,7 +26,7 @@ export function DashboardCategoriesStrip({
     <section
       className={cn(
         dashboardBentoCellClassName,
-        "flex flex-col justify-center px-4 py-3.5 sm:px-5",
+        "flex flex-col px-3 py-3 sm:px-4",
         className,
       )}
     >

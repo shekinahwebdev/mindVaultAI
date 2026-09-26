@@ -38,7 +38,7 @@ export function DashboardActivityStream({
     <section
       className={cn(
         dashboardBentoCellClassName,
-        "flex min-h-[min(24rem,50vh)] flex-col px-4 py-4 sm:min-h-[28rem] sm:px-5 sm:py-5",
+        "flex h-full max-h-[min(24rem,50vh)] min-h-[10rem] flex-col px-4 py-3.5 sm:px-5 sm:py-4",
         className,
       )}
     >
