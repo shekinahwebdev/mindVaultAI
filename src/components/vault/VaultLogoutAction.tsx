@@ -6,7 +6,7 @@ import { useRef, useState, type ReactNode } from "react";
 import { routes } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
-import { vaultActionFocus, vaultActionShape } from "./vault-controls";
+import { vaultActionFocus } from "./vault-controls";
 
 type VaultLogoutActionProps = {
   label: string;
@@ -54,10 +54,10 @@ export function VaultLogoutAction({
       aria-busy={loading}
       aria-label={statusLabel}
       className={cn(
-        "inline-flex items-center justify-center gap-2 text-mv-faint transition-colors hover:bg-mv-panel hover:text-foreground/85 disabled:cursor-not-allowed disabled:opacity-50",
+        "text-mv-faint transition-colors hover:bg-mv-panel hover:text-foreground/85 disabled:cursor-not-allowed disabled:opacity-50",
         iconOnly
-          ? `size-10 rounded-full ${vaultActionFocus}`
-          : `px-2.5 py-2 text-[0.8125rem] font-medium ${vaultActionShape}`,
+          ? `inline-flex size-10 items-center justify-center rounded-full ${vaultActionFocus}`
+          : cn("flex min-w-0 items-center gap-3", vaultActionFocus),
         className,
       )}
     >

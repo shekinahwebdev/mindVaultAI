@@ -38,12 +38,14 @@ const SIDEBAR_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 const WIDTH_MS = 280;
 const LABEL_MS = 200;
 
-/** Collapsed: centered 36px targets. Expanded: full-width rows with fixed icon column. */
+/** Collapsed: centered 36px targets. Expanded: same flex row as Dashboard nav items. */
 function railRowClassName(collapsed: boolean) {
   return collapsed
     ? "mx-auto size-9 shrink-0 items-center justify-center rounded-full"
-    : "h-9 w-full min-w-0 items-center rounded-[10px] px-1.5";
+    : "flex h-9 w-full min-w-0 items-center gap-3 px-2 rounded-[10px]";
 }
+
+const railExpandedIconClassName = cn(railIconClassName, "shrink-0");
 
 function railStackClassName(collapsed: boolean) {
   return cn(
@@ -67,7 +69,7 @@ function SidebarLabel({
 }) {
   if (reduceMotion) {
     return visible ? (
-      <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-medium text-foreground">
+      <span className="min-w-0 truncate text-[0.8125rem] font-medium leading-none text-foreground">
         {children}
       </span>
     ) : null;
@@ -76,7 +78,7 @@ function SidebarLabel({
   return (
     <span
       className={cn(
-        "min-w-0 flex-1 truncate text-[0.8125rem] font-medium text-foreground",
+        "min-w-0 truncate text-[0.8125rem] font-medium leading-none text-foreground",
         "transition-[opacity,transform] ease-out",
         visible
           ? "translate-x-0 opacity-100"
@@ -117,7 +119,8 @@ function SidebarNavLink({
       aria-label={collapsed ? tooltip : undefined}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "group relative flex transition-colors duration-200",
+        "group relative transition-colors duration-200",
+        collapsed ? "flex" : undefined,
         railRowClassName(collapsed),
         vaultActionFocus,
         active ? vaultRailActive : vaultRailIdle,
@@ -126,9 +129,7 @@ function SidebarNavLink({
       {collapsed ? (
         <Icon aria-hidden className={railIconClassName} />
       ) : (
-        <span className="relative flex size-9 shrink-0 items-center justify-center">
-          <Icon aria-hidden className={railIconClassName} />
-        </span>
+        <Icon aria-hidden className={railExpandedIconClassName} />
       )}
       {item.badge && collapsed ? (
         <span
@@ -140,16 +141,20 @@ function SidebarNavLink({
         />
       ) : null}
       {!collapsed ? (
-        <>
+        item.badge ? (
+          <div className="flex min-w-0 items-center justify-between gap-2">
+            <SidebarLabel visible={expanded} reduceMotion={reduceMotion}>
+              {expandedText}
+            </SidebarLabel>
+            <span className="shrink-0 rounded-md border border-border px-1.5 py-0.5 text-[0.625rem] font-medium text-mv-faint">
+              {item.badge}
+            </span>
+          </div>
+        ) : (
           <SidebarLabel visible={expanded} reduceMotion={reduceMotion}>
             {expandedText}
           </SidebarLabel>
-          {item.badge ? (
-            <span className="mr-1 shrink-0 rounded-md border border-border px-1.5 py-0.5 text-[0.625rem] font-medium text-mv-faint">
-              {item.badge}
-            </span>
-          ) : null}
-        </>
+        )
       ) : null}
       {collapsed ? (
         <span className={vaultRailTooltipClassName}>{tooltip}</span>
@@ -192,7 +197,8 @@ function ThemeToggleRow({
       aria-label={themeLabel}
       onClick={() => void choose(isLight ? "dark" : "light")}
       className={cn(
-        "group relative flex transition-colors duration-200",
+        "group relative transition-colors duration-200",
+        collapsed ? "flex" : undefined,
         railRowClassName(collapsed),
         vaultActionFocus,
         vaultRailIdle,
@@ -204,14 +210,10 @@ function ThemeToggleRow({
         ) : (
           <Sun aria-hidden className={railIconClassName} />
         )
+      ) : isLight ? (
+        <Moon aria-hidden className={railExpandedIconClassName} />
       ) : (
-        <span className="flex size-9 shrink-0 items-center justify-center">
-          {isLight ? (
-            <Moon aria-hidden className={railIconClassName} />
-          ) : (
-            <Sun aria-hidden className={railIconClassName} />
-          )}
-        </span>
+        <Sun aria-hidden className={railExpandedIconClassName} />
       )}
       {!collapsed ? (
         <SidebarLabel visible={expanded} reduceMotion={reduceMotion}>
@@ -243,29 +245,33 @@ function SidebarProfile({
       href={vaultRoutes.settings}
       aria-label={`Account settings for ${displayName}`}
       className={cn(
-        "group relative flex transition-colors duration-200 hover:bg-mv-panel",
+        "group relative transition-colors duration-200 hover:bg-mv-panel",
         vaultActionFocus,
-        collapsed
-          ? "mx-auto size-9 shrink-0 items-center justify-center rounded-full"
-          : "h-10 w-full min-w-0 items-center rounded-[10px] px-1.5",
+        collapsed ? "flex" : undefined,
+        railRowClassName(collapsed),
+        !collapsed && "mb-4",
       )}
     >
-      <span
-        aria-hidden
-        className={cn(
-          "flex items-center justify-center",
-          collapsed ? "size-8" : "size-9 shrink-0",
-        )}
-      >
-        <span className="flex size-8 items-center justify-center rounded-full bg-primary text-[0.68rem] font-medium text-primary-foreground">
+      {collapsed ? (
+        <span
+          aria-hidden
+          className="flex size-8 items-center justify-center rounded-full bg-primary text-[0.68rem] font-medium text-primary-foreground"
+        >
           {initials}
         </span>
-      </span>
-      {!collapsed ? (
-        <SidebarLabel visible={expanded} reduceMotion={reduceMotion}>
-          {displayName}
-        </SidebarLabel>
-      ) : null}
+      ) : (
+        <>
+          <span
+            aria-hidden
+            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-[0.75rem] font-medium leading-none text-primary-foreground"
+          >
+            {initials}
+          </span>
+          <SidebarLabel visible={expanded} reduceMotion={reduceMotion}>
+            {displayName}
+          </SidebarLabel>
+        </>
+      )}
       {collapsed ? (
         <span className={vaultRailTooltipClassName}>{displayName}</span>
       ) : null}
@@ -368,17 +374,13 @@ export function VaultSidebar() {
           )}
         </nav>
 
-        <div
-          className={cn(
-            "mt-3 w-full border-t border-border/60 pt-3",
-            railStackClassName(collapsed),
-          )}
-        >
+        <div className="mt-3 w-full border-t border-border/60 pt-3">
           <SidebarProfile
             collapsed={collapsed}
             expanded={expanded}
             reduceMotion={reduceMotion}
           />
+          <div className={cn(railStackClassName(collapsed), !collapsed && "gap-2")}>
           <ThemeToggleRow
             collapsed={collapsed}
             expanded={expanded}
@@ -406,11 +408,21 @@ export function VaultSidebar() {
             <VaultLogoutAction
               iconOnly={collapsed}
               label="Sign out"
-              icon={<LogOut aria-hidden className={railIconClassName} />}
+              icon={
+                <LogOut
+                  aria-hidden
+                  className={
+                    collapsed ? railIconClassName : railExpandedIconClassName
+                  }
+                />
+              }
               className={cn(
                 collapsed
-                  ? "size-9 rounded-full"
-                  : "h-9 w-full justify-start gap-2.5 rounded-[10px] px-1.5 text-[0.8125rem] font-medium text-foreground/85",
+                  ? "flex size-9 rounded-full"
+                  : cn(
+                      railRowClassName(false),
+                      "text-[0.8125rem] font-medium text-foreground/85",
+                    ),
                 vaultRailIdle,
               )}
             />
@@ -424,6 +436,7 @@ export function VaultSidebar() {
                 Sign out
               </span>
             ) : null}
+          </div>
           </div>
         </div>
       </div>
