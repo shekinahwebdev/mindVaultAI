@@ -23,9 +23,13 @@
   --color-mv-canvas: var(--mv-canvas);
   --color-surface: var(--surface);
   --color-surface-secondary: var(--surface-secondary);
+  --color-mv-accent: var(--mv-accent);
+  --color-mv-accent-muted: var(--mv-accent-muted);
   --radius-button: 0.5rem;
   --radius-card: 0.75rem;
   --radius-input: 0.5rem;
+  --radius-mv-card: var(--mv-radius-card);
+  --radius-mv-control: var(--mv-radius-control);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -69,26 +73,39 @@
 :root,
 html.dark,
 .dark {
-  --background: #090909;
+  --background: #0d0d0d;
   --surface: #111111;
   --surface-secondary: #171717;
   --foreground: #f5f5f5;
   --muted-foreground: #a3a3a3;
   --primary: #f5f5f5;
-  --primary-foreground: #090909;
+  --primary-foreground: #0d0d0d;
   --secondary: #1c1c1c;
   --secondary-foreground: #f5f5f5;
   --border: rgb(255 255 255 / 0.08);
-  --mv-canvas: #090909;
-  --mv-page: #090909;
+  --mv-canvas: #0d0d0d;
+  --mv-page: #0d0d0d;
   --mv-panel: #171717;
-  --mv-elevated: #111111;
+  --mv-elevated: #141414;
   --mv-border: rgb(255 255 255 / 0.08);
   --mv-ink: #f5f5f5;
   --mv-muted: #a3a3a3;
   --mv-faint: #707070;
   --mv-overlay: rgb(0 0 0 / 0.55);
-  --mv-insight-glow: rgb(245 245 245 / 0.12);
+  --mv-insight-glow: rgb(245 245 245 / 0.1);
+  --mv-accent: #f5f5f5;
+  --mv-accent-muted: rgb(245 245 245 / 0.72);
+  --mv-radius-card: 1rem;
+  --mv-radius-control: 0.5rem;
+  --mv-radius-shell: 1rem;
+  --mv-page-max-width: 72rem;
+  --mv-page-padding-x: clamp(1rem, 3vw, 1.75rem);
+  --mv-page-stack-gap: 1.5rem;
+  --mv-shadow-card: 0 1px 0 rgb(255 255 255 / 0.03);
+  --mv-shadow-elevated: 0 12px 40px rgb(0 0 0 / 0.35);
+  --mv-cosmic-highlight: rgb(255 255 255 / 0.05);
+  --mv-cosmic-vignette: rgb(0 0 0 / 0.45);
+  --mv-cosmic-star: rgb(255 255 255 / 0.35);
   --card: #111111;
   --card-foreground: #f5f5f5;
   --popover: #111111;
@@ -108,7 +125,7 @@ html.dark,
   --sidebar: #111111;
   --sidebar-foreground: #f5f5f5;
   --sidebar-primary: #f5f5f5;
-  --sidebar-primary-foreground: #090909;
+  --sidebar-primary-foreground: #0d0d0d;
   --sidebar-accent: #171717;
   --sidebar-accent-foreground: #f5f5f5;
   --sidebar-border: rgb(255 255 255 / 0.08);
@@ -136,6 +153,19 @@ html.light {
   --mv-faint: #9a9a95;
   --mv-overlay: rgb(21 21 21 / 0.4);
   --mv-insight-glow: rgb(21 21 21 / 0.06);
+  --mv-accent: #151515;
+  --mv-accent-muted: rgb(21 21 21 / 0.72);
+  --mv-radius-card: 1rem;
+  --mv-radius-control: 0.5rem;
+  --mv-radius-shell: 1rem;
+  --mv-page-max-width: 72rem;
+  --mv-page-padding-x: clamp(1rem, 3vw, 1.75rem);
+  --mv-page-stack-gap: 1.5rem;
+  --mv-shadow-card: 0 1px 2px rgb(21 21 21 / 0.04);
+  --mv-shadow-elevated: 0 12px 32px rgb(21 21 21 / 0.08);
+  --mv-cosmic-highlight: rgb(21 21 21 / 0.04);
+  --mv-cosmic-vignette: rgb(246 247 248 / 0.85);
+  --mv-cosmic-star: rgb(21 21 21 / 0.12);
   --card: #ffffff;
   --card-foreground: #151515;
   --popover: #ffffff;
@@ -177,11 +207,160 @@ html.light {
 }
 
 .mv-app {
-  --radius-button: 0.5rem;
-  --radius-card: 0.75rem;
-  --radius-input: 0.5rem;
+  --radius-button: var(--mv-radius-control);
+  --radius-card: var(--mv-radius-card);
+  --radius-input: var(--mv-radius-control);
   background: var(--mv-canvas);
   color: var(--mv-ink);
+}
+
+/* MindVault layout surfaces (Phase A — shared primitives) */
+.mv-cosmic-surface::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(
+      ellipse 80% 55% at 50% 38%,
+      var(--mv-cosmic-highlight) 0%,
+      transparent 58%
+    ),
+    radial-gradient(
+      circle at center,
+      transparent 42%,
+      var(--mv-cosmic-vignette) 100%
+    );
+}
+
+.mv-cosmic-starfield::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.55;
+  background-image:
+    radial-gradient(1px 1px at 12% 18%, var(--mv-cosmic-star) 0%, transparent 100%),
+    radial-gradient(1px 1px at 28% 72%, var(--mv-cosmic-star) 0%, transparent 100%),
+    radial-gradient(1px 1px at 44% 34%, var(--mv-cosmic-star) 0%, transparent 100%),
+    radial-gradient(1px 1px at 61% 8%, var(--mv-cosmic-star) 0%, transparent 100%),
+    radial-gradient(1px 1px at 73% 56%, var(--mv-cosmic-star) 0%, transparent 100%),
+    radial-gradient(1px 1px at 86% 22%, var(--mv-cosmic-star) 0%, transparent 100%),
+    radial-gradient(1px 1px at 8% 88%, var(--mv-cosmic-star) 0%, transparent 100%),
+    radial-gradient(1px 1px at 52% 91%, var(--mv-cosmic-star) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 91% 78%, var(--mv-cosmic-star) 0%, transparent 100%),
+    radial-gradient(1px 1px at 35% 48%, var(--mv-cosmic-star) 0%, transparent 100%);
+}
+
+html.light .mv-cosmic-starfield::after {
+  opacity: 0.35;
+}
+
+@keyframes mv-marketing-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.marketing-hero-in {
+  animation: mv-marketing-fade-up 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marketing-hero-in {
+    animation: none;
+  }
+}
+
+/* Reference landing — CTAs & page chrome */
+.landing-page {
+  color-scheme: dark;
+  --landing-button-radius: var(--mv-radius-control, 0.5rem);
+}
+
+.landing-pill-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: var(--landing-button-radius);
+  border: 1px solid transparent;
+  background: #ffffff;
+  color: #0d0d0d;
+  font-weight: 500;
+  transition: opacity 0.2s ease, background-color 0.2s ease;
+}
+
+.landing-pill-primary:hover {
+  background: rgb(255 255 255 / 0.92);
+}
+
+.landing-pill-primary:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px #0d0d0d,
+    0 0 0 4px rgb(255 255 255 / 0.45);
+}
+
+.landing-pill-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--landing-button-radius);
+  border: 1px solid rgb(255 255 255 / 0.28);
+  background: transparent;
+  color: rgb(255 255 255 / 0.92);
+  font-weight: 500;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.landing-pill-ghost:hover {
+  border-color: rgb(255 255 255 / 0.45);
+  background: rgb(255 255 255 / 0.04);
+}
+
+.landing-pill-ghost:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px #0d0d0d,
+    0 0 0 4px rgb(255 255 255 / 0.35);
+}
+
+.landing-pill-muted {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--landing-button-radius);
+  border: 1px solid rgb(255 255 255 / 0.14);
+  background: rgb(255 255 255 / 0.04);
+  color: rgb(255 255 255 / 0.88);
+  font-weight: 500;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.landing-pill-muted:hover {
+  border-color: rgb(255 255 255 / 0.28);
+  background: rgb(255 255 255 / 0.07);
+}
+
+.landing-pill-muted:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px #0d0d0d,
+    0 0 0 4px rgb(255 255 255 / 0.3);
 }
 
 .mv-app.dark,

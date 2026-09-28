@@ -8,12 +8,12 @@ export const metadata = {
 
 export default function SignInPage() {
   return (
-    <section className="flex w-full flex-col items-center text-center">
-      <h1 className="font-editorial text-[1.45rem] leading-snug text-pretty text-brand-ink italic sm:text-[1.65rem]">
-        Welcome back.
+    <section className="flex w-full flex-col text-left">
+      <h1 className="text-[1.5rem] font-semibold tracking-[-0.02em] text-white sm:text-[1.625rem]">
+        Welcome back
       </h1>
-      <p className="mt-1.5 max-w-[20rem] text-[0.86rem] leading-[1.6] text-pretty text-white/46">
-        Find what you saved. Authentication will connect next.
+      <p className="mt-2 text-[0.875rem] leading-relaxed text-white/45">
+        Sign in to your MindVault.
       </p>
       <SignInForm />
     </section>

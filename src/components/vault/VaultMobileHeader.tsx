@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { AddToVaultMenu } from "./AddToVaultMenu";
 import { useVaultCommand } from "./VaultCommandProvider";
 import { vaultActionFocus } from "./vault-controls";
-import { VaultProfileControl } from "./VaultProfileControl";
+import { VaultProfileMenu } from "./VaultProfileMenu";
 
 export function VaultMobileHeader() {
   const { setOpen } = useVaultCommand();
@@ -45,7 +45,7 @@ export function VaultMobileHeader() {
           <Search aria-hidden className="size-4" />
         </button>
         <AddToVaultMenu compact />
-        <VaultProfileControl compact />
+        <VaultProfileMenu compact />
       </div>
     </header>
   );

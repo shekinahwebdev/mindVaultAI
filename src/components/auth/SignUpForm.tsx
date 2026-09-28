@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState, type FormEvent } from "react";
 
@@ -12,10 +13,13 @@ import {
   type SignUpValues,
 } from "@/lib/auth-validation";
 import { routes } from "@/lib/routes";
+import { cn } from "@/lib/utils";
 
 import { AuthAlert } from "./AuthAlert";
 import { AuthField } from "./AuthField";
-import { AuthSubmit } from "./AuthSubmit";
+import { AuthFormDivider } from "./AuthFormDivider";
+import { AuthSignUpSocialButtons } from "./AuthSignUpSocialButtons";
+import { authFieldSignUpClassName, authSubmitSplitClassName } from "./auth-ui";
 
 const emptyValues: SignUpValues = {
   name: "",
@@ -27,6 +31,9 @@ const emptyValues: SignUpValues = {
 type RegisterResponse =
   | { ok: true; user: { id: string; name: string | null; email: string } }
   | { ok: false; errors?: FieldErrors<SignUpValues>; message?: string };
+
+const fieldLabelClass =
+  "text-[0.75rem] font-normal normal-case tracking-normal text-white/45";
 
 export function SignUpForm() {
   const router = useRouter();
@@ -49,7 +56,12 @@ export function SignUpForm() {
       return;
     }
 
-    const nextErrors = validateSignUp(values);
+    const payload: SignUpValues = {
+      ...values,
+      confirmPassword: values.password,
+    };
+
+    const nextErrors = validateSignUp(payload);
     setErrors(nextErrors);
     setFormError("");
 
@@ -64,7 +76,7 @@ export function SignUpForm() {
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify(payload),
       });
 
       const data = await readAuthJson<RegisterResponse>(response);
@@ -98,20 +110,25 @@ export function SignUpForm() {
 
   return (
     <form
-      className="mt-3 flex w-full flex-col gap-2"
+      className="mt-5 flex w-full flex-col gap-3.5"
       onSubmit={onSubmit}
       noValidate
       aria-busy={loading}
     >
+      <AuthSignUpSocialButtons />
+      <AuthFormDivider />
+
       <AuthField
         id="sign-up-name"
-        label="Name"
+        label="Full name"
         name="name"
         autoComplete="name"
         value={values.name}
         onChange={(event) => update("name", event.target.value)}
         error={errors.name}
         disabled={loading}
+        inputClassName={authFieldSignUpClassName}
+        labelClassName={fieldLabelClass}
       />
       <AuthField
         id="sign-up-email"
@@ -123,6 +140,8 @@ export function SignUpForm() {
         onChange={(event) => update("email", event.target.value)}
         error={errors.email}
         disabled={loading}
+        inputClassName={authFieldSignUpClassName}
+        labelClassName={fieldLabelClass}
       />
       <AuthField
         id="sign-up-password"
@@ -135,29 +154,27 @@ export function SignUpForm() {
         error={errors.password}
         placeholder="At least 8 characters"
         disabled={loading}
-      />
-      <AuthField
-        id="sign-up-confirm"
-        label="Confirm password"
-        name="confirmPassword"
-        type="password"
-        autoComplete="new-password"
-        value={values.confirmPassword}
-        onChange={(event) => update("confirmPassword", event.target.value)}
-        error={errors.confirmPassword}
-        disabled={loading}
+        inputClassName={authFieldSignUpClassName}
+        labelClassName={fieldLabelClass}
       />
       {formError ? <AuthAlert message={formError} /> : null}
-      <AuthSubmit
-        label="Create My Vault"
-        loadingLabel="Creating…"
-        loading={loading}
-      />
-      <p className="mt-1 text-center text-[0.8rem] text-white/42">
-        Already have a vault?{" "}
+      <button
+        type="submit"
+        disabled={loading}
+        aria-busy={loading}
+        className={cn(authSubmitSplitClassName, "mt-1 min-h-12")}
+      >
+        {loading ? "Creating…" : "Create account"}
+        {!loading ? <ArrowRight aria-hidden className="size-4" /> : null}
+      </button>
+      <p className="text-[0.75rem] leading-relaxed text-white/36">
+        By creating an account, you agree to our Terms of Service and Privacy Policy.
+      </p>
+      <p className="text-center text-[0.8125rem] text-white/42">
+        Already have an account?{" "}
         <Link
           href={routes.signIn}
-          className="text-white/70 underline-offset-4 transition-colors hover:text-white hover:underline"
+          className="font-semibold text-white/85 underline-offset-4 transition-colors hover:text-white hover:underline"
         >
           Sign in
         </Link>

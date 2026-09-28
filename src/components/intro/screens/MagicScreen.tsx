@@ -14,8 +14,8 @@ type MagicScreenProps = {
 };
 
 const copy = {
-  heading: "Save anything.",
-  supporting: "MindVault understands what you save and organizes it for you.",
+  heading: "Let MindVault organize it.",
+  supporting: "What you save gets structured so your vault stays clear over time.",
   understood: "MindVault understood it.",
 } as const;
 
@@ -67,7 +67,7 @@ export function MagicScreen({ onNext, disabled }: MagicScreenProps) {
 
   return (
     <section className="relative flex w-full max-w-xl flex-col items-center text-center">
-      <h1 className="sr-only">The Magic</h1>
+      <h1 className="sr-only">Let MindVault organize it</h1>
 
       <div className="flex w-full max-w-[28rem] flex-col items-center px-1">
         <motion.p

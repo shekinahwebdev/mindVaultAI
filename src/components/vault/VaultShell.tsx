@@ -20,6 +20,7 @@ import { VaultSessionProvider } from "./VaultSessionProvider";
 import { VaultSidebar } from "./VaultSidebar";
 import { VaultSidebarProvider } from "./VaultSidebarProvider";
 import { VaultTopBar } from "./VaultTopBar";
+import { vaultMainContentClassName, vaultShellFrameClassName } from "./vault-shell-ui";
 
 type VaultShellProps = {
   session: SessionData;
@@ -80,54 +81,49 @@ export function VaultShell({
         <PreferencesProvider>
           <VaultCommandProvider>
             <VaultSidebarProvider>
-            <VaultKeyboardShortcuts />
-            <div
-              id="mv-app"
-              className={cn(
-                "mv-app text-foreground md:p-3",
-                resolvedTheme,
-                isCapture ? "h-svh overflow-hidden" : "min-h-svh",
-              )}
-            >
+              <VaultKeyboardShortcuts />
               <div
+                id="mv-app"
                 className={cn(
-                  "mv-frame flex overflow-hidden md:rounded-[22px]",
-                  isCapture
-                    ? "h-full"
-                    : "min-h-svh md:min-h-[calc(100svh-1.5rem)]",
+                  "mv-app text-foreground",
+                  resolvedTheme,
+                  isCapture ? "h-dvh overflow-hidden" : "h-dvh overflow-hidden md:p-3",
                 )}
               >
-                <VaultSidebar />
+                <div className={cn(vaultShellFrameClassName, isCapture && "md:rounded-none")}>
+                  <VaultSidebar />
 
-                <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-                  {!isCapture ? <VaultMobileHeader /> : null}
-                  {!isCapture ? <VaultTopBar /> : null}
+                  <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+                    {!isCapture ? (
+                      <VaultMobileHeader />
+                    ) : null}
+                    {!isCapture ? (
+                      <VaultTopBar />
+                    ) : null}
 
-                  <main
-                    className={cn(
-                      "flex min-h-0 flex-1 flex-col",
-                      isCapture
-                        ? "overflow-hidden"
-                        : "overflow-y-auto pb-24 md:pb-0",
-                    )}
-                  >
-                    <div
+                    <main
                       className={cn(
-                        isCapture
-                          ? "flex h-full min-h-0 flex-1 flex-col px-4 py-3 sm:px-6 sm:py-4"
-                          : "mx-auto w-full max-w-[88rem] px-4 py-4 sm:px-6 sm:py-5 lg:px-8 lg:py-6",
+                        "flex min-h-0 flex-1 flex-col",
+                        isCapture ? "overflow-hidden" : "overflow-y-auto overscroll-y-contain",
                       )}
                     >
-                      {children}
-                    </div>
-                  </main>
+                      <div
+                        className={cn(
+                          isCapture
+                            ? "flex h-full min-h-0 flex-1 flex-col px-[var(--mv-page-padding-x)] py-3 sm:py-4"
+                            : cn(vaultMainContentClassName, "pb-24 md:pb-6"),
+                        )}
+                      >
+                        {children}
+                      </div>
+                    </main>
+                  </div>
                 </div>
-              </div>
 
-              {!isCapture ? <VaultMobileNav /> : null}
-              {!isCapture ? <VaultCommandPalette /> : null}
-              <VaultToaster />
-            </div>
+                {!isCapture ? <VaultMobileNav /> : null}
+                {!isCapture ? <VaultCommandPalette /> : null}
+                <VaultToaster />
+              </div>
             </VaultSidebarProvider>
           </VaultCommandProvider>
         </PreferencesProvider>

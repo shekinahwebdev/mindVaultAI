@@ -9,10 +9,13 @@ type IntroProgressProps = {
 export function IntroProgress({ current }: IntroProgressProps) {
   return (
     <div
-      className="flex items-center gap-2.5"
+      className="flex items-center gap-3"
       role="img"
-      aria-label={`Intro step ${current + 1} of ${INTRO_STEP_COUNT}`}
+      aria-label={`Onboarding step ${current + 1} of ${INTRO_STEP_COUNT}`}
     >
+      <span className="text-[0.6875rem] font-medium tabular-nums tracking-wide text-white/40">
+        {current + 1} / {INTRO_STEP_COUNT}
+      </span>
       {Array.from({ length: INTRO_STEP_COUNT }, (_, index) => {
         const active = index === current;
 

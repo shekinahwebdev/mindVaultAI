@@ -11,9 +11,8 @@ import { introEase, introTransition } from "../intro-motion";
 import { rememberTimings } from "../remember-demo";
 
 const copy = {
-  heading: "Remember anything.",
-  supporting:
-    "Find what mattered, even when you don’t remember where you saved it.",
+  heading: "Find it again when you need it.",
+  supporting: "Search or ask — MindVault brings the right knowledge back.",
   home: "Your knowledge has a home.",
 } as const;
 
@@ -33,7 +32,7 @@ export function RememberScreen() {
 
   return (
     <section className="relative flex w-full max-w-xl flex-col items-center text-center">
-      <h1 className="sr-only">Remember</h1>
+      <h1 className="sr-only">Find it again when you need it</h1>
 
       <div className="flex w-full max-w-[28rem] flex-col items-center px-1">
         <motion.p
@@ -84,13 +83,13 @@ export function RememberScreen() {
             aria-hidden
             className="pointer-events-none absolute inset-0 bg-[linear-gradient(110deg,transparent_35%,rgba(5,5,7,0.08)_48%,transparent_62%)] bg-[length:220%_100%] bg-[position:120%_0] transition-[background-position] duration-700 ease-out group-hover:bg-[position:-20%_0]"
           />
-          <span className="relative">Create My Vault</span>
+          <span className="relative">Sign Up</span>
         </Link>
         <Link
           href={routes.signIn}
-          className="inline-flex min-h-10 items-center justify-center px-3 text-[0.78rem] tracking-[0.18em] text-white/48 uppercase transition-colors hover:text-white"
+          className="inline-flex min-h-10 items-center justify-center px-3 text-[0.78rem] tracking-[0.18em] text-white/48 uppercase transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-void"
         >
-          Sign in
+          Sign In
         </Link>
       </div>
     </section>

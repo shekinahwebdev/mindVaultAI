@@ -15,7 +15,7 @@ type IdentityScreenProps = {
 export function IdentityScreen({ onNext, disabled }: IdentityScreenProps) {
   return (
     <section className="relative flex w-full max-w-5xl flex-col items-center text-center">
-      <h1 className="sr-only">{brand.name}</h1>
+      <h1 className="sr-only">{brand.name} — what MindVault is</h1>
       <IntroLogo />
       <IntroSignature />
       <IntroCopy />
