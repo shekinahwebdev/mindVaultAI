@@ -243,7 +243,8 @@ Step-by-step design and implementation reports (updated **after every prompt/ste
 - Phase 2 Step 2 — secure HTTP fetch (pinned undici) ✅
 - Phase 2 Step 3 — HTML/text extraction (Readability + linkedom) ✅
 - Phase 2 Step 4 — POST /api/ingest/url (auth preview) ✅
-- Steps 5–7 — Capture UI, E2E ⏳
+- Phase 2 Step 5 — Capture URL import UI ✅
+- Steps 6–7 — E2E QA ⏳
 
 ### Later
 

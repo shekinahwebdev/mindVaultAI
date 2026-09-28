@@ -41,7 +41,7 @@ User pastes URL
 | Phase 2 Step 2 — Secure HTTP fetch | ✅ | [below](#phase-2--step-2-safe-http-fetch-) |
 | Phase 2 Step 3 — Content extraction | ✅ | [below](#phase-2--step-3-content-extraction-) |
 | Phase 2 Step 4 — Ingest API | ✅ | [below](#phase-2--step-4-ingest-api-) |
-| Phase 2 Step 5 — Capture UI | ⏳ | [below](#phase-2--step-5-capture-ui-integration-) |
+| Phase 2 Step 5 — Capture UI | ✅ | [below](#phase-2--step-5-capture-ui-integration-) |
 | Phase 2 Step 6 — AI analysis reuse | ⏳ | [below](#phase-2--step-6-ai-analysis-reuse-) |
 | Phase 2 Step 7 — E2E testing | ⏳ | [below](#phase-2--step-7-end-to-end-testing-) |
 
@@ -568,13 +568,62 @@ Client helper `ingestUrlRequest` + Capture URL import UI calling this API, then 
 
 ---
 
-## Phase 2 — Step 5: Capture UI integration ⏳
+## Phase 2 — Step 5: Capture UI integration ✅
 
-**Goal:** URL field + Import/Fetch on existing Capture screen; fill `content`, `title`, `sourceUrl`; preview-first; failures must not break manual capture.
+**Goal:** Paste URL → Import → fill existing Capture form → user reviews → optional Analyze → existing Save. **No backend pipeline changes.**
 
-**Planned files:** `CaptureUrlImport.tsx`, `ingest-client.ts`, updates to `CaptureForm.tsx`
+### Files
 
-**Report section:** _To be filled when Step 5 ships._
+| Path | Role |
+|------|------|
+| `src/lib/notes/ingest-client.ts` | `ingestUrlRequest`, typed preview, safe error messages |
+| `src/lib/notes/capture-config.ts` | Import copy (labels, toast, confirm) |
+| `src/components/vault/capture/CaptureUrlImport.tsx` | URL field + Import UI, abort, inline errors |
+| `src/components/vault/capture/CaptureForm.tsx` | Wires import above content; applies preview |
+
+### UI location
+
+Compact **“Import from URL”** panel at the **top** of the Capture form (above “What do you want to remember?”). Desktop: URL + Import on one row (`sm:flex-row`); mobile: stacked, full-width Import button (`min-h-10`).
+
+### Import behavior
+
+- **Loading:** button shows `Reading page...`, disabled; `AbortController` cancels stale requests (request id guard).
+- **Success toast:** `Page imported. Review it before saving.` (not “Saved”).
+- **No auto-analyze, no auto-save.**
+
+### Form fields populated
+
+| Preview field | Capture field |
+|---------------|---------------|
+| `content` | `content` textarea |
+| `title` | `title` (empty if null) |
+| `originalUrl` | `sourceUrl` (**V1:** user-pasted URL, not `finalUrl`) |
+
+**Type:** If user has not changed type and value is still default `NOTE`, set **`ARTICLE`**. Respects `?type=` query and manual type changes (`typeTouchedByUserRef`).
+
+### Existing content
+
+**Confirmation (option B):** If title or content already has text, `window.confirm` before import replaces content. Cancel leaves form unchanged. Failures never clear fields.
+
+### Analyze & save
+
+Unchanged: user clicks **Analyze with AI** after import; **Save to Vault** → `POST /api/notes` → embeddings/RAG as today.
+
+### Errors
+
+Server `message` shown on import field (403/422/etc.). Generic fallback: `MindVault couldn't import this page…` No IPs/codes in UI. **401** → sign-in redirect.
+
+### Accessibility
+
+Labeled URL input, `aria-busy` on Import, errors via `CaptureInputField` `aria-invalid` / describedby, Enter key triggers import.
+
+### Manual QA (Step 5)
+
+Exercise on `/vault/capture`: import → edit → analyze → save → search/RAG (requires running app + network for real URLs; automated backend tests remain in `test:ingestion:url`).
+
+### Handoff to Step 6–7
+
+Step 6 largely satisfied (manual Analyze). Step 7: full E2E checklist + optional Playwright.
 
 ---
 
@@ -618,3 +667,4 @@ Client helper `ingestUrlRequest` + Capture URL import UI calling this API, then 
 | 2026-09-28 | Documentation workflow — document every prompt/step in this README |
 | 2026-09-28 | Phase 2 Step 3 — Readability + linkedom extraction, 78 total tests |
 | 2026-09-28 | Phase 2 Step 4 — POST /api/ingest/url + orchestrator, 98 total tests |
+| 2026-09-28 | Phase 2 Step 5 — Capture URL import UI + ingest-client |

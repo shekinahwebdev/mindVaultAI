@@ -12,17 +12,24 @@ import {
   type FormEvent,
 } from "react";
 
+import { NoteType } from "@/generated/prisma/enums";
+
 import {
   CAPTURE_ANALYZE_LABEL,
   CAPTURE_ANALYZE_MIN_LENGTH,
   CAPTURE_ANALYZING_LABEL,
+  CAPTURE_DEFAULT_TYPE,
   CAPTURE_DISCARD_CONFIRM,
+  CAPTURE_IMPORT_GENERIC_ERROR,
+  CAPTURE_IMPORT_REPLACE_CONFIRM,
+  CAPTURE_IMPORT_SUCCESS,
   CAPTURE_SERVER_ERROR,
   CAPTURE_SUCCESS_MESSAGE,
   CAPTURE_SUGGESTED_LABEL,
   CAPTURE_UNAUTHORIZED,
   captureNoteTypeOptions,
 } from "@/lib/notes/capture-config";
+import type { IngestUrlPreview } from "@/lib/notes/ingest-client";
 import type { CaptureFormValues } from "@/lib/notes/capture-client";
 import {
   analyzeNoteRequest,
@@ -49,6 +56,7 @@ import {
   CaptureSelectField,
   CaptureTextareaField,
 } from "./CaptureField";
+import { CaptureUrlImport } from "./CaptureUrlImport";
 
 type CaptureFormProps = {
   onRequestClose: () => void;
@@ -76,6 +84,7 @@ export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
     Set<"title" | "type" | "categoryId">
   >(new Set());
   const analyzeAbortRef = useRef<AbortController | null>(null);
+  const typeTouchedByUserRef = useRef(false);
   const {
     categories,
     loading: categoriesLoading,
@@ -106,6 +115,7 @@ export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
     if (!isValid) {
       return;
     }
+    typeTouchedByUserRef.current = true;
     setValues((current) => ({
       ...current,
       type: typeParam as CaptureFormValues["type"],
@@ -160,6 +170,10 @@ export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
     key: K,
     value: CaptureFormValues[K],
   ) {
+    if (key === "type") {
+      typeTouchedByUserRef.current = true;
+    }
+
     setValues((current) => ({ ...current, [key]: value }));
     setErrors((current) => ({ ...current, [key]: undefined }));
     setFormError("");
@@ -175,6 +189,36 @@ export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
       });
     }
   }
+
+  const confirmImportReplace = useCallback(() => {
+    const hasContent = formValues.content.trim().length > 0;
+    const hasTitle = formValues.title.trim().length > 0;
+    if (!hasContent && !hasTitle) {
+      return true;
+    }
+    return window.confirm(CAPTURE_IMPORT_REPLACE_CONFIRM);
+  }, [formValues.content, formValues.title]);
+
+  const handleImportedPreview = useCallback(
+    (preview: IngestUrlPreview) => {
+      setValues((current) => ({
+        ...current,
+        content: preview.content,
+        title: preview.title ?? "",
+        sourceUrl: preview.originalUrl,
+        type:
+          !typeTouchedByUserRef.current &&
+          current.type === CAPTURE_DEFAULT_TYPE
+            ? NoteType.ARTICLE
+            : current.type,
+      }));
+      setErrors({});
+      setSuggestedKeys(new Set());
+      setFormError("");
+      toastSuccess(CAPTURE_IMPORT_SUCCESS);
+    },
+    [],
+  );
 
   async function handleAnalyze() {
     if (
@@ -295,6 +339,14 @@ export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
   return (
     <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col">
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden pb-[4.75rem] md:pb-0">
+        <CaptureUrlImport
+          disabled={loading || success || analyzing}
+          fallbackErrorMessage={CAPTURE_IMPORT_GENERIC_ERROR}
+          onBeforeImport={confirmImportReplace}
+          onImported={handleImportedPreview}
+          onUnauthorized={() => router.push(routes.signIn)}
+        />
+
         <CaptureTextareaField
           ref={contentRef}
           id="capture-content"

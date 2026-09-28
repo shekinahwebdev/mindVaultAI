@@ -37,3 +37,27 @@ export const CAPTURE_ANALYZE_ERROR =
   "MindVault couldn't analyze this right now. You can still organize and save it manually.";
 
 export const CAPTURE_SUGGESTED_LABEL = "Suggested by MindVault";
+
+export const CAPTURE_IMPORT_SECTION_LABEL = "Import from URL";
+
+export const CAPTURE_IMPORT_URL_LABEL = "Page URL";
+
+export const CAPTURE_IMPORT_URL_PLACEHOLDER = "https://example.com/article";
+
+export const CAPTURE_IMPORT_HELPER =
+  "Paste a public article or webpage and MindVault will extract the readable content.";
+
+export const CAPTURE_IMPORT_BUTTON = "Import";
+
+export const CAPTURE_IMPORT_LOADING = "Reading page...";
+
+export const CAPTURE_IMPORT_SUCCESS =
+  "Page imported. Review it before saving.";
+
+export const CAPTURE_IMPORT_GENERIC_ERROR =
+  "MindVault couldn't import this page. You can still paste the content manually.";
+
+export const CAPTURE_IMPORT_REPLACE_CONFIRM =
+  "Importing this page will replace the current content. Continue?";
+
+export const CAPTURE_IMPORT_URL_REQUIRED = "Enter a URL to import.";
