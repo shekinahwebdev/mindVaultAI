@@ -17,9 +17,9 @@ type ProblemScreenProps = {
 type ProblemLayout = "both" | "stack" | "float";
 
 const copy = {
-  heading: "You consume more than you remember.",
+  heading: "Save what matters.",
   supporting:
-    "Useful things get scattered across apps, tabs, chats, bookmarks and notes.",
+    "Notes, links, quotes, and ideas scatter across apps, tabs, chats, and bookmarks.",
   scattered: "Your knowledge is everywhere.",
   home: "MindVault gives it one home.",
 } as const;
@@ -46,7 +46,7 @@ export function ProblemScreen({ onNext, disabled }: ProblemScreenProps) {
 
   return (
     <section className="relative flex w-full max-w-5xl flex-col items-center text-center">
-      <h1 className="sr-only">The Problem</h1>
+      <h1 className="sr-only">Save what matters</h1>
 
       {showStack ? (
         <div

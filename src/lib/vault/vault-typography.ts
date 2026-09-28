@@ -1,6 +1,8 @@
 /**
  * Product UI typography for authenticated vault (Geist sans).
  * Editorial/signature fonts are reserved for marketing & brand surfaces.
+ *
+ * Page-level titles and leads: prefer `@/components/mv/PageHeader` (Phase A+).
  */
 
 export const vaultPageTitleClassName =

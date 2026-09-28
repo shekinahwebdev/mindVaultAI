@@ -1,3 +1,8 @@
 "use client";
 
-export { IntroFlow as IntroScreen } from "./IntroFlow";
+import { IntroFlow } from "./IntroFlow";
+
+/** @deprecated Prefer `/onboarding/1` — kept for compatibility. */
+export function IntroScreen() {
+  return <IntroFlow stepIndex={0} />;
+}

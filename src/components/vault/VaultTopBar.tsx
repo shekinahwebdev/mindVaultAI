@@ -7,13 +7,13 @@ import { cn } from "@/lib/utils";
 import { AddToVaultMenu } from "./AddToVaultMenu";
 import { useVaultCommand } from "./VaultCommandProvider";
 import { vaultActionFocus } from "./vault-controls";
-import { VaultProfileControl } from "./VaultProfileControl";
+import { VaultProfileMenu } from "./VaultProfileMenu";
 
 export function VaultTopBar() {
   const { setOpen } = useVaultCommand();
 
   return (
-    <header className="hidden h-11 shrink-0 items-center justify-end gap-2 px-4 pt-1 md:flex lg:px-5">
+    <header className="hidden h-12 shrink-0 items-center justify-end gap-2 border-b border-border/60 bg-surface/40 px-[var(--mv-page-padding-x)] backdrop-blur-sm md:flex">
       <button
         type="button"
         onClick={() => setOpen(true)}
@@ -30,7 +30,7 @@ export function VaultTopBar() {
       </button>
 
       <AddToVaultMenu />
-      <VaultProfileControl />
+      <VaultProfileMenu />
     </header>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState, type FormEvent } from "react";
 
@@ -13,10 +14,12 @@ import {
   type SignInValues,
 } from "@/lib/auth-validation";
 import { routes } from "@/lib/routes";
+import { cn } from "@/lib/utils";
 
 import { AuthAlert } from "./AuthAlert";
 import { AuthField } from "./AuthField";
-import { AuthSubmit } from "./AuthSubmit";
+import { AuthOAuthPlaceholder } from "./AuthOAuthPlaceholder";
+import { authFieldSplitClassName, authSubmitSignInClassName } from "./auth-ui";
 
 const emptyValues: SignInValues = {
   email: "",
@@ -102,9 +105,12 @@ export function SignInForm() {
     }
   }
 
+  const fieldLabelClass =
+    "text-[0.8125rem] font-medium normal-case tracking-normal text-white/55";
+
   return (
     <form
-      className="mt-4 flex w-full flex-col gap-2.5"
+      className="mt-7 flex w-full flex-col gap-4"
       onSubmit={onSubmit}
       noValidate
       aria-busy={loading}
@@ -119,31 +125,52 @@ export function SignInForm() {
         onChange={(event) => update("email", event.target.value)}
         error={errors.email}
         disabled={loading}
+        inputClassName={authFieldSplitClassName}
+        labelClassName={fieldLabelClass}
       />
-      <AuthField
-        id="sign-in-password"
-        label="Password"
-        name="password"
-        type="password"
-        autoComplete="current-password"
-        value={values.password}
-        onChange={(event) => update("password", event.target.value)}
-        error={errors.password}
-        disabled={loading}
-      />
+      <div>
+        <AuthField
+          id="sign-in-password"
+          label="Password"
+          name="password"
+          type="password"
+          autoComplete="current-password"
+          value={values.password}
+          onChange={(event) => update("password", event.target.value)}
+          error={errors.password}
+          disabled={loading}
+          inputClassName={authFieldSplitClassName}
+          labelClassName={fieldLabelClass}
+        />
+        <div className="mt-2 flex justify-end">
+          <span
+            className="text-[0.8125rem] text-white/42"
+            title="Password reset is not available yet"
+          >
+            Forgot password?
+          </span>
+        </div>
+      </div>
       {formError ? <AuthAlert message={formError} /> : null}
-      <AuthSubmit
-        label="Sign in"
-        loadingLabel="Signing in…"
-        loading={loading}
-      />
-      <p className="mt-1 text-center text-[0.8rem] text-white/42">
-        New here?{" "}
+      <button
+        type="submit"
+        disabled={loading}
+        aria-busy={loading}
+        className={cn(authSubmitSignInClassName, "mt-1")}
+      >
+        {loading ? "Signing in…" : "Sign in"}
+        {!loading ? <ArrowRight aria-hidden className="size-4" /> : null}
+      </button>
+
+      <AuthOAuthPlaceholder />
+
+      <p className="text-center text-[0.8125rem] text-white/42">
+        Don&apos;t have an account?{" "}
         <Link
           href={routes.signUp}
-          className="text-white/70 underline-offset-4 transition-colors hover:text-white hover:underline"
+          className="font-semibold text-white/85 underline-offset-4 transition-colors hover:text-white hover:underline"
         >
-          Create a vault
+          Sign up
         </Link>
       </p>
     </form>

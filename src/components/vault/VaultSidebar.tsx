@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, Moon, Settings, Sun } from "lucide-react";
+import { Monitor, Moon, Settings, Sun } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useReducedMotion } from "framer-motion";
 import type { ReactNode } from "react";
@@ -16,10 +16,12 @@ import { preferenceToPrismaTheme } from "@/lib/theme";
 import { vaultRoutes } from "@/lib/routes";
 import {
   isVaultNavActive,
+  vaultSidebarCaptureNav,
   vaultSidebarPrimaryNav,
   vaultSidebarUtilityNav,
   type VaultNavItem,
 } from "@/lib/vault/nav";
+import type { ThemePreference } from "@/lib/theme";
 import { getVaultInitials } from "@/lib/vault/user-display";
 import { cn } from "@/lib/utils";
 
@@ -29,9 +31,9 @@ import {
   vaultRailIdle,
   vaultRailTooltipClassName,
 } from "./vault-controls";
-import { VaultLogoutAction } from "./VaultLogoutAction";
 import { useVaultSession } from "./VaultSessionProvider";
 import { useVaultSidebar } from "./VaultSidebarProvider";
+import { vaultCaptureNavClassName, vaultSidebarRailClassName } from "./vault-shell-ui";
 
 const railIconClassName = "size-[1.125rem] stroke-[1.75]";
 const SIDEBAR_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
@@ -100,12 +102,14 @@ function SidebarNavLink({
   collapsed,
   expanded,
   reduceMotion,
+  className,
 }: {
   item: VaultNavItem;
   active: boolean;
   collapsed: boolean;
   expanded: boolean;
   reduceMotion: boolean | null;
+  className?: string;
 }) {
   const Icon = item.icon;
   const tooltip = item.badge
@@ -124,6 +128,7 @@ function SidebarNavLink({
         railRowClassName(collapsed),
         vaultActionFocus,
         active ? vaultRailActive : vaultRailIdle,
+        className,
       )}
     >
       {collapsed ? (
@@ -163,6 +168,18 @@ function SidebarNavLink({
   );
 }
 
+const themeCycle: ThemePreference[] = ["light", "dark", "system"];
+
+function themePreferenceLabel(preference: ThemePreference) {
+  if (preference === "light") {
+    return "Light";
+  }
+  if (preference === "dark") {
+    return "Dark";
+  }
+  return "System";
+}
+
 function ThemeToggleRow({
   collapsed,
   expanded,
@@ -172,16 +189,15 @@ function ThemeToggleRow({
   expanded: boolean;
   reduceMotion: boolean | null;
 }) {
-  const { resolved, setPreference } = useTheme();
+  const { preference, resolved, setPreference } = useTheme();
   const { setPreferences } = usePreferences();
-  const isLight = resolved === "light";
-  const themeLabel = isLight ? "Dark mode" : "Light mode";
-  const appearanceLabel = "Appearance";
+  const appearanceLabel = collapsed
+    ? `Appearance · ${themePreferenceLabel(preference)}`
+    : "Appearance";
 
-  async function choose(next: "light" | "dark") {
-    if (resolved === next) {
-      return;
-    }
+  async function cycleTheme() {
+    const index = themeCycle.indexOf(preference);
+    const next = themeCycle[(index + 1) % themeCycle.length] ?? "system";
     setPreference(next);
     const { data } = await updatePreferencesRequest({
       theme: preferenceToPrismaTheme(next),
@@ -191,11 +207,14 @@ function ThemeToggleRow({
     }
   }
 
+  const ThemeIcon =
+    preference === "system" ? Monitor : resolved === "light" ? Moon : Sun;
+
   return (
     <button
       type="button"
-      aria-label={themeLabel}
-      onClick={() => void choose(isLight ? "dark" : "light")}
+      aria-label={`${appearanceLabel}. Click to change theme.`}
+      onClick={() => void cycleTheme()}
       className={cn(
         "group relative transition-colors duration-200",
         collapsed ? "flex" : undefined,
@@ -205,23 +224,22 @@ function ThemeToggleRow({
       )}
     >
       {collapsed ? (
-        isLight ? (
-          <Moon aria-hidden className={railIconClassName} />
-        ) : (
-          <Sun aria-hidden className={railIconClassName} />
-        )
-      ) : isLight ? (
-        <Moon aria-hidden className={railExpandedIconClassName} />
+        <ThemeIcon aria-hidden className={railIconClassName} />
       ) : (
-        <Sun aria-hidden className={railExpandedIconClassName} />
+        <ThemeIcon aria-hidden className={railExpandedIconClassName} />
       )}
       {!collapsed ? (
-        <SidebarLabel visible={expanded} reduceMotion={reduceMotion}>
-          {appearanceLabel}
-        </SidebarLabel>
+        <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
+          <SidebarLabel visible={expanded} reduceMotion={reduceMotion}>
+            Appearance
+          </SidebarLabel>
+          <span className="shrink-0 text-[0.6875rem] text-mv-faint">
+            {themePreferenceLabel(preference)}
+          </span>
+        </div>
       ) : null}
       {collapsed ? (
-        <span className={vaultRailTooltipClassName}>{themeLabel}</span>
+        <span className={vaultRailTooltipClassName}>{appearanceLabel}</span>
       ) : null}
     </button>
   );
@@ -289,22 +307,17 @@ export function VaultSidebar() {
     ? "none"
     : `width ${WIDTH_MS}ms ${SIDEBAR_EASE}`;
 
-  const expandedNavItems = [
-    ...vaultSidebarPrimaryNav,
-    ...vaultSidebarUtilityNav,
-  ];
-
   return (
     <aside
       className={cn(
-        "hidden shrink-0 md:flex md:items-start md:py-2",
+        "hidden shrink-0 md:flex md:items-stretch md:py-2",
         collapsed ? "w-[4.5rem] justify-center" : "w-[15rem]",
       )}
       style={{ transition: widthTransition }}
     >
       <div
         className={cn(
-          "mv-rail-capsule sticky top-3 flex flex-col rounded-[20px] border border-border bg-surface py-2.5",
+          vaultSidebarRailClassName,
           collapsed
             ? "w-[3.25rem] items-center px-0"
             : "mx-1.5 w-[calc(100%-0.75rem)] overflow-hidden px-2",
@@ -359,85 +372,69 @@ export function VaultSidebar() {
           ) : null}
         </div>
 
-        <nav aria-label="Vault" className={railStackClassName(collapsed)}>
-          {(expanded ? expandedNavItems : vaultSidebarPrimaryNav).map(
-            (item) => (
-              <SidebarNavLink
-                key={item.href}
-                item={item}
-                active={isVaultNavActive(pathname, item.href)}
-                collapsed={collapsed}
-                expanded={expanded}
-                reduceMotion={reduceMotion}
-              />
-            ),
-          )}
+        <nav aria-label="Primary" className={railStackClassName(collapsed)}>
+          {vaultSidebarPrimaryNav.map((item) => (
+            <SidebarNavLink
+              key={item.href}
+              item={item}
+              active={isVaultNavActive(pathname, item.href)}
+              collapsed={collapsed}
+              expanded={expanded}
+              reduceMotion={reduceMotion}
+            />
+          ))}
         </nav>
 
-        <div className="mt-3 w-full border-t border-border/60 pt-3">
+        <div className={cn("mt-2 w-full", collapsed ? "px-0" : "px-0.5")}>
+          <SidebarNavLink
+            item={vaultSidebarCaptureNav}
+            active={isVaultNavActive(pathname, vaultSidebarCaptureNav.href)}
+            collapsed={collapsed}
+            expanded={expanded}
+            reduceMotion={reduceMotion}
+            className={vaultCaptureNavClassName}
+          />
+        </div>
+
+        <div className="min-h-2 flex-1" aria-hidden />
+
+        <div className="mt-auto w-full border-t border-border/60 pt-3">
+          <div className={cn(railStackClassName(collapsed), !collapsed && "gap-0.5")}>
+            <ThemeToggleRow
+              collapsed={collapsed}
+              expanded={expanded}
+              reduceMotion={reduceMotion}
+            />
+            {expanded
+              ? vaultSidebarUtilityNav.map((item) => (
+                  <SidebarNavLink
+                    key={item.href}
+                    item={item}
+                    active={isVaultNavActive(pathname, item.href)}
+                    collapsed={collapsed}
+                    expanded={expanded}
+                    reduceMotion={reduceMotion}
+                  />
+                ))
+              : (
+                  <SidebarNavLink
+                    item={{
+                      label: "Settings",
+                      href: vaultRoutes.settings,
+                      icon: Settings,
+                    }}
+                    active={isVaultNavActive(pathname, vaultRoutes.settings)}
+                    collapsed
+                    expanded={false}
+                    reduceMotion={reduceMotion}
+                  />
+                )}
+          </div>
           <SidebarProfile
             collapsed={collapsed}
             expanded={expanded}
             reduceMotion={reduceMotion}
           />
-          <div className={cn(railStackClassName(collapsed), !collapsed && "gap-2")}>
-          <ThemeToggleRow
-            collapsed={collapsed}
-            expanded={expanded}
-            reduceMotion={reduceMotion}
-          />
-          {collapsed ? (
-            <SidebarNavLink
-              item={{
-                label: "Settings",
-                href: vaultRoutes.settings,
-                icon: Settings,
-              }}
-              active={isVaultNavActive(pathname, vaultRoutes.settings)}
-              collapsed
-              expanded={false}
-              reduceMotion={reduceMotion}
-            />
-          ) : null}
-          <div
-            className={cn(
-              "group relative",
-              collapsed ? "flex justify-center" : "w-full",
-            )}
-          >
-            <VaultLogoutAction
-              iconOnly={collapsed}
-              label="Sign out"
-              icon={
-                <LogOut
-                  aria-hidden
-                  className={
-                    collapsed ? railIconClassName : railExpandedIconClassName
-                  }
-                />
-              }
-              className={cn(
-                collapsed
-                  ? "flex size-9 rounded-full"
-                  : cn(
-                      railRowClassName(false),
-                      "text-[0.8125rem] font-medium text-foreground/85",
-                    ),
-                vaultRailIdle,
-              )}
-            />
-            {collapsed ? (
-              <span
-                className={cn(
-                  vaultRailTooltipClassName,
-                  "group-focus-within:opacity-100",
-                )}
-              >
-                Sign out
-              </span>
-            ) : null}
-          </div>
-          </div>
         </div>
       </div>
     </aside>

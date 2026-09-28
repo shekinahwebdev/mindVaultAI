@@ -1,42 +1,63 @@
 "use client";
 
 import { AnimatePresence, useReducedMotion } from "framer-motion";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { IntroAtmosphere } from "./IntroAtmosphere";
 import { IntroBackButton } from "./IntroBackButton";
 import { IntroPlaybackProvider } from "./IntroPlayback";
 import { IntroProgress } from "./IntroProgress";
-import { INTRO_STEP_COUNT, introSteps, isIntroStepIndex } from "./intro-flow";
+import {
+  INTRO_STEP_COUNT,
+  introSteps,
+  introStepNumberFromIndex,
+  isIntroStepIndex,
+  onboardingStepPath,
+} from "./intro-flow";
 import { IdentityScreen } from "./screens/IdentityScreen";
 import { MagicScreen } from "./screens/MagicScreen";
 import { ProblemScreen } from "./screens/ProblemScreen";
 import { RememberScreen } from "./screens/RememberScreen";
 
-export function IntroFlow() {
+type IntroFlowProps = {
+  stepIndex: number;
+};
+
+export function IntroFlow({ stepIndex }: IntroFlowProps) {
+  const router = useRouter();
   const reduceMotion = useReducedMotion();
-  const [index, setIndex] = useState(0);
+  const prevIndexRef = useRef(stepIndex);
   const [direction, setDirection] = useState(1);
-  const [identitySeen, setIdentitySeen] = useState(false);
   const [locked, setLocked] = useState(false);
-  const [hasStepped, setHasStepped] = useState(false);
+  const [hasStepped, setHasStepped] = useState(stepIndex > 0);
   const lockedRef = useRef(false);
 
-  const goTo = useCallback((next: number) => {
-    if (lockedRef.current || next === index || !isIntroStepIndex(next)) {
-      return;
-    }
+  const index = stepIndex;
 
-    if (index === 0) {
-      setIdentitySeen(true);
+  useEffect(() => {
+    const previous = prevIndexRef.current;
+    if (previous !== index) {
+      setDirection(index > previous ? 1 : -1);
+      setHasStepped(true);
+      prevIndexRef.current = index;
     }
-
-    lockedRef.current = true;
-    setHasStepped(true);
-    setDirection(next > index ? 1 : -1);
-    setLocked(true);
-    setIndex(next);
   }, [index]);
+
+  const goTo = useCallback(
+    (next: number) => {
+      if (lockedRef.current || next === index || !isIntroStepIndex(next)) {
+        return;
+      }
+
+      lockedRef.current = true;
+      setHasStepped(true);
+      setDirection(next > index ? 1 : -1);
+      setLocked(true);
+      router.push(onboardingStepPath(introStepNumberFromIndex(next)), { scroll: false });
+    },
+    [index, router],
+  );
 
   const goNext = useCallback(() => {
     goTo(index + 1);
@@ -69,16 +90,17 @@ export function IntroFlow() {
         goNext();
       }
 
-      if (event.key === "ArrowLeft") {
+      if (event.key === "ArrowLeft" && index > 0) {
         goBack();
       }
     }
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [goBack, goNext]);
+  }, [goBack, goNext, index]);
 
   const step = introSteps[index];
+  const identitySeen = index > 0;
 
   return (
     <main className="relative flex min-h-svh flex-col items-center justify-center overflow-x-hidden overflow-y-auto bg-brand-void px-6 pt-16 pb-20 sm:px-8 sm:pt-16 sm:pb-24">

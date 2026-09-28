@@ -9,7 +9,12 @@ import {
   Search,
 } from "lucide-react";
 
-import { vaultMobilePrimaryNav, vaultSidebarNav } from "@/lib/vault/nav";
+import {
+  isVaultNavActive,
+  vaultMobilePrimaryNav,
+  vaultSidebarCaptureNav,
+  vaultSidebarNav,
+} from "@/lib/vault/nav";
 import { vaultRoutes } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
@@ -46,12 +51,17 @@ export function VaultMobileNav() {
         <div className="grid gap-1">
           {moreLinks.map((item) => {
             const Icon = item.icon;
+            const active = isVaultNavActive(pathname, item.href);
             return (
               <Link
                 key={item.href}
                 href={item.href}
+                aria-current={active ? "page" : undefined}
                 onClick={() => setMoreOpen(false)}
-                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[0.84rem] text-foreground/80 hover:bg-mv-panel"
+                className={cn(
+                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-[0.84rem] hover:bg-mv-panel",
+                  active ? "bg-mv-panel text-foreground" : "text-foreground/80",
+                )}
               >
                 <Icon aria-hidden className="size-4 text-mv-faint" />
                 {item.label}
@@ -70,11 +80,12 @@ export function VaultMobileNav() {
         <div className="mx-auto grid max-w-lg grid-cols-5 items-end gap-1 pt-1.5">
           {vaultMobilePrimaryNav.slice(0, 2).map((item) => {
             const Icon = item.icon;
-            const active = pathname === item.href;
+            const active = isVaultNavActive(pathname, item.href);
             return (
               <Link
                 key={item.href}
                 href={item.href}
+                aria-current={active ? "page" : undefined}
                 className={cn(
                   "flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-[0.6875rem] font-medium",
                   active ? "text-foreground" : "text-muted-foreground",
@@ -88,7 +99,10 @@ export function VaultMobileNav() {
 
           <Link
             href={vaultRoutes.capture}
-            aria-label="Add note"
+            aria-label={vaultSidebarCaptureNav.label}
+            aria-current={
+              isVaultNavActive(pathname, vaultRoutes.capture) ? "page" : undefined
+            }
             className="-mt-5 flex flex-col items-center gap-1"
           >
             <span
@@ -106,9 +120,14 @@ export function VaultMobileNav() {
 
           <Link
             href={vaultRoutes.search}
+            aria-current={
+              isVaultNavActive(pathname, vaultRoutes.search) ? "page" : undefined
+            }
             className={cn(
               "flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-[0.6875rem] font-medium",
-              pathname === vaultRoutes.search ? "text-foreground" : "text-muted-foreground",
+              isVaultNavActive(pathname, vaultRoutes.search)
+                ? "text-foreground"
+                : "text-muted-foreground",
             )}
           >
             <Search aria-hidden className="size-[1.05rem]" />
