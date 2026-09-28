@@ -232,6 +232,19 @@ Paste content
   → Save
 ```
 
+### Smart URL Capture (in progress)
+
+Step-by-step design and implementation reports (updated **after every prompt/step**):
+
+**[src/lib/ingestion/README.md](src/lib/ingestion/README.md)**
+
+- Phase 1 — architecture & V1 scope ✅
+- Phase 2 Step 1 — secure URL validation & SSRF blocklist ✅
+- Phase 2 Step 2 — secure HTTP fetch (pinned undici) ✅
+- Phase 2 Step 3 — HTML/text extraction (Readability + linkedom) ✅
+- Phase 2 Step 4 — POST /api/ingest/url (auth preview) ✅
+- Steps 5–7 — Capture UI, E2E ⏳
+
 ### Later
 
 - Embeddings and semantic search
