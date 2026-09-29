@@ -6,7 +6,9 @@ import {
   Quote,
   StickyNote,
   type LucideIcon,
+  type LucideProps,
 } from "lucide-react";
+import { createElement } from "react";
 
 import { noteTypeLabels } from "@/lib/notes/note-display";
 import { cn } from "@/lib/utils";
@@ -22,6 +24,13 @@ const noteTypeIcons: Record<string, LucideIcon> = {
 
 export function getNoteTypeIcon(type: string): LucideIcon {
   return noteTypeIcons[type] ?? Layers;
+}
+
+export function NoteTypeIcon({
+  type,
+  ...props
+}: { type: string } & LucideProps) {
+  return createElement(getNoteTypeIcon(type), props);
 }
 
 export function getNoteTypeLabel(type: string) {

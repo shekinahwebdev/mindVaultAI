@@ -1,7 +1,9 @@
 "use client";
 
 import { useReducedMotion } from "framer-motion";
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, type ReactNode } from "react";
+
+import { useClientMounted } from "@/lib/react/use-client-mounted";
 
 const IntroPlaybackContext = createContext({ skipEntrance: false });
 
@@ -25,11 +27,7 @@ export function useSkipIntroEntrance() {
 
 function useInstant(skipEntrance: boolean) {
   const reduceMotion = useReducedMotion();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useClientMounted();
 
   return skipEntrance || (mounted && reduceMotion === true);
 }

@@ -18,6 +18,21 @@ export function formatNoteDate(value: string) {
   }).format(date);
 }
 
+export function formatNoteDateTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+}
+
 export function truncateNoteContent(content: string, maxLength = 160) {
   const normalized = content.replace(/\s+/g, " ").trim();
   if (normalized.length <= maxLength) {

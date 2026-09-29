@@ -1,12 +1,17 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  Archive,
+  Code2,
   FolderOpen,
   LayoutDashboard,
+  Link2,
   MessageSquare,
   Plus,
+  Quote,
   Search,
   Settings,
   StickyNote,
+  Tag,
 } from "lucide-react";
 
 import { vaultRoutes } from "@/lib/routes";
@@ -20,6 +25,7 @@ export type VaultNavItem = {
   badge?: string;
 };
 
+/** Main sidebar list — matches product reference order. */
 export const vaultSidebarPrimaryNav: VaultNavItem[] = [
   {
     label: "Dashboard",
@@ -37,12 +43,44 @@ export const vaultSidebarPrimaryNav: VaultNavItem[] = [
     href: vaultRoutes.categories,
     icon: FolderOpen,
   },
+  {
+    label: "Tags",
+    href: vaultRoutes.tags,
+    icon: Tag,
+  },
   { label: "Search", href: vaultRoutes.search, icon: Search },
   {
-    label: "Ask MindVault",
-    expandedLabel: "Ask MindVault",
+    label: "AI Chat",
     href: vaultRoutes.chat,
     icon: MessageSquare,
+    badge: "Beta",
+  },
+  {
+    label: "Links",
+    expandedLabel: "Saved Links",
+    href: vaultRoutes.links,
+    icon: Link2,
+  },
+  {
+    label: "Quotes",
+    href: vaultRoutes.quotes,
+    icon: Quote,
+  },
+  {
+    label: "Code",
+    expandedLabel: "Code Snippets",
+    href: vaultRoutes.code,
+    icon: Code2,
+  },
+  {
+    label: "Archive",
+    href: vaultRoutes.archive,
+    icon: Archive,
+  },
+  {
+    label: "Settings",
+    href: vaultRoutes.settings,
+    icon: Settings,
   },
 ];
 
@@ -52,9 +90,8 @@ export const vaultSidebarCaptureNav: VaultNavItem = {
   icon: Plus,
 };
 
-export const vaultSidebarUtilityNav: VaultNavItem[] = [
-  { label: "Settings", href: vaultRoutes.settings, icon: Settings },
-];
+/** Footer utilities (appearance) — settings live in primary nav. */
+export const vaultSidebarUtilityNav: VaultNavItem[] = [];
 
 export const vaultSidebarNav: VaultNavItem[] = [
   ...vaultSidebarPrimaryNav,
@@ -66,7 +103,7 @@ export const vaultHeaderNav: Array<{ label: string; href: string }> = [
   { label: "Dashboard", href: vaultRoutes.dashboard },
   { label: "Notes", href: vaultRoutes.notes },
   { label: "Categories", href: vaultRoutes.categories },
-  { label: "Ask MindVault", href: vaultRoutes.chat },
+  { label: "AI Chat", href: vaultRoutes.chat },
 ];
 
 export function isVaultNavActive(pathname: string, href: string) {
@@ -75,9 +112,13 @@ export function isVaultNavActive(pathname: string, href: string) {
   }
 
   if (href === vaultRoutes.settings) {
+    return pathname === href || pathname.startsWith(`${vaultRoutes.settings}/`);
+  }
+
+  if (href === vaultRoutes.notes) {
     return (
-      pathname === href ||
-      pathname.startsWith(`${vaultRoutes.settings}/`)
+      pathname === vaultRoutes.notes ||
+      pathname.startsWith(`${vaultRoutes.notes}/`)
     );
   }
 

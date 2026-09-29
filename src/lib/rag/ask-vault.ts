@@ -1,92 +1,152 @@
+import {
+  CHAT_NO_RELEVANT_KNOWLEDGE_ANSWER,
+  CHAT_PROVIDER_FAILURE_MESSAGE,
+} from "@/lib/chat/chat-outcomes";
+import type { DirectGroundedTurn } from "@/lib/chat/grounded-turn";
+import { isLikelyGroundedFollowUp } from "@/lib/chat/grounded-follow-up";
+
+import { answerFromGroundedHistory } from "./answer-from-grounded-history";
 import { answerQuestion, RAG_GENERATION_MODEL } from "./answer-question";
+import { buildRetrievalQuery } from "./build-retrieval-query";
+import {
+  conversationHistoryCharCount,
+  type ConversationContextMessage,
+} from "./conversation-context";
 import { retrieveRagContext } from "./retrieve-context";
 import type { AskVaultResult, RagSource } from "./types";
 
-export const RAG_NO_ANSWER_MESSAGE =
-  "Your vault doesn't contain enough relevant saved information to answer that yet.";
-export const RAG_UNAVAILABLE_MESSAGE =
-  "MindVault couldn't answer from your vault right now. Your saved knowledge is still safe.";
+/** @deprecated Use CHAT_NO_RELEVANT_KNOWLEDGE_ANSWER */
+export const RAG_NO_ANSWER_MESSAGE = CHAT_NO_RELEVANT_KNOWLEDGE_ANSWER;
+
+/** @deprecated Use CHAT_PROVIDER_FAILURE_MESSAGE */
+export const RAG_UNAVAILABLE_MESSAGE = CHAT_PROVIDER_FAILURE_MESSAGE;
 
 const MIN_QUESTION_LENGTH = 3;
 const MAX_QUESTION_LENGTH = 500;
 
-/**
- * The full RAG pipeline for one question: retrieval -> relevance gate ->
- * generation -> citation validation -> response shaping. This is the
- * only function the API route calls — see build-context.ts,
- * retrieve-context.ts and answer-question.ts for the individual R/A/G
- * pieces this composes.
- */
-export async function askVault(userId: string, rawQuestion: string): Promise<AskVaultResult> {
-  const question = rawQuestion.trim();
+export type AskVaultInput = {
+  userId: string;
+  question: string;
+  conversationHistory?: ConversationContextMessage[];
+  /** Most recent turn grounded directly from vault retrieval (not history fallback). */
+  recentDirectGroundedTurn?: DirectGroundedTurn | null;
+};
+
+export type AskVaultDependencies = {
+  retrieve: typeof retrieveRagContext;
+  answer: typeof answerQuestion;
+  answerFromGroundedHistory: typeof answerFromGroundedHistory;
+};
+
+const defaultDependencies: AskVaultDependencies = {
+  retrieve: retrieveRagContext,
+  answer: answerQuestion,
+  answerFromGroundedHistory,
+};
+
+export async function askVault(
+  input: AskVaultInput,
+  dependencies: Partial<AskVaultDependencies> = {},
+): Promise<AskVaultResult> {
+  return runAskVaultPipeline(input, dependencies);
+}
+
+export async function runAskVaultPipeline(
+  input: AskVaultInput,
+  dependencies: Partial<AskVaultDependencies> = {},
+): Promise<AskVaultResult> {
+  const deps: AskVaultDependencies = { ...defaultDependencies, ...dependencies };
+
+  const question = input.question.trim();
   if (question.length < MIN_QUESTION_LENGTH || question.length > MAX_QUESTION_LENGTH) {
     return { ok: false, reason: "invalid_question" };
   }
 
+  const history = input.conversationHistory ?? [];
+  const retrievalQuery = buildRetrievalQuery(question, history);
+
   const totalStartedAt = Date.now();
   const retrievalStartedAt = Date.now();
-  const retrieval = await retrieveRagContext(userId, question);
+  const retrieval = await deps.retrieve(input.userId, retrievalQuery);
   const retrievalLatencyMs = Date.now() - retrievalStartedAt;
 
   if (!retrieval.ok) {
     console.log("[rag:ask]", {
       operation: "rag_answer",
-      provider: "gemini",
-      ok: false,
+      outcome: "provider_failure",
       stage: "retrieval",
       reason: retrieval.reason,
+      historyMessageCount: history.length,
+      historyCharCount: conversationHistoryCharCount(history),
+      retrievalQueryCharCount: retrievalQuery.length,
       retrievalLatencyMs,
       totalLatencyMs: Date.now() - totalStartedAt,
     });
-    return { ok: false, reason: "unavailable" };
+    return { ok: false, reason: "provider_failure" };
   }
 
   const sources = retrieval.sources;
 
-  // Deterministic no-answer: below the relevance threshold, we never
-  // spend a generation call at all. This is stronger than trusting the
-  // model to refuse on its own — it's not a judgment call, there is
-  // simply nothing worth sending as context.
   if (sources.length === 0) {
+    const fallbackResult = await tryGroundedHistoryFallback({
+      question,
+      history,
+      retrievalQuery,
+      retrievalLatencyMs,
+      totalStartedAt,
+      groundedTurn: input.recentDirectGroundedTurn ?? null,
+      answerFromGroundedHistory: deps.answerFromGroundedHistory,
+    });
+
+    if (fallbackResult) {
+      return fallbackResult;
+    }
+
     console.log("[rag:ask]", {
       operation: "rag_answer",
-      provider: "gemini",
-      ok: true,
+      outcome: "no_relevant_knowledge",
       retrievedCount: 0,
       usedSourceCount: 0,
+      historyMessageCount: history.length,
+      historyCharCount: conversationHistoryCharCount(history),
+      retrievalQueryCharCount: retrievalQuery.length,
       retrievalLatencyMs,
       generationLatencyMs: 0,
       totalLatencyMs: Date.now() - totalStartedAt,
-      reason: "no_relevant_sources",
     });
-    return { ok: true, answer: RAG_NO_ANSWER_MESSAGE, sources: [] };
+    return {
+      ok: true,
+      outcome: "no_relevant_knowledge",
+      answer: CHAT_NO_RELEVANT_KNOWLEDGE_ANSWER,
+      sources: [],
+    };
   }
 
   const generationStartedAt = Date.now();
-  const generation = await answerQuestion(question, sources);
+  const generation = await deps.answer({
+    question,
+    sources,
+    conversationHistory: history,
+  });
   const generationLatencyMs = Date.now() - generationStartedAt;
 
   if (!generation.ok) {
     console.log("[rag:ask]", {
       operation: "rag_answer",
-      provider: "gemini",
-      model: generation.meta.model,
-      ok: false,
+      outcome: "provider_failure",
       stage: "generation",
       reason: generation.reason,
       retrievedCount: sources.length,
+      historyMessageCount: history.length,
+      historyCharCount: conversationHistoryCharCount(history),
+      retrievalQueryCharCount: retrievalQuery.length,
       retrievalLatencyMs,
       generationLatencyMs,
       totalLatencyMs: Date.now() - totalStartedAt,
     });
-    return { ok: false, reason: "unavailable" };
+    return { ok: false, reason: "provider_failure" };
   }
 
-  // Never trust model-cited source numbers blindly: keep only numbers
-  // that are within the set actually retrieved for this request, dedupe
-  // them, and map back to the real note metadata the server itself
-  // fetched — the model never sees or returns a database id, so there
-  // is no invented-id case to defend against, only out-of-range numbers.
   const validSourceNumbers = new Set(sources.map((source) => source.sourceNumber));
   const citedNumbers = [...new Set(generation.answer.sourceNumbers)].filter((number) =>
     validSourceNumbers.has(number),
@@ -95,15 +155,17 @@ export async function askVault(userId: string, rawQuestion: string): Promise<Ask
   const citedSources: RagSource[] =
     citedNumbers.length > 0
       ? sources.filter((source) => citedNumbers.includes(source.sourceNumber))
-      : sources; // model gave a grounded answer but cited nothing specific — show all retrieved sources it had access to
+      : sources;
 
   console.log("[rag:ask]", {
     operation: "rag_answer",
-    provider: "gemini",
+    outcome: "answered",
     model: generation.meta.model,
-    ok: true,
     retrievedCount: sources.length,
     usedSourceCount: citedSources.length,
+    historyMessageCount: history.length,
+    historyCharCount: conversationHistoryCharCount(history),
+    retrievalQueryCharCount: retrievalQuery.length,
     retrievalLatencyMs,
     generationLatencyMs,
     totalLatencyMs: Date.now() - totalStartedAt,
@@ -113,6 +175,7 @@ export async function askVault(userId: string, rawQuestion: string): Promise<Ask
 
   return {
     ok: true,
+    outcome: "answered",
     answer: generation.answer.answer,
     sources: citedSources.map((source) => ({
       noteId: source.noteId,
@@ -120,6 +183,73 @@ export async function askVault(userId: string, rawQuestion: string): Promise<Ask
       categoryName: source.categoryName,
       type: source.type,
     })),
+  };
+}
+
+async function tryGroundedHistoryFallback(params: {
+  question: string;
+  history: ConversationContextMessage[];
+  retrievalQuery: string;
+  retrievalLatencyMs: number;
+  totalStartedAt: number;
+  groundedTurn: DirectGroundedTurn | null;
+  answerFromGroundedHistory: typeof answerFromGroundedHistory;
+}): Promise<AskVaultResult | null> {
+  const { groundedTurn, question } = params;
+
+  if (!groundedTurn || !isLikelyGroundedFollowUp(question)) {
+    return null;
+  }
+
+  const generationStartedAt = Date.now();
+  const generation = await params.answerFromGroundedHistory({
+    priorUserQuestion: groundedTurn.userQuestion,
+    priorAssistantAnswer: groundedTurn.assistantAnswer,
+    currentQuestion: question,
+  });
+  const generationLatencyMs = Date.now() - generationStartedAt;
+
+  if (!generation.ok) {
+    console.log("[rag:ask]", {
+      operation: "rag_answer",
+      outcome: "provider_failure",
+      stage: "grounded_history_generation",
+      reason: generation.reason,
+      groundedFromMessageId: groundedTurn.assistantMessageId,
+      sourceCount: groundedTurn.sources.length,
+      historyMessageCount: params.history.length,
+      historyCharCount: conversationHistoryCharCount(params.history),
+      retrievalQueryCharCount: params.retrievalQuery.length,
+      retrievalLatencyMs: params.retrievalLatencyMs,
+      generationLatencyMs,
+      totalLatencyMs: Date.now() - params.totalStartedAt,
+    });
+    return { ok: false, reason: "provider_failure" };
+  }
+
+  console.log("[rag:ask]", {
+    operation: "rag_answer",
+    outcome: "answered_from_grounded_history",
+    model: generation.meta.model,
+    retrievedCount: 0,
+    usedSourceCount: groundedTurn.sources.length,
+    groundedFromMessageId: groundedTurn.assistantMessageId,
+    historyMessageCount: params.history.length,
+    historyCharCount: conversationHistoryCharCount(params.history),
+    retrievalQueryCharCount: params.retrievalQuery.length,
+    retrievalLatencyMs: params.retrievalLatencyMs,
+    generationLatencyMs,
+    totalLatencyMs: Date.now() - params.totalStartedAt,
+    inputTokens: generation.meta.inputTokens,
+    outputTokens: generation.meta.outputTokens,
+  });
+
+  return {
+    ok: true,
+    outcome: "answered_from_grounded_history",
+    answer: generation.answer,
+    sources: groundedTurn.sources,
+    groundedFromMessageId: groundedTurn.assistantMessageId,
   };
 }
 

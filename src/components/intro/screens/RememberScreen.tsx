@@ -2,9 +2,8 @@
 
 import { motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-
 import { routes } from "@/lib/routes";
+import { useClientMounted } from "@/lib/react/use-client-mounted";
 
 import { RememberDemo } from "../RememberDemo";
 import { introEase, introTransition } from "../intro-motion";
@@ -18,11 +17,7 @@ const copy = {
 
 function useSafeReducedMotion() {
   const reduceMotion = useReducedMotion();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useClientMounted();
 
   return mounted && reduceMotion === true;
 }

@@ -36,7 +36,9 @@ export function SearchView() {
   const preferredMode: SearchMode =
     preferences.defaultSearchMode === "SEMANTIC" ? "semantic" : "keyword";
   const mode = modeOverride ?? (preferencesLoading ? "keyword" : preferredMode);
-  const [input, setInput] = useState("");
+  const initialUrlQuery = searchParams.get("q")?.trim() ?? "";
+  const [input, setInput] = useState(initialUrlQuery);
+  const urlQueryBootstrappedRef = useRef(false);
 
   const [keywordResults, setKeywordResults] = useState<SerializedNote[]>([]);
   const [keywordLoading, setKeywordLoading] = useState(false);
@@ -149,14 +151,12 @@ export function SearchView() {
   }
 
   useEffect(() => {
-    const initialQuery = searchParams.get("q")?.trim();
-    if (initialQuery) {
-      setInput(initialQuery);
-      void runKeywordSearch(initialQuery);
+    if (!initialUrlQuery || urlQueryBootstrappedRef.current) {
+      return;
     }
-    // Only hydrate from the URL once on mount.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+    urlQueryBootstrappedRef.current = true;
+    void runKeywordSearch(initialUrlQuery);
+  }, [initialUrlQuery]);
 
   useEffect(() => {
     return () => {

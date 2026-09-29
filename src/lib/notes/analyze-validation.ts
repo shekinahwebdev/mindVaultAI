@@ -1,5 +1,10 @@
 import { NoteType } from "@/generated/prisma/enums";
 
+import {
+  validateAnalysisTagSuggestions,
+  type UserTagForAnalysis,
+  type ValidatedTagSuggestions,
+} from "@/lib/ai/analyze-tag-suggestions";
 import type { NoteAnalysisSuggestion } from "@/lib/ai/types";
 
 const NOTE_TYPES = new Set<string>(Object.values(NoteType));
@@ -19,7 +24,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 export function parseAnalyzeRequestBody(
   body: unknown,
-): { success: true; content: string } | { success: false; message: string } {
+):
+  | { success: true; content: string; selectedTagIds: string[] }
+  | { success: false; message: string } {
   if (!isRecord(body) || typeof body.content !== "string") {
     return { success: false, message: ANALYZE_INVALID_REQUEST };
   }
@@ -34,13 +41,28 @@ export function parseAnalyzeRequestBody(
     return { success: false, message: ANALYZE_CONTENT_TOO_SHORT };
   }
 
-  return { success: true, content };
+  let selectedTagIds: string[] = [];
+  if ("tagIds" in body && body.tagIds !== undefined && body.tagIds !== null) {
+    if (!Array.isArray(body.tagIds)) {
+      return { success: false, message: ANALYZE_INVALID_REQUEST };
+    }
+    for (const item of body.tagIds) {
+      if (typeof item !== "string" || !item.trim()) {
+        return { success: false, message: ANALYZE_INVALID_REQUEST };
+      }
+      selectedTagIds.push(item.trim());
+    }
+    selectedTagIds = [...new Set(selectedTagIds)];
+  }
+
+  return { success: true, content, selectedTagIds };
 }
 
 export type ValidatedSuggestion = {
   title: string;
   type: NoteType;
   categoryId: string | null;
+  tags: ValidatedTagSuggestions;
 };
 
 /**
@@ -51,6 +73,8 @@ export type ValidatedSuggestion = {
 export function validateAnalysisSuggestion(
   suggestion: NoteAnalysisSuggestion,
   userCategories: Array<{ id: string; name: string }>,
+  userTags: UserTagForAnalysis[],
+  selectedTagIds: string[] = [],
 ): ValidatedSuggestion {
   const title = suggestion.title.trim().slice(0, MAX_TITLE_LENGTH);
 
@@ -65,5 +89,11 @@ export function validateAnalysisSuggestion(
     categoryId = match?.id ?? null;
   }
 
-  return { title, type, categoryId };
+  const tags = validateAnalysisTagSuggestions(
+    suggestion.tags,
+    userTags,
+    selectedTagIds,
+  );
+
+  return { title, type, categoryId, tags };
 }

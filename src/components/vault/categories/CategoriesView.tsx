@@ -5,6 +5,9 @@ import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
+import { EmptyState } from "@/components/mv/EmptyState";
+import { PageHeader } from "@/components/mv/PageHeader";
+import { PageStack } from "@/components/mv/PageStack";
 import { VaultDialog } from "@/components/vault/VaultDialog";
 import {
   CATEGORY_CLIENT_ERROR,
@@ -21,15 +24,13 @@ import { cn } from "@/lib/utils";
 
 import {
   vaultDestructiveButton,
-  vaultPageLeadClassName,
-  vaultPageTitleClassName,
   vaultPrimaryButton,
   vaultSecondaryButton,
 } from "../vault-controls";
 
 import { vaultEase } from "../vault-motion";
+import { CategoryCard } from "./CategoryCard";
 import { CategoryNameField } from "./CategoryNameField";
-import { CategoryRow } from "./CategoryRow";
 
 const DELETE_CONFIRM_MESSAGE =
   "Deleting this category will not delete its notes. Those notes will become uncategorized.";
@@ -230,67 +231,56 @@ export function CategoriesView() {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.28, ease: vaultEase }}
-      className="space-y-5"
     >
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className={vaultPageTitleClassName}>
-            Categories
-          </h1>
-          <p className={vaultPageLeadClassName}>
-            Group what you&apos;ve saved into categories that fit the way you
-            think.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={openAddDialog}
-          className={vaultPrimaryButton}
-        >
-          <Plus aria-hidden className="size-4" />
-          Add Category
-        </button>
-      </div>
+      <PageStack className="gap-5">
+        <PageHeader
+          title="Categories"
+          lead="Group what you've saved into categories."
+          actions={
+            <button type="button" onClick={openAddDialog} className={vaultPrimaryButton}>
+              <Plus aria-hidden className="size-4" />
+              Add Category
+            </button>
+          }
+        />
 
-      {error ? (
-        <div className="rounded-xl border border-border bg-mv-panel px-3.5 py-3 text-[0.84rem] text-muted-foreground">
-          <p>{error}</p>
-          <button
-            type="button"
-            onClick={() => void refresh()}
-            className="mt-2 text-[0.8125rem] font-medium text-foreground underline-offset-2 hover:underline"
-          >
-            Try again
-          </button>
-        </div>
-      ) : null}
+        {error ? (
+          <div className="rounded-[var(--mv-radius-card)] border border-border bg-mv-panel px-4 py-3 text-[0.8125rem] text-muted-foreground">
+            <p>{error}</p>
+            <button
+              type="button"
+              onClick={() => void refresh()}
+              className="mt-2 text-[0.8125rem] font-medium text-foreground underline-offset-2 hover:underline"
+            >
+              Try again
+            </button>
+          </div>
+        ) : null}
 
-      <section className="rounded-[var(--radius-card)] border border-border bg-surface p-4 sm:p-5 shadow-[0_1px_2px_rgb(0_0_0/0.03)]">
         {loading ? (
-          <p className="py-10 text-center text-[0.84rem] text-muted-foreground">
+          <p className="py-16 text-center text-[0.8125rem] text-muted-foreground">
             Loading categories...
           </p>
         ) : categories.length === 0 ? (
-          <div className="py-10 text-center">
-          <p className="text-[1.15rem] font-medium text-foreground">
-              No categories yet.
-            </p>
-            <p className="mt-2 text-[0.84rem] text-muted-foreground">
-              Create one when you want to group what you&apos;ve saved.
-            </p>
-            <button
-              type="button"
-              onClick={openAddDialog}
-              className={cn(vaultSecondaryButton, "mt-5 gap-2")}
-            >
-              <Plus aria-hidden className="size-3.5" />
-              Add Category
-            </button>
-          </div>
+          <EmptyState
+            variant="dashed"
+            title="No categories yet."
+            description="Create one when you want to group what you've saved."
+            action={
+              <button
+                type="button"
+                onClick={openAddDialog}
+                className={cn(vaultSecondaryButton, "gap-2")}
+              >
+                <Plus aria-hidden className="size-3.5" />
+                Add Category
+              </button>
+            }
+          />
         ) : (
-          <ul className="space-y-2.5">
+          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {categories.map((category) => (
-              <CategoryRow
+              <CategoryCard
                 key={category.id}
                 category={category}
                 onRename={openRenameDialog}
@@ -300,7 +290,7 @@ export function CategoriesView() {
             ))}
           </ul>
         )}
-      </section>
+      </PageStack>
 
       <VaultDialog
         open={addOpen}

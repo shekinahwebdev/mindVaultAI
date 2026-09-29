@@ -4,15 +4,17 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
-  useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 
 import {
   readVaultSidebarCollapsed,
-  writeVaultSidebarCollapsed,
+  getServerVaultSidebarCollapsed,
+  setVaultSidebarCollapsed,
+  subscribeVaultSidebarCollapsed,
+  toggleVaultSidebarCollapsed,
 } from "@/lib/vault/sidebar-preference";
 
 type VaultSidebarContextValue = {
@@ -24,27 +26,18 @@ type VaultSidebarContextValue = {
 const VaultSidebarContext = createContext<VaultSidebarContextValue | null>(null);
 
 export function VaultSidebarProvider({ children }: { children: ReactNode }) {
-  const [collapsed, setCollapsedState] = useState(true);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    setCollapsedState(readVaultSidebarCollapsed());
-    setReady(true);
-  }, []);
-
-  useEffect(() => {
-    if (!ready) {
-      return;
-    }
-    writeVaultSidebarCollapsed(collapsed);
-  }, [collapsed, ready]);
+  const collapsed = useSyncExternalStore(
+    subscribeVaultSidebarCollapsed,
+    readVaultSidebarCollapsed,
+    getServerVaultSidebarCollapsed,
+  );
 
   const setCollapsed = useCallback((next: boolean) => {
-    setCollapsedState(next);
+    setVaultSidebarCollapsed(next);
   }, []);
 
   const toggleCollapsed = useCallback(() => {
-    setCollapsedState((current) => !current);
+    toggleVaultSidebarCollapsed();
   }, []);
 
   const value = useMemo(

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Monitor, Moon, Settings, Sun } from "lucide-react";
+import { Monitor, Moon, Sun } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useReducedMotion } from "framer-motion";
 import type { ReactNode } from "react";
@@ -372,7 +372,14 @@ export function VaultSidebar() {
           ) : null}
         </div>
 
-        <nav aria-label="Primary" className={railStackClassName(collapsed)}>
+        <nav
+          aria-label="Primary"
+          className={cn(
+            railStackClassName(collapsed),
+            "min-h-0 flex-1 overflow-y-auto overscroll-contain",
+            !collapsed && "pr-0.5",
+          )}
+        >
           {vaultSidebarPrimaryNav.map((item) => (
             <SidebarNavLink
               key={item.href}
@@ -396,39 +403,23 @@ export function VaultSidebar() {
           />
         </div>
 
-        <div className="min-h-2 flex-1" aria-hidden />
-
-        <div className="mt-auto w-full border-t border-border/60 pt-3">
+        <div className="mt-auto w-full shrink-0 border-t border-border/60 pt-3">
           <div className={cn(railStackClassName(collapsed), !collapsed && "gap-0.5")}>
             <ThemeToggleRow
               collapsed={collapsed}
               expanded={expanded}
               reduceMotion={reduceMotion}
             />
-            {expanded
-              ? vaultSidebarUtilityNav.map((item) => (
-                  <SidebarNavLink
-                    key={item.href}
-                    item={item}
-                    active={isVaultNavActive(pathname, item.href)}
-                    collapsed={collapsed}
-                    expanded={expanded}
-                    reduceMotion={reduceMotion}
-                  />
-                ))
-              : (
-                  <SidebarNavLink
-                    item={{
-                      label: "Settings",
-                      href: vaultRoutes.settings,
-                      icon: Settings,
-                    }}
-                    active={isVaultNavActive(pathname, vaultRoutes.settings)}
-                    collapsed
-                    expanded={false}
-                    reduceMotion={reduceMotion}
-                  />
-                )}
+            {vaultSidebarUtilityNav.map((item) => (
+              <SidebarNavLink
+                key={item.href}
+                item={item}
+                active={isVaultNavActive(pathname, item.href)}
+                collapsed={collapsed}
+                expanded={expanded}
+                reduceMotion={reduceMotion}
+              />
+            ))}
           </div>
           <SidebarProfile
             collapsed={collapsed}

@@ -55,6 +55,17 @@ export type AskVaultSource = {
   type: string;
 };
 
+export type AskVaultSuccessOutcome =
+  | "answered"
+  | "answered_from_grounded_history"
+  | "no_relevant_knowledge";
+
 export type AskVaultResult =
-  | { ok: true; answer: string; sources: AskVaultSource[] }
-  | { ok: false; reason: "invalid_question" | "unavailable" };
+  | {
+      ok: true;
+      outcome: AskVaultSuccessOutcome;
+      answer: string;
+      sources: AskVaultSource[];
+      groundedFromMessageId?: string;
+    }
+  | { ok: false; reason: "invalid_question" | "provider_failure" };

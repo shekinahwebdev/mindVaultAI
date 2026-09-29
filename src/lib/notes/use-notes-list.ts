@@ -13,16 +13,18 @@ import type { SerializedNote } from "@/lib/notes/serialize";
 import { routes } from "@/lib/routes";
 
 type UseNotesListOptions = {
-  typeFilter: string;
-  categoryFilter: string;
+  typeFilter?: string;
+  categoryFilter?: string;
+  tagId?: string;
   sort: NoteSortOption;
   searchQuery: string;
   page: number;
 };
 
 export function useNotesList({
-  typeFilter,
-  categoryFilter,
+  typeFilter = "",
+  categoryFilter = "",
+  tagId,
   sort,
   searchQuery,
   page,
@@ -49,8 +51,12 @@ export function useNotesList({
       params.categoryId = categoryFilter;
     }
 
+    if (tagId) {
+      params.tagId = tagId;
+    }
+
     return params;
-  }, [categoryFilter, searchQuery, sort, typeFilter]);
+  }, [categoryFilter, searchQuery, sort, tagId, typeFilter]);
 
   useEffect(() => {
     let cancelled = false;

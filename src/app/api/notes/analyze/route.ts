@@ -8,6 +8,8 @@ import {
   parseAnalyzeRequestBody,
   validateAnalysisSuggestion,
 } from "@/lib/notes/analyze-validation";
+import { tagIdsBelongToUser } from "@/lib/notes/tag-ownership";
+import { getTagsForNoteAnalysis } from "@/lib/tags/tags-for-analysis";
 
 export async function POST(request: Request) {
   const auth = await requireApiSession();
@@ -44,14 +46,31 @@ export async function POST(request: Request) {
     );
   }
 
-  const categories = await prisma.category.findMany({
-    where: { userId: session.userId },
-    select: { id: true, name: true },
-  });
+  const [categories, userTags] = await Promise.all([
+    prisma.category.findMany({
+      where: { userId: session.userId },
+      select: { id: true, name: true },
+    }),
+    getTagsForNoteAnalysis(session.userId),
+  ]);
+
+  if (parsed.selectedTagIds.length > 0) {
+    const owned = await tagIdsBelongToUser(
+      parsed.selectedTagIds,
+      session.userId,
+    );
+    if (!owned) {
+      return NextResponse.json(
+        { ok: false, message: ANALYZE_SERVER_ERROR },
+        { status: 400 },
+      );
+    }
+  }
 
   const result = await analyzeNote({
     content: parsed.content,
     categoryNames: categories.map((category) => category.name),
+    tagNames: userTags.map((tag) => tag.name),
   });
 
   // Development logging for learning purposes: model behavior, not content.
@@ -75,7 +94,12 @@ export async function POST(request: Request) {
     );
   }
 
-  const suggestion = validateAnalysisSuggestion(result.suggestion, categories);
+  const suggestion = validateAnalysisSuggestion(
+    result.suggestion,
+    categories,
+    userTags,
+    parsed.selectedTagIds,
+  );
 
   return NextResponse.json({ ok: true, suggestion }, { status: 200 });
 }

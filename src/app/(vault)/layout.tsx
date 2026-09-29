@@ -1,7 +1,6 @@
 import { cookies } from "next/headers";
 import type { ReactNode } from "react";
 
-import { ThemeScript } from "@/components/theme/ThemeScript";
 import { VaultShell } from "@/components/vault/VaultShell";
 import { requireSession } from "@/lib/auth/guards";
 import { getOrCreateUserPreferences } from "@/lib/settings/settings-queries";
@@ -32,7 +31,6 @@ export default async function VaultLayout({
 
   return (
     <>
-      <ThemeScript preference={preference} />
       <VaultShell
         session={session}
         themePreference={preference}

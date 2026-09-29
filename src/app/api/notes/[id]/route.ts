@@ -13,6 +13,9 @@ import {
 } from "@/lib/note-validation";
 import { categoryBelongsToUser } from "@/lib/notes/category-ownership";
 import { generateAndStoreNoteEmbedding } from "@/lib/notes/embedding-service";
+import { NOTE_TAG_NOT_FOUND } from "@/lib/notes/note-tag-validation";
+import { updateNoteWithOptionalTags } from "@/lib/notes/note-tags-repository";
+import { tagIdsBelongToUser } from "@/lib/notes/tag-ownership";
 import { noteSelect, serializeNote } from "@/lib/notes/serialize";
 
 type RouteContext = {
@@ -98,6 +101,19 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
   }
 
+  if (parsed.data.tagIds !== undefined && parsed.data.tagIds.length > 0) {
+    const tagsOwned = await tagIdsBelongToUser(
+      parsed.data.tagIds,
+      session.userId,
+    );
+    if (!tagsOwned) {
+      return NextResponse.json(
+        { ok: false, errors: { tagIds: NOTE_TAG_NOT_FOUND } },
+        { status: 400 },
+      );
+    }
+  }
+
   try {
     const existing = await prisma.note.findFirst({
       where: {
@@ -111,11 +127,13 @@ export async function PATCH(request: Request, context: RouteContext) {
       return noteNotFoundResponse();
     }
 
-    const note = await prisma.note.update({
-      where: { id: existing.id },
-      data: parsed.data,
-      select: noteSelect,
-    });
+    const { tagIds, ...noteFields } = parsed.data;
+
+    const note = await updateNoteWithOptionalTags(
+      existing.id,
+      noteFields,
+      tagIds,
+    );
 
     // Only title/content changes affect what the embedding should
     // represent — a category or source-url-only edit (or resubmitting

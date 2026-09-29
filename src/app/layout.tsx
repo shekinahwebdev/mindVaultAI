@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 
 import { brand } from "@/lib/brand";
 import { editorial, geist, signature } from "@/lib/fonts";
+import { themeInitScript } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import "@/styles/globals.css";
 
@@ -10,7 +12,7 @@ export const metadata: Metadata = {
   description: brand.tagline,
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html
       lang="en"
@@ -22,6 +24,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         editorial.variable,
       )}
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: themeInitScript("system"),
+          }}
+        />
+      </head>
       <body>{children}</body>
     </html>
   );

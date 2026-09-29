@@ -9,7 +9,7 @@ import {
 import { cn } from "@/lib/utils";
 
 type PageHeaderProps = {
-  title: string;
+  title: ReactNode;
   lead?: string;
   eyebrow?: string;
   actions?: ReactNode;

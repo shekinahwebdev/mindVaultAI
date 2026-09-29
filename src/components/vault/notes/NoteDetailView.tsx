@@ -1,7 +1,16 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowLeft, ExternalLink, Pencil, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  ChevronRight,
+  ExternalLink,
+  Maximize2,
+  MoreHorizontal,
+  Pencil,
+  Share2,
+  Star,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
@@ -29,23 +38,34 @@ import {
   type CaptureFormValues,
 } from "@/lib/notes/capture-validation";
 import {
+  countWords,
+  estimateReadMinutes,
+  readNoteStarred,
+  writeNoteStarred,
+} from "@/lib/notes/note-detail-utils";
+import {
   formatNoteDate,
+  formatNoteDateTime,
   noteTypeLabels,
 } from "@/lib/notes/note-display";
+import { useNotesList } from "@/lib/notes/use-notes-list";
 import { routes, vaultRoutes } from "@/lib/routes";
-import { toastError, toastSuccess } from "@/lib/vault-toast";
+import { toastError, toastInfo, toastSuccess } from "@/lib/vault-toast";
 import { cn } from "@/lib/utils";
 
 import {
   vaultDestructiveButton,
   vaultMetaClassName,
-  vaultPageTitleClassName,
   vaultPrimaryButton,
   vaultSecondaryButton,
 } from "../vault-controls";
 
 import { vaultEase } from "../vault-motion";
-import { NoteContentDisplay } from "./NoteContentDisplay";
+import { NoteTagBadges } from "@/components/vault/tags/NoteTagBadges";
+
+import { NoteDetailBody } from "./NoteDetailBody";
+import { NoteDetailMetaSidebar } from "./NoteDetailMetaSidebar";
+import { NoteDetailNotesRail } from "./NoteDetailNotesRail";
 import { NoteFormFields } from "./NoteFormFields";
 
 type NoteDetailViewProps = {
@@ -73,6 +93,21 @@ export function NoteDetailView({ noteId }: NoteDetailViewProps) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [starred, setStarred] = useState(false);
+
+  const { notes: relatedPool } = useNotesList({
+    typeFilter: "",
+    categoryFilter: note?.categoryId ?? "",
+    sort: "updated_desc",
+    searchQuery: "",
+    page: 1,
+  });
+
+  const relatedNotes = relatedPool.filter((item) => item.id !== noteId).slice(0, 3);
+
+  useEffect(() => {
+    queueMicrotask(() => setStarred(readNoteStarred(noteId)));
+  }, [noteId]);
 
   const {
     categories,
@@ -311,131 +346,182 @@ export function NoteDetailView({ noteId }: NoteDetailViewProps) {
   }
 
   const typeLabel = noteTypeLabels[note.type] ?? note.type;
+  const wordCount = countWords(note.content);
+  const readMinutes = estimateReadMinutes(wordCount);
+
+  function toggleStar() {
+    const next = !starred;
+    setStarred(next);
+    writeNoteStarred(noteId, next);
+  }
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.28, ease: vaultEase }}
-      className="mx-auto w-full max-w-3xl space-y-5"
+      className={cn(
+        "-mx-[var(--mv-page-padding-x)] flex min-h-[calc(100dvh-7.5rem)] flex-col overflow-hidden border-y border-border bg-surface md:mx-0 md:rounded-[var(--mv-radius-card)] md:border",
+        editing && "min-h-0",
+      )}
     >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Link
-          href={vaultRoutes.notes}
-          className="inline-flex items-center gap-2 text-[0.82rem] text-muted-foreground transition-colors hover:text-foreground/85"
-        >
-          <ArrowLeft aria-hidden className="size-3.5" />
-          Back to All Notes
-        </Link>
-
-        {!editing ? (
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleEditClick}
-              className={cn(vaultSecondaryButton, "gap-2")}
-            >
-              <Pencil aria-hidden className="size-3.5" />
-              Edit
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setDeleteError("");
-                setDeleteOpen(true);
-              }}
-              className={vaultSecondaryButton}
-            >
-              <Trash2 aria-hidden className="size-3.5" />
-              Delete
-            </button>
-          </div>
-        ) : null}
-      </div>
-
       {editing ? (
-        <form onSubmit={handleSave} className="space-y-5">
-          <NoteFormFields
-            idPrefix="edit-note"
-            values={values}
-            errors={errors}
-            onChange={updateField}
-            disabled={saving}
-            categories={categories}
-            categoriesLoading={categoriesLoading}
-            categoriesError={categoriesError}
-            contentLabel="Content"
-          />
-
-          {formError ? (
-            <p
-              role="alert"
-              className="rounded-xl border border-border bg-mv-panel px-3.5 py-2.5 text-[0.82rem] text-muted-foreground"
+        <div className="space-y-5 overflow-y-auto p-4 sm:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Link
+              href={vaultRoutes.notes}
+              className="inline-flex items-center gap-2 text-[0.8125rem] text-muted-foreground hover:text-foreground"
             >
-              {formError}
-            </p>
-          ) : null}
-
-          <div className="flex flex-wrap justify-end gap-2.5">
-            <button
-              type="button"
-              onClick={() => {
-                exitEditMode();
-              }}
-              disabled={saving}
-              className={vaultSecondaryButton}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              aria-busy={saving}
-              className={cn(vaultPrimaryButton, saving && "opacity-80")}
-            >
-              {saving ? "Saving..." : "Save Changes"}
-            </button>
+              <ArrowLeft aria-hidden className="size-3.5" />
+              All Notes
+            </Link>
           </div>
-        </form>
+          <form onSubmit={handleSave} className="mx-auto max-w-3xl space-y-5">
+            <NoteFormFields
+              idPrefix="edit-note"
+              values={values}
+              errors={errors}
+              onChange={updateField}
+              disabled={saving}
+              categories={categories}
+              categoriesLoading={categoriesLoading}
+              categoriesError={categoriesError}
+              contentLabel="Content"
+            />
+            {formError ? (
+              <p role="alert" className="text-[0.8125rem] text-muted-foreground">
+                {formError}
+              </p>
+            ) : null}
+            <div className="flex flex-wrap justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => exitEditMode()}
+                disabled={saving}
+                className={vaultSecondaryButton}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className={cn(vaultPrimaryButton, saving && "opacity-80")}
+              >
+                {saving ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </form>
+        </div>
       ) : (
-        <article className="rounded-[var(--radius-card)] border border-border bg-surface p-5 sm:p-6 shadow-[0_1px_2px_rgb(0_0_0/0.03)]">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <h1 className={cn("min-w-0 flex-1", vaultPageTitleClassName)}>
-              {note.title}
-            </h1>
-            <span className={cn("shrink-0 rounded-md border border-border bg-mv-panel px-2.5 py-0.5", vaultMetaClassName)}>
-              {typeLabel}
-            </span>
-          </div>
+        <div className="flex min-h-0 flex-1">
+          <NoteDetailNotesRail activeNoteId={noteId} />
 
-          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.74rem] text-mv-faint">
-            {note.category ? (
-              <span className="rounded-md border border-border px-2 py-0.5 text-muted-foreground">
-                {note.category.name}
-              </span>
-            ) : (
-              <span>Uncategorized</span>
-            )}
-            <span>Created {formatNoteDate(note.createdAt)}</span>
-            <span>Updated {formatNoteDate(note.updatedAt)}</span>
-          </div>
+          <section className="flex min-w-0 flex-1 flex-col">
+            <header className="shrink-0 border-b border-border px-4 py-3 sm:px-6">
+              <nav className="flex flex-wrap items-center gap-1 text-[0.75rem] text-muted-foreground">
+                <Link href={vaultRoutes.notes} className="hover:text-foreground">
+                  All Notes
+                </Link>
+                <ChevronRight aria-hidden className="size-3.5" />
+                <span className="line-clamp-1 text-foreground">{note.title}</span>
+              </nav>
 
-          {note.sourceUrl ? (
-            <a
-              href={note.sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-4 inline-flex items-center gap-1.5 text-[0.82rem] text-muted-foreground underline-offset-2 hover:text-foreground/85 hover:underline"
-            >
-              <ExternalLink aria-hidden className="size-3.5" />
-              {note.sourceUrl}
-            </a>
-          ) : null}
+              <div className="mt-2 flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1" />
+                <div className="flex shrink-0 items-center gap-1">
+                  <button
+                    type="button"
+                    aria-label={starred ? "Remove favorite" : "Add favorite"}
+                    onClick={toggleStar}
+                    className="flex size-8 items-center justify-center rounded-[var(--mv-radius-control)] text-muted-foreground hover:bg-mv-panel hover:text-foreground"
+                  >
+                    <Star
+                      aria-hidden
+                      className={cn("size-4", starred && "fill-amber-400 text-amber-400")}
+                    />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Share"
+                    className="flex size-8 items-center justify-center rounded-[var(--mv-radius-control)] text-muted-foreground hover:bg-mv-panel"
+                    onClick={() => toastInfo("Sharing is coming soon.")}
+                  >
+                    <Share2 aria-hidden className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="More"
+                    className="flex size-8 items-center justify-center rounded-[var(--mv-radius-control)] text-muted-foreground hover:bg-mv-panel"
+                    onClick={() => {
+                      setDeleteError("");
+                      setDeleteOpen(true);
+                    }}
+                  >
+                    <MoreHorizontal aria-hidden className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Fullscreen"
+                    className="hidden size-8 items-center justify-center rounded-[var(--mv-radius-control)] text-muted-foreground hover:bg-mv-panel sm:flex"
+                    onClick={() => toastInfo("Fullscreen is coming soon.")}
+                  >
+                    <Maximize2 aria-hidden className="size-4" />
+                  </button>
+                </div>
+              </div>
 
-          <div className="mt-6 border-t border-border pt-6">
-            <NoteContentDisplay content={note.content} type={note.type} />
-          </div>
-        </article>
+              <h1 className="mt-3 font-serif text-[1.75rem] leading-tight tracking-[-0.02em] text-foreground sm:text-[2rem]">
+                {note.title}
+              </h1>
+
+              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[0.75rem] text-muted-foreground">
+                <span>Created {formatNoteDateTime(note.createdAt)}</span>
+                <span aria-hidden>·</span>
+                <span>{readMinutes} min read</span>
+                {note.category ? (
+                  <span className="rounded-full border border-border bg-mv-panel px-2 py-0.5 text-foreground">
+                    {note.category.name}
+                  </span>
+                ) : null}
+              </div>
+
+              <NoteTagBadges tags={note.tags} className="mt-2" />
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handleEditClick}
+                  className={cn(vaultSecondaryButton, "h-8 gap-1.5 px-2.5 text-[0.8125rem]")}
+                >
+                  <Pencil aria-hidden className="size-3.5" />
+                  Edit
+                </button>
+                <span className={cn("inline-flex h-8 items-center rounded-[var(--mv-radius-control)] border border-border px-2.5", vaultMetaClassName)}>
+                  {typeLabel}
+                </span>
+              </div>
+            </header>
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8 sm:py-8">
+              <div className="mx-auto max-w-3xl">
+                {note.sourceUrl ? (
+                  <a
+                    href={note.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mb-6 inline-flex items-center gap-1.5 text-[0.8125rem] text-muted-foreground hover:text-foreground hover:underline"
+                  >
+                    <ExternalLink aria-hidden className="size-3.5" />
+                    {note.sourceUrl}
+                  </a>
+                ) : null}
+                <NoteDetailBody content={note.content} type={note.type} />
+              </div>
+            </div>
+          </section>
+
+          <NoteDetailMetaSidebar note={note} relatedNotes={relatedNotes} />
+        </div>
       )}
 
       <VaultDialog

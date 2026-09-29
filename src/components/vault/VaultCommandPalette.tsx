@@ -79,21 +79,33 @@ export function VaultCommandPalette() {
   const [loadingRecent, setLoadingRecent] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
 
+  const closePalette = useCallback(() => {
+    setOpen(false);
+    setQuery("");
+    setActiveIndex(0);
+  }, [setOpen]);
+
   useEffect(() => {
     if (!open) {
-      setQuery("");
-      setActiveIndex(0);
       return;
     }
 
     inputRef.current?.focus();
-    setLoadingRecent(true);
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) {
+        setLoadingRecent(true);
+      }
+    });
     void fetchNotes({ limit: 8, sort: "updated_desc" }).then(({ data }) => {
       if (data?.ok) {
         setRecentNotes(data.notes);
       }
       setLoadingRecent(false);
     });
+    return () => {
+      cancelled = true;
+    };
   }, [open]);
 
   const entries = useMemo(() => {
@@ -127,13 +139,9 @@ export function VaultCommandPalette() {
     return [...noteEntries, ...actions];
   }, [query, recentNotes]);
 
-  useEffect(() => {
-    setActiveIndex(0);
-  }, [query]);
-
   const runEntry = useCallback(
     (entry: CommandEntry) => {
-      setOpen(false);
+      closePalette();
       if (entry.kind === "note") {
         router.push(entry.href);
         return;
@@ -144,7 +152,7 @@ export function VaultCommandPalette() {
       }
       router.push(entry.href);
     },
-    [query, router, setOpen],
+    [closePalette, query, router],
   );
 
   useEffect(() => {
@@ -155,7 +163,7 @@ export function VaultCommandPalette() {
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         event.preventDefault();
-        setOpen(false);
+        closePalette();
         return;
       }
 
@@ -179,7 +187,7 @@ export function VaultCommandPalette() {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [activeIndex, entries, open, runEntry, setOpen]);
+  }, [activeIndex, closePalette, entries, open, runEntry]);
 
   if (!open) {
     return null;
@@ -194,7 +202,7 @@ export function VaultCommandPalette() {
         type="button"
         aria-label="Close command palette"
         className="absolute inset-0 bg-mv-overlay backdrop-blur-[2px]"
-        onClick={() => setOpen(false)}
+        onClick={closePalette}
       />
       <div
         role="dialog"
@@ -207,7 +215,10 @@ export function VaultCommandPalette() {
           <input
             ref={inputRef}
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setActiveIndex(0);
+            }}
             placeholder="Search your MindVault…"
             className={cn(
               "min-h-10 flex-1 bg-transparent text-[0.92rem] text-foreground outline-none placeholder:text-mv-faint",
@@ -304,7 +315,7 @@ export function VaultCommandPalette() {
           <Link
             href={vaultRoutes.search}
             className="transition-colors hover:text-foreground"
-            onClick={() => setOpen(false)}
+            onClick={closePalette}
           >
             Open full search →
           </Link>

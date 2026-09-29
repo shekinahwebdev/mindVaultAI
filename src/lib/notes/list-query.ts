@@ -18,6 +18,14 @@ export function buildNotesListWhere(
     conditions.push({ categoryId: query.categoryId });
   }
 
+  if (query.tagId) {
+    conditions.push({
+      noteTags: {
+        some: { tagId: query.tagId },
+      },
+    });
+  }
+
   if (query.search) {
     conditions.push({
       OR: [
