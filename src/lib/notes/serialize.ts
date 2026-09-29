@@ -15,6 +15,16 @@ export const noteSelect = {
       name: true,
     },
   },
+  noteTags: {
+    select: {
+      tag: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  },
 } as const;
 
 type NoteRecord = {
@@ -30,6 +40,17 @@ type NoteRecord = {
     id: string;
     name: string;
   } | null;
+  noteTags: Array<{
+    tag: {
+      id: string;
+      name: string;
+    };
+  }>;
+};
+
+export type SerializedNoteTag = {
+  id: string;
+  name: string;
 };
 
 export type SerializedNote = {
@@ -43,9 +64,18 @@ export type SerializedNote = {
     id: string;
     name: string;
   } | null;
+  tags: SerializedNoteTag[];
   createdAt: string;
   updatedAt: string;
 };
+
+export function serializeNoteTags(
+  noteTags: NoteRecord["noteTags"],
+): SerializedNoteTag[] {
+  return noteTags
+    .map((row) => row.tag)
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
 
 export function serializeNote(note: NoteRecord): SerializedNote {
   return {
@@ -56,6 +86,7 @@ export function serializeNote(note: NoteRecord): SerializedNote {
     sourceUrl: note.sourceUrl,
     categoryId: note.categoryId,
     category: note.category,
+    tags: serializeNoteTags(note.noteTags),
     createdAt: note.createdAt.toISOString(),
     updatedAt: note.updatedAt.toISOString(),
   };

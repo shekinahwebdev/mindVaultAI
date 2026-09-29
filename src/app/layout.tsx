@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { brand } from "@/lib/brand";
 import { editorial, geist, signature } from "@/lib/fonts";
+import { themeInitScript } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import "@/styles/globals.css";
 
@@ -22,6 +23,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         editorial.variable,
       )}
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: themeInitScript("system"),
+          }}
+        />
+      </head>
       <body>{children}</body>
     </html>
   );

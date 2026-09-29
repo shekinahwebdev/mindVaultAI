@@ -93,6 +93,95 @@ type CaptureTextareaFieldProps = CaptureFieldBaseProps &
     textareaClassName?: string;
   };
 
+type CaptureEditorFieldProps = CaptureFieldBaseProps &
+  Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "id"> & {
+    labelAddon?: ReactNode;
+    textareaClassName?: string;
+    /** Hide visible label (use aria-label on textarea). */
+    hideLabel?: boolean;
+  };
+
+export const CaptureEditorField = forwardRef<
+  HTMLTextAreaElement,
+  CaptureEditorFieldProps
+>(function CaptureEditorField(
+  {
+    id,
+    label,
+    labelAddon,
+    error,
+    hint,
+    className,
+    textareaClassName,
+    disabled,
+    hideLabel,
+    ...textareaProps
+  },
+  ref,
+) {
+  const describedBy = error ? `${id}-error` : hint ? `${id}-hint` : undefined;
+
+  return (
+    <div className={cn("flex min-h-0 flex-1 flex-col", className)}>
+      {!hideLabel ? (
+        <div className="flex items-end justify-between gap-3">
+          <span className={fieldLabelClassName}>{label}</span>
+          {labelAddon}
+        </div>
+      ) : null}
+      <textarea
+        ref={ref}
+        id={id}
+        aria-label={hideLabel ? label : undefined}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy}
+        disabled={disabled}
+        className={cn(
+          "mt-1 min-h-[12rem] w-full flex-1 resize-none border-0 bg-transparent px-0 py-2 text-[0.9375rem] leading-[1.75] text-foreground outline-none placeholder:text-mv-faint focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-[16rem] sm:text-[1rem]",
+          !hideLabel && "mt-1.5",
+          textareaClassName,
+        )}
+        {...textareaProps}
+      />
+      <CaptureFieldMessage id={id} error={error} hint={hint} />
+    </div>
+  );
+});
+
+type CaptureTitleFieldProps = Omit<CaptureInputFieldProps, "label"> & {
+  label?: string;
+};
+
+export function CaptureTitleField({
+  id,
+  label = "Title",
+  error,
+  hint,
+  className,
+  disabled,
+  ...inputProps
+}: CaptureTitleFieldProps) {
+  const describedBy = error ? `${id}-error` : hint ? `${id}-hint` : undefined;
+
+  return (
+    <div className={cn("w-full", className)}>
+      <input
+        id={id}
+        aria-label={label}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy}
+        disabled={disabled}
+        className={cn(
+          "w-full border-0 bg-transparent py-1 text-[1.35rem] font-semibold leading-tight tracking-[-0.02em] text-foreground outline-none placeholder:font-normal placeholder:text-mv-faint focus:ring-0 disabled:opacity-60 sm:text-[1.5rem]",
+          error && "text-red-600 dark:text-red-300",
+        )}
+        {...inputProps}
+      />
+      <CaptureFieldMessage id={id} error={error} hint={hint} />
+    </div>
+  );
+}
+
 export const CaptureTextareaField = forwardRef<
   HTMLTextAreaElement,
   CaptureTextareaFieldProps

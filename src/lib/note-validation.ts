@@ -1,5 +1,6 @@
 import { NoteType } from "@/generated/prisma/client";
 
+import { parseNoteTagIds } from "@/lib/notes/note-tag-validation";
 import {
   NOTE_SORT_OPTIONS,
   UNCategorized_CATEGORY_FILTER,
@@ -15,6 +16,7 @@ export type CreateNotePayload = {
   type: NoteType;
   sourceUrl: string | null;
   categoryId: string | null;
+  tagIds: string[];
 };
 
 export type UpdateNotePayload = {
@@ -23,6 +25,7 @@ export type UpdateNotePayload = {
   type?: NoteType;
   sourceUrl?: string | null;
   categoryId?: string | null;
+  tagIds?: string[];
 };
 
 export type CreateNoteValues = {
@@ -39,6 +42,14 @@ export type UpdateNoteValues = {
   type: string;
   sourceUrl: string;
   categoryId: string;
+};
+
+export type CreateNoteFieldErrors = NoteFieldErrors<CreateNoteValues> & {
+  tagIds?: string;
+};
+
+export type UpdateNoteFieldErrors = NoteFieldErrors<UpdateNoteValues> & {
+  tagIds?: string;
 };
 
 export type NoteFieldErrors<T> = Partial<Record<keyof T, string>>;
@@ -133,7 +144,7 @@ function parseOptionalNullableString(
 
 export function parseCreateNoteBody(body: unknown):
   | { success: true; data: CreateNotePayload }
-  | { success: false; errors: NoteFieldErrors<CreateNoteValues> } {
+  | { success: false; errors: CreateNoteFieldErrors } {
   if (!isRecord(body)) {
     return {
       success: false,
@@ -149,7 +160,7 @@ export function parseCreateNoteBody(body: unknown):
     categoryId: parseOptionalString(body.categoryId),
   };
 
-  const errors: NoteFieldErrors<CreateNoteValues> = {};
+  const errors: CreateNoteFieldErrors = {};
 
   const titleError = validateTitle(values.title.trim());
   if (titleError) {
@@ -180,6 +191,16 @@ export function parseCreateNoteBody(body: unknown):
     }
   }
 
+  let tagIds: string[] = [];
+  if (body.tagIds !== undefined && body.tagIds !== null) {
+    const parsedTags = parseNoteTagIds(body.tagIds);
+    if (!parsedTags.success) {
+      errors.tagIds = parsedTags.message;
+    } else {
+      tagIds = parsedTags.tagIds;
+    }
+  }
+
   if (Object.keys(errors).length > 0) {
     return { success: false, errors };
   }
@@ -198,13 +219,14 @@ export function parseCreateNoteBody(body: unknown):
         body.categoryId === undefined || body.categoryId === null
           ? null
           : values.categoryId.trim(),
+      tagIds,
     },
   };
 }
 
 export function parseUpdateNoteBody(body: unknown):
   | { success: true; data: UpdateNotePayload }
-  | { success: false; errors: NoteFieldErrors<UpdateNoteValues> } {
+  | { success: false; errors: UpdateNoteFieldErrors } {
   if (!isRecord(body)) {
     return {
       success: false,
@@ -227,7 +249,8 @@ export function parseUpdateNoteBody(body: unknown):
     "content" in body ||
     "type" in body ||
     "sourceUrl" in body ||
-    "categoryId" in body;
+    "categoryId" in body ||
+    "tagIds" in body;
 
   if (!hasEditableField) {
     return {
@@ -236,7 +259,7 @@ export function parseUpdateNoteBody(body: unknown):
     };
   }
 
-  const errors: NoteFieldErrors<UpdateNoteValues> = {};
+  const errors: UpdateNoteFieldErrors = {};
   const data: UpdateNotePayload = {};
 
   if ("title" in body) {
@@ -311,6 +334,15 @@ export function parseUpdateNoteBody(body: unknown):
     }
   }
 
+  if ("tagIds" in body) {
+    const parsedTags = parseNoteTagIds(body.tagIds);
+    if (!parsedTags.success) {
+      errors.tagIds = parsedTags.message;
+    } else {
+      data.tagIds = parsedTags.tagIds;
+    }
+  }
+
   if (Object.keys(errors).length > 0) {
     return { success: false, errors };
   }
@@ -349,6 +381,7 @@ export type NotesListQuery = {
   skip: number;
   type: NoteType | null;
   categoryId: string | null;
+  tagId: string | null;
   uncategorizedOnly: boolean;
   sort: NoteSortOption;
   search: string | null;
@@ -383,10 +416,15 @@ export function parseNotesListQuery(searchParams: URLSearchParams): NotesListQue
       ? trimmedSearch.slice(0, MAX_SEARCH_LENGTH)
       : null;
 
+  const rawTagId = searchParams.get("tagId");
+  const tagId =
+    rawTagId && rawTagId.trim() ? rawTagId.trim() : null;
+
   return {
     ...pagination,
     type,
     categoryId,
+    tagId,
     uncategorizedOnly,
     sort,
     search,

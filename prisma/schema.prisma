@@ -33,11 +33,57 @@ model User {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  notes       Note[]
-  categories  Category[]
-  preferences UserPreferences?
+  notes         Note[]
+  categories    Category[]
+  tags          Tag[]
+  preferences   UserPreferences?
+  conversations Conversation[]
 
   @@map("users")
+}
+
+enum ChatRole {
+  USER
+  ASSISTANT
+}
+
+enum ChatMode {
+  ASK
+  AGENT
+}
+
+model Conversation {
+  id String @id @default(cuid())
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title String?
+  mode  ChatMode @default(ASK)
+
+  messages ChatMessage[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, updatedAt])
+  @@map("conversations")
+}
+
+model ChatMessage {
+  id String @id @default(cuid())
+
+  conversationId String       @map("conversation_id")
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  role     ChatRole
+  content  String   @db.Text
+  metadata Json?
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([conversationId, createdAt])
+  @@map("chat_messages")
 }
 
 enum SearchMode {
@@ -100,6 +146,28 @@ model Category {
   @@map("categories")
 }
 
+model Tag {
+  id String @id @default(cuid())
+
+  // Display label (trimmed in application code).
+  name String
+
+  // Lowercased / normalized key for per-user uniqueness (Step 2).
+  normalizedName String @map("normalized_name")
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  noteTags NoteTag[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, normalizedName])
+  @@index([userId])
+  @@map("tags")
+}
+
 model Note {
   id String @id @default(cuid())
 
@@ -117,12 +185,27 @@ model Note {
 
   embedding NoteEmbedding?
 
+  noteTags NoteTag[]
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([userId])
   @@index([categoryId])
   @@map("notes")
+}
+
+model NoteTag {
+  noteId String @map("note_id")
+  tagId  String @map("tag_id")
+
+  note Note @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([noteId, tagId])
+  @@index([noteId])
+  @@index([tagId])
+  @@map("note_tags")
 }
 
 // One vector per note (note-level semantic search, not chunk-level RAG).

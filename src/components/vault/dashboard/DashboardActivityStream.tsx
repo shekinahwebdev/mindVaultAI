@@ -2,16 +2,19 @@
 
 import Link from "next/link";
 import { Plus } from "lucide-react";
+import { useMemo } from "react";
 
+import { ContentCard } from "@/components/mv/ContentCard";
+import { EmptyState } from "@/components/mv/EmptyState";
 import type { DashboardNotePreview } from "@/lib/vault/dashboard-queries";
+import { formatRelativeTime } from "@/lib/vault/format-relative-time";
 import { vaultRoutes } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 import { vaultActionShape } from "../vault-controls";
 
 import { DashboardSectionHeader } from "./DashboardSectionHeader";
-import { VaultStreamRow } from "./VaultStreamRow";
-import { dashboardBentoCellClassName } from "./dashboard-ui";
+import { VaultItemRow } from "./VaultItemRow";
 
 type DashboardActivityStreamProps = {
   recentNotes: DashboardNotePreview[];
@@ -20,12 +23,26 @@ type DashboardActivityStreamProps = {
   className?: string;
 };
 
-function formatDate(iso: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(iso));
+function mergeRecentActivity(
+  recentNotes: DashboardNotePreview[],
+  recentlyEdited: DashboardNotePreview[],
+): DashboardNotePreview[] {
+  const seen = new Set<string>();
+  const merged: DashboardNotePreview[] = [];
+
+  for (const note of recentNotes) {
+    if (seen.has(note.id)) continue;
+    seen.add(note.id);
+    merged.push(note);
+  }
+
+  for (const note of recentlyEdited) {
+    if (seen.has(note.id)) continue;
+    seen.add(note.id);
+    merged.push(note);
+  }
+
+  return merged.slice(0, 8);
 }
 
 export function DashboardActivityStream({
@@ -34,75 +51,57 @@ export function DashboardActivityStream({
   isEmpty,
   className,
 }: DashboardActivityStreamProps) {
+  const activityNotes = useMemo(
+    () => mergeRecentActivity(recentNotes, recentlyEdited),
+    [recentNotes, recentlyEdited],
+  );
+
   return (
-    <section
-      className={cn(
-        dashboardBentoCellClassName,
-        "flex h-full max-h-[min(24rem,50vh)] min-h-[10rem] flex-col px-4 py-3.5 sm:px-5 sm:py-4",
-        className,
-      )}
+    <ContentCard
+      padding="sm"
+      className={cn("flex min-h-[18rem] flex-col lg:min-h-[24rem]", className)}
     >
       <DashboardSectionHeader
-        title="Activity"
+        title="Recent Notes"
         action={
-          !isEmpty ? { label: "All notes", href: vaultRoutes.notes } : undefined
+          !isEmpty ? { label: "View all", href: vaultRoutes.notes } : undefined
         }
       />
 
       {isEmpty ? (
-        <div className="mt-4 flex flex-1 flex-col items-center justify-center rounded-[10px] border border-dashed border-border bg-mv-panel/30 px-4 py-8 text-center">
-          <p className="text-[1.05rem] font-semibold text-foreground">
-            Your vault is waiting.
-          </p>
-          <p className="mt-2 max-w-sm text-[0.8125rem] leading-relaxed text-muted-foreground">
-            Capture your first thought, link, quote, or piece of knowledge.
-          </p>
-          <Link
-            href={vaultRoutes.capture}
-            className={cn(
-              "mt-5 inline-flex h-9 items-center gap-2 px-3.5 text-[0.875rem] font-medium",
-              vaultActionShape,
-              "border border-border text-foreground/90 hover:border-foreground/25",
-            )}
-          >
-            <Plus aria-hidden className="size-3.5" />
-            Capture something
-          </Link>
-        </div>
+        <EmptyState
+          variant="dashed"
+          className="mt-3 flex-1 py-10 sm:py-12"
+          title="Your vault is waiting."
+          description="Capture your first thought, link, quote, or piece of knowledge."
+          action={
+            <Link
+              href={vaultRoutes.capture}
+              className={cn(
+                "inline-flex h-9 items-center gap-2 px-3.5 text-[0.875rem] font-medium",
+                vaultActionShape,
+                "border border-border text-foreground/90 hover:border-foreground/25",
+              )}
+            >
+              <Plus aria-hidden className="size-3.5" />
+              Capture something
+            </Link>
+          }
+        />
       ) : (
-        <div className="mt-2 min-h-0 flex-1 overflow-y-auto">
-          <ul className="relative">
-            {recentNotes.map((note) => (
+        <div className="mt-1 min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          <ul className="space-y-0.5">
+            {activityNotes.map((note) => (
               <li key={note.id}>
-                <VaultStreamRow
+                <VaultItemRow
                   note={note}
-                  dateLabel={formatDate(note.createdAt)}
-                  eventLabel="Added"
+                  dateLabel={formatRelativeTime(note.updatedAt)}
                 />
               </li>
             ))}
           </ul>
-
-          {recentlyEdited.length > 0 ? (
-            <div className="mt-2 border-t border-border pt-2">
-              <p className="px-1 pb-1 text-[0.6875rem] font-medium text-mv-faint">
-                Recently edited
-              </p>
-              <ul>
-                {recentlyEdited.map((note) => (
-                  <li key={`edited-${note.id}`}>
-                    <VaultStreamRow
-                      note={note}
-                      dateLabel={formatDate(note.updatedAt)}
-                      eventLabel="Edited"
-                    />
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
         </div>
       )}
-    </section>
+    </ContentCard>
   );
 }

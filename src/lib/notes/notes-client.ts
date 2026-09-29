@@ -24,6 +24,7 @@ export type NotesListParams = {
   limit?: number;
   type?: string;
   categoryId?: string;
+  tagId?: string;
   sort?: NoteSortOption;
   q?: string;
 };
@@ -51,6 +52,10 @@ export function buildNotesQueryString(params: NotesListParams) {
 
   if (params.categoryId) {
     search.set("categoryId", params.categoryId);
+  }
+
+  if (params.tagId) {
+    search.set("tagId", params.tagId);
   }
 
   if (params.sort && params.sort !== "updated_desc") {

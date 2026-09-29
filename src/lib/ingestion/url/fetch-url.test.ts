@@ -214,7 +214,7 @@ describe("fetchValidatedUrl — redirects", () => {
 
   it("rejects exceeding max redirects", async () => {
     let hops = 0;
-    const pinnedFetch: PinnedFetchFn = async (ctx) => {
+    const pinnedFetch: PinnedFetchFn = async () => {
       hops += 1;
       return redirectResponse(`https://hop.example/${hops}`);
     };

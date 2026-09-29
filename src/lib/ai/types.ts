@@ -3,12 +3,19 @@ import type { NoteType } from "@/generated/prisma/enums";
 export type NoteAnalysisInput = {
   content: string;
   categoryNames: string[];
+  tagNames: string[];
+};
+
+export type NoteAnalysisTagSuggestionRaw = {
+  existing: string[];
+  suggested: string[];
 };
 
 export type NoteAnalysisSuggestion = {
   title: string;
   type: NoteType;
   category: string | null;
+  tags: NoteAnalysisTagSuggestionRaw;
 };
 
 export type NoteAnalysisMeta = {

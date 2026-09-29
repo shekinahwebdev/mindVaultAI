@@ -13,7 +13,11 @@ import {
   parseNotesListQuery,
 } from "@/lib/note-validation";
 import { categoryBelongsToUser } from "@/lib/notes/category-ownership";
+import { findTagForUser } from "@/lib/tags/tag-repository";
 import { generateAndStoreNoteEmbedding } from "@/lib/notes/embedding-service";
+import { NOTE_TAG_NOT_FOUND } from "@/lib/notes/note-tag-validation";
+import { createNoteWithTags } from "@/lib/notes/note-tags-repository";
+import { tagIdsBelongToUser } from "@/lib/notes/tag-ownership";
 import { buildNotesListWhere } from "@/lib/notes/list-query";
 import { noteSelect, serializeNote } from "@/lib/notes/serialize";
 
@@ -33,6 +37,22 @@ export async function GET(request: Request) {
       session.userId,
     );
     if (!owned) {
+      return NextResponse.json({
+        ok: true,
+        notes: [],
+        pagination: {
+          page: query.page,
+          limit: query.limit,
+          total: 0,
+          totalPages: 0,
+        },
+      });
+    }
+  }
+
+  if (query.tagId) {
+    const tag = await findTagForUser(session.userId, query.tagId);
+    if (!tag) {
       return NextResponse.json({
         ok: true,
         notes: [],
@@ -105,7 +125,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { title, content, type, sourceUrl, categoryId } = parsed.data;
+  const { title, content, type, sourceUrl, categoryId, tagIds } = parsed.data;
 
   if (categoryId) {
     const owned = await categoryBelongsToUser(categoryId, session.userId);
@@ -117,18 +137,28 @@ export async function POST(request: Request) {
     }
   }
 
+  if (tagIds.length > 0) {
+    const tagsOwned = await tagIdsBelongToUser(tagIds, session.userId);
+    if (!tagsOwned) {
+      return NextResponse.json(
+        { ok: false, errors: { tagIds: NOTE_TAG_NOT_FOUND } },
+        { status: 400 },
+      );
+    }
+  }
+
   try {
-    const note = await prisma.note.create({
-      data: {
+    const note = await createNoteWithTags(
+      session.userId,
+      {
         title,
         content,
         type,
         sourceUrl,
         categoryId,
-        userId: session.userId,
       },
-      select: noteSelect,
-    });
+      tagIds,
+    );
 
     // Best-effort and isolated from the response: the note is already
     // saved above, so an embedding-provider outage must never turn a

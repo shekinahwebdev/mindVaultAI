@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 
 import type { SerializedNote } from "@/lib/notes/serialize";
+import { NoteTagBadges } from "@/components/vault/tags/NoteTagBadges";
 import {
   formatNoteDate,
   noteDetailPath,
@@ -19,9 +20,10 @@ type NoteCardProps = {
   // Optional dev/testing affordance (e.g. a semantic-search match score).
   // Undefined by default, so existing callers render exactly as before.
   matchLabel?: string;
+  showTags?: boolean;
 };
 
-export function NoteCard({ note, matchLabel }: NoteCardProps) {
+export function NoteCard({ note, matchLabel, showTags }: NoteCardProps) {
   const preview = truncateNoteContent(note.content);
   const typeLabel = noteTypeLabels[note.type] ?? note.type;
   const dateLabel = formatNoteDate(note.updatedAt);
@@ -61,6 +63,10 @@ export function NoteCard({ note, matchLabel }: NoteCardProps) {
         <p className="mt-2 line-clamp-2 text-[0.82rem] leading-relaxed text-muted-foreground">
           {preview}
         </p>
+      ) : null}
+
+      {showTags && note.tags.length > 0 ? (
+        <NoteTagBadges tags={note.tags} className="mt-2.5" />
       ) : null}
 
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.72rem] text-mv-faint">

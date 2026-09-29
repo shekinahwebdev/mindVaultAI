@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { vaultCardTitleClassName, vaultMetaClassName } from "@/lib/vault/vault-typography";
@@ -28,9 +29,13 @@ export function DashboardSectionHeader({
       {action ? (
         <Link
           href={action.href}
-          className={cn(vaultMetaClassName, "font-medium transition-colors hover:text-foreground")}
+          className={cn(
+            vaultMetaClassName,
+            "inline-flex items-center gap-1 font-medium transition-colors hover:text-foreground",
+          )}
         >
           {action.label}
+          <ArrowRight aria-hidden className="size-3.5" />
         </Link>
       ) : null}
       {children}

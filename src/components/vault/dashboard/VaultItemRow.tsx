@@ -7,8 +7,8 @@ import { useEffect, useRef, useState } from "react";
 import type { DashboardNotePreview } from "@/lib/vault/dashboard-queries";
 import { noteDetailPath } from "@/lib/notes/note-display";
 import {
-  getNoteTypeIcon,
   getNoteTypeLabel,
+  NoteTypeIcon,
   noteTypePillClassName,
 } from "@/lib/vault/note-type-ui";
 import { cn } from "@/lib/utils";
@@ -23,7 +23,6 @@ type VaultItemRowProps = {
 export function VaultItemRow({ note, dateLabel }: VaultItemRowProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const TypeIcon = getNoteTypeIcon(note.type);
   const typeLabel = getNoteTypeLabel(note.type);
 
   useEffect(() => {
@@ -52,13 +51,17 @@ export function VaultItemRow({ note, dateLabel }: VaultItemRowProps) {
   }, [menuOpen]);
 
   return (
-    <div className="group relative rounded-[12px] transition-colors duration-200 hover:bg-mv-panel/80">
+    <div className="group relative rounded-[var(--mv-radius-control)] transition-colors duration-200 hover:bg-mv-panel/70">
       <Link
         href={noteDetailPath(note.id)}
-        className="flex gap-2.5 px-2 py-2.5 sm:px-2.5"
+        className="flex gap-3 px-1 py-2.5 sm:px-2"
       >
         <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-[8px] border border-border bg-surface text-muted-foreground transition-colors group-hover:text-foreground">
-          <TypeIcon aria-hidden className="size-4 stroke-[1.65]" />
+          <NoteTypeIcon
+            type={note.type}
+            aria-hidden
+            className="size-4 stroke-[1.65]"
+          />
         </span>
         <span className="min-w-0 flex-1 pr-8">
           <span className="flex items-start justify-between gap-2">

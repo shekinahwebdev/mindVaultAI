@@ -3,6 +3,8 @@
 import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
 
+import { useClientMounted } from "@/lib/react/use-client-mounted";
+
 import { IntroNextButton } from "../IntroNextButton";
 import { MagicDemo } from "../MagicDemo";
 import { introEase, introTransition } from "../intro-motion";
@@ -20,20 +22,21 @@ const copy = {
 } as const;
 
 function UnderstoodLabel({ instant }: { instant: boolean }) {
-  const [visible, setVisible] = useState(instant);
+  const [delayedVisible, setDelayedVisible] = useState(false);
 
   useEffect(() => {
     if (instant) {
-      setVisible(true);
       return;
     }
 
     const timeout = window.setTimeout(
-      () => setVisible(true),
+      () => setDelayedVisible(true),
       magicTimings.understood * 1000,
     );
     return () => window.clearTimeout(timeout);
   }, [instant]);
+
+  const visible = instant || delayedVisible;
 
   if (!visible) {
     return <div className="mt-5 h-[1.4rem] sm:mt-6" />;
@@ -53,11 +56,7 @@ function UnderstoodLabel({ instant }: { instant: boolean }) {
 
 function useSafeReducedMotion() {
   const reduceMotion = useReducedMotion();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useClientMounted();
 
   return mounted && reduceMotion === true;
 }

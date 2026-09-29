@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 
+import { SettingsIntegrationsSection } from "@/components/vault/settings/SettingsIntegrationsSection";
+import { SettingsNotificationsSection } from "@/components/vault/settings/SettingsNotificationsSection";
 import {
   AccountSettingsSection,
   AdvancedSettingsSection,
@@ -9,6 +11,7 @@ import {
   PrivacySecuritySection,
   VaultPreferencesSection,
 } from "@/components/vault/settings/SettingsSections";
+import { SettingsSubscriptionSection } from "@/components/vault/settings/SettingsSubscriptionSection";
 import { SETTINGS_SECTIONS } from "@/lib/settings/settings-config";
 
 type VaultSettingsSectionPageProps = {
@@ -22,6 +25,9 @@ const SECTION_COMPONENTS = {
   ai: AiSearchSettingsSection,
   security: PrivacySecuritySection,
   data: DataStorageSection,
+  subscription: SettingsSubscriptionSection,
+  integrations: SettingsIntegrationsSection,
+  notifications: SettingsNotificationsSection,
   advanced: AdvancedSettingsSection,
 } as const;
 

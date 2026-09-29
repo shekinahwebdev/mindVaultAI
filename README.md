@@ -292,9 +292,16 @@ The dev server runs at **http://localhost:3003**.
 | `npm run build` | Production build |
 | `npm run start` | Start production server (port 3003) |
 | `npm run lint` | Run ESLint |
+| `npm run check:types` | TypeScript (`tsc --noEmit`) |
+| `npm run test:ci` | Automated unit tests (URL ingestion / SSRF) |
+| `npm run ci:check` | Local CI parity (validate, types, lint, tests, build) |
 | `npm run db:migrate` | Apply Prisma migrations |
 | `npm run db:generate` | Regenerate Prisma client |
 | `npm run db:studio` | Open Prisma Studio |
+
+### CI
+
+GitHub Actions runs on every pull request and on pushes to `main` and `develop`. See **[docs/ci.md](docs/ci.md)** for job breakdown, branch protection suggestions, and how to run the same checks locally (`npm run ci:check`).
 
 ### Environment variables
 

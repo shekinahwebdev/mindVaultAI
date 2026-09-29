@@ -2,28 +2,19 @@ import { NoteType } from "@/generated/prisma/enums";
 import { readAuthJson } from "@/lib/auth/client";
 
 import type { CaptureCreatePayload, CaptureFormValues } from "./capture-validation";
+import type { SerializedNote } from "./serialize";
 
-export type SerializedNote = {
-  id: string;
-  title: string;
-  content: string;
-  type: string;
-  sourceUrl: string | null;
-  categoryId: string | null;
-  category: {
-    id: string;
-    name: string;
-  } | null;
-  createdAt: string;
-  updatedAt: string;
-};
+export type { SerializedNote };
 
 export type CreateNoteApiResponse =
   | { ok: true; note: SerializedNote }
   | {
       ok: false;
       errors?: Partial<
-        Record<"title" | "content" | "type" | "sourceUrl" | "categoryId", string>
+        Record<
+          "title" | "content" | "type" | "sourceUrl" | "categoryId" | "tagIds",
+          string
+        >
       >;
       message?: string;
     };
@@ -34,6 +25,7 @@ export const emptyCaptureValues: CaptureFormValues = {
   type: "NOTE",
   sourceUrl: "",
   categoryId: "",
+  tagIds: [],
 };
 
 export {
@@ -44,11 +36,12 @@ export {
 
 export function buildCreateNoteRequestBody(
   payload: CaptureCreatePayload,
-): Record<string, string> {
-  const body: Record<string, string> = {
+): Record<string, unknown> {
+  const body: Record<string, unknown> = {
     title: payload.title,
     content: payload.content,
     type: payload.type,
+    tagIds: payload.tagIds,
   };
 
   if (payload.sourceUrl) {
@@ -82,7 +75,10 @@ export type UpdateNoteApiResponse =
   | {
       ok: false;
       errors?: Partial<
-        Record<"title" | "content" | "type" | "sourceUrl" | "categoryId", string>
+        Record<
+          "title" | "content" | "type" | "sourceUrl" | "categoryId" | "tagIds",
+          string
+        >
       >;
       message?: string;
     };
@@ -98,6 +94,7 @@ export function buildUpdateNoteRequestBody(payload: CaptureCreatePayload) {
     type: payload.type,
     sourceUrl: payload.sourceUrl,
     categoryId: payload.categoryId,
+    tagIds: payload.tagIds,
   };
 }
 
@@ -132,10 +129,16 @@ export async function deleteNoteRequest(id: string) {
 
 export const NOTE_DELETE_FLASH_KEY = "vault-note-delete-flash";
 
+export type AnalyzeTagSuggestions = {
+  existing: Array<{ id: string; name: string }>;
+  new: string[];
+};
+
 export type NoteAnalysisSuggestion = {
   title: string;
   type: NoteType;
   categoryId: string | null;
+  tags: AnalyzeTagSuggestions;
 };
 
 export type AnalyzeNoteApiResponse =
@@ -144,13 +147,16 @@ export type AnalyzeNoteApiResponse =
 
 export async function analyzeNoteRequest(
   content: string,
-  signal?: AbortSignal,
+  options?: { signal?: AbortSignal; selectedTagIds?: string[] },
 ) {
   const response = await fetch("/api/notes/analyze", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ content }),
-    signal,
+    body: JSON.stringify({
+      content,
+      tagIds: options?.selectedTagIds ?? [],
+    }),
+    signal: options?.signal,
   });
 
   const data = await readAuthJson<AnalyzeNoteApiResponse>(response);

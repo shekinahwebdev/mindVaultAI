@@ -6,6 +6,7 @@ export type CaptureFormValues = {
   type: string;
   sourceUrl: string;
   categoryId: string;
+  tagIds: string[];
 };
 
 export type CaptureFieldErrors = Partial<Record<keyof CaptureFormValues, string>>;
@@ -16,6 +17,7 @@ export type CaptureCreatePayload = {
   type: (typeof NoteType)[keyof typeof NoteType];
   sourceUrl: string | null;
   categoryId: string | null;
+  tagIds: string[];
 };
 
 const NOTE_TYPES = new Set<string>(Object.values(NoteType));
@@ -84,6 +86,7 @@ export function validateCaptureForm(values: CaptureFormValues):
       type: type as CaptureCreatePayload["type"],
       sourceUrl: sourceUrl || null,
       categoryId: categoryId || null,
+      tagIds: values.tagIds,
     },
   };
 }
@@ -94,8 +97,18 @@ export function captureFormIsDirty(values: CaptureFormValues) {
     values.title.trim().length > 0 ||
     values.sourceUrl.trim().length > 0 ||
     values.categoryId.trim().length > 0 ||
+    values.tagIds.length > 0 ||
     values.type !== NoteType.NOTE
   );
+}
+
+function tagIdsEqual(left: string[], right: string[]) {
+  if (left.length !== right.length) {
+    return false;
+  }
+  const a = [...left].sort();
+  const b = [...right].sort();
+  return a.every((id, index) => id === b[index]);
 }
 
 export function noteValuesFromSerialized(note: {
@@ -104,6 +117,7 @@ export function noteValuesFromSerialized(note: {
   type: string;
   sourceUrl: string | null;
   categoryId: string | null;
+  tags?: Array<{ id: string }>;
 }): CaptureFormValues {
   return {
     title: note.title,
@@ -111,6 +125,7 @@ export function noteValuesFromSerialized(note: {
     type: note.type,
     sourceUrl: note.sourceUrl ?? "",
     categoryId: note.categoryId ?? "",
+    tagIds: note.tags?.map((tag) => tag.id) ?? [],
   };
 }
 
@@ -123,7 +138,8 @@ export function noteEditFormIsDirty(
     original.content !== current.content ||
     original.type !== current.type ||
     original.sourceUrl !== current.sourceUrl ||
-    original.categoryId !== current.categoryId
+    original.categoryId !== current.categoryId ||
+    !tagIdsEqual(original.tagIds, current.tagIds)
   );
 }
 

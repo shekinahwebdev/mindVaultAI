@@ -13,6 +13,8 @@ export type SettingsSectionId =
   | "security"
   | "data"
   | "subscription"
+  | "integrations"
+  | "notifications"
   | "advanced";
 
 export const SETTINGS_SECTIONS: SettingsNavItem[] = [
@@ -25,8 +27,13 @@ export const SETTINGS_SECTIONS: SettingsNavItem[] = [
   {
     id: "subscription",
     label: "Subscription & Billing",
-    href: "/vault/subscription",
-    external: true,
+    href: "/vault/settings/subscription",
+  },
+  { id: "integrations", label: "Integrations", href: "/vault/settings/integrations" },
+  {
+    id: "notifications",
+    label: "Notifications",
+    href: "/vault/settings/notifications",
   },
   { id: "advanced", label: "Advanced", href: "/vault/settings/advanced" },
 ];

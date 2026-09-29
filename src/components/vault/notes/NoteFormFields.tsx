@@ -10,6 +10,8 @@ import type {
   CaptureFormValues,
 } from "@/lib/notes/capture-validation";
 
+import { TagMultiSelect } from "@/components/vault/tags/TagMultiSelect";
+
 import {
   CaptureInputField,
   CaptureSelectField,
@@ -107,6 +109,13 @@ export function NoteFormFields({
           ]}
         />
       </div>
+
+      <TagMultiSelect
+        value={values.tagIds}
+        onChange={(tagIds) => onChange("tagIds", tagIds)}
+        disabled={disabled}
+        error={errors.tagIds}
+      />
 
       <CaptureInputField
         id={`${idPrefix}-source-url`}
