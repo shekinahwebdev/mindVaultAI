@@ -56,7 +56,9 @@ npx prisma migrate status
 
 ## Environment variables in CI
 
-CI uses **disposable** values only (see workflow `env`). Never commit real secrets. Names and purpose are documented in [`.env.example`](../.env.example).
+The workflow does **not** commit session keys, API keys, or database passwords. The migration job uses a local PostgreSQL service with `POSTGRES_HOST_AUTH_METHOD=trust` and a passwordless `DATABASE_URL` (`postgresql://postgres@localhost:5432/mindvault_ci`). Never use that pattern outside isolated CI.
+
+App secrets for local/ production use belong in [`.env.example`](../.env.example) and GitHub Actions **repository secrets**, not in the workflow file.
 
 ## Branch protection (recommended)
 

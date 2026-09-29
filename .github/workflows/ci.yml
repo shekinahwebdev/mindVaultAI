@@ -14,12 +14,6 @@ concurrency:
 permissions:
   contents: read
 
-env:
-  # Disposable CI credentials only — never production values.
-  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/mindvault_ci
-  SESSION_SECRET: ci-session-secret-replace-with-32-plus-chars
-  GEMINI_API_KEY: ""
-
 jobs:
   quality:
     name: Lint & types
@@ -79,8 +73,9 @@ jobs:
         image: pgvector/pgvector:pg16
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
           POSTGRES_DB: mindvault_ci
+          # CI-only: trust auth on the service port — no password in connection strings.
+          POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
         options: >-
@@ -88,6 +83,8 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres@localhost:5432/mindvault_ci
     steps:
       - name: Checkout
         uses: actions/checkout@v4

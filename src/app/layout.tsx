@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 
 import { brand } from "@/lib/brand";
 import { editorial, geist, signature } from "@/lib/fonts";
@@ -11,7 +12,7 @@ export const metadata: Metadata = {
   description: brand.tagline,
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html
       lang="en"
