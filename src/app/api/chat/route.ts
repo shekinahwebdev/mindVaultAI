@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { AI_LIMIT_REACHED_CODE } from "@/lib/billing/messages";
 import { isUnauthorizedResponse, requireApiSession } from "@/lib/auth/guards";
 import {
   CHAT_PROVIDER_FAILURE_MESSAGE,
@@ -96,6 +97,19 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { ok: false, error: "server_failure", message: CHAT_SERVER_FAILURE_MESSAGE },
         { status: 500 },
+      );
+    }
+
+    if (result.reason === "ai_limit_reached") {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: AI_LIMIT_REACHED_CODE,
+          message: result.message,
+          conversationId: result.conversationId,
+          userMessageId: result.userMessageId,
+        },
+        { status: 429 },
       );
     }
 

@@ -20,7 +20,10 @@ const defaultPreferences: SerializedPreferences = {
   aiAssistanceEnabled: true,
   ragEnabled: true,
   reducedMotion: false,
-  theme: "LIGHT",
+  theme: "SYSTEM",
+  accentColor: "blue",
+  interfaceDensity: "comfortable",
+  fontFamily: "geist",
 };
 
 type PreferencesContextValue = {
@@ -60,15 +63,6 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       cancelled = true;
     };
   }, []);
-
-  useEffect(() => {
-    const root = document.documentElement;
-    if (preferences.reducedMotion) {
-      root.setAttribute("data-reduced-motion", "true");
-    } else {
-      root.removeAttribute("data-reduced-motion");
-    }
-  }, [preferences.reducedMotion]);
 
   const value = useMemo(
     () => ({

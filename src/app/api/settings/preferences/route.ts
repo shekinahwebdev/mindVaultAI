@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { NoteType, SearchMode, ThemeMode } from "@/generated/prisma/client";
+import { NoteType, SearchMode } from "@/generated/prisma/client";
 import {
   isUnauthorizedResponse,
   requireApiSession,
@@ -8,7 +8,10 @@ import {
 import { categoryBelongsToUser } from "@/lib/notes/category-ownership";
 import { CATEGORY_NOT_FOUND } from "@/lib/note-validation";
 import { SETTINGS_SERVER_ERROR } from "@/lib/settings/settings-config";
-import { updateUserPreferences } from "@/lib/settings/settings-queries";
+import {
+  serializePreferences,
+  updateUserPreferences,
+} from "@/lib/settings/settings-queries";
 import { parseUpdatePreferencesBody } from "@/lib/settings/settings-validation";
 
 export async function PATCH(request: Request) {
@@ -68,22 +71,21 @@ export async function PATCH(request: Request) {
       ...(parsed.data.reducedMotion !== undefined
         ? { reducedMotion: parsed.data.reducedMotion }
         : {}),
-      ...(parsed.data.theme
-        ? { theme: parsed.data.theme as ThemeMode }
+      ...(parsed.data.theme !== undefined ? { theme: parsed.data.theme } : {}),
+      ...(parsed.data.accentColor !== undefined
+        ? { accentColor: parsed.data.accentColor }
+        : {}),
+      ...(parsed.data.interfaceDensity !== undefined
+        ? { interfaceDensity: parsed.data.interfaceDensity }
+        : {}),
+      ...(parsed.data.fontFamily !== undefined
+        ? { fontFamily: parsed.data.fontFamily }
         : {}),
     });
 
     return NextResponse.json({
       ok: true,
-      preferences: {
-        defaultNoteType: preferences.defaultNoteType,
-        defaultCategoryId: preferences.defaultCategoryId,
-        defaultSearchMode: preferences.defaultSearchMode,
-        aiAssistanceEnabled: preferences.aiAssistanceEnabled,
-        ragEnabled: preferences.ragEnabled,
-        reducedMotion: preferences.reducedMotion,
-        theme: preferences.theme,
-      },
+      preferences: serializePreferences(preferences),
     });
   } catch (error) {
     console.error("Update preferences failed:", error);

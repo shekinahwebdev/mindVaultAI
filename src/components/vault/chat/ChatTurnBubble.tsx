@@ -15,15 +15,19 @@ import { cn } from "@/lib/utils";
 
 import { vaultPrimaryButton, vaultSecondaryButton } from "../vault-controls";
 
+import type { SessionData } from "@/lib/auth/session";
+
+import { UserAvatar } from "../UserAvatar";
+
 import type { ChatTurn } from "./chat-types";
 
 type ChatTurnBubbleProps = {
   turn: ChatTurn;
-  userInitials: string;
+  session: SessionData;
   onUpdateTurn: (id: string, patch: Partial<ChatTurn>) => void;
 };
 
-export function ChatTurnBubble({ turn, userInitials, onUpdateTurn }: ChatTurnBubbleProps) {
+export function ChatTurnBubble({ turn, session, onUpdateTurn }: ChatTurnBubbleProps) {
   async function confirmSaveAction() {
     if (!turn.action) return;
     onUpdateTurn(turn.id, { actionState: "saving" });
@@ -61,12 +65,7 @@ export function ChatTurnBubble({ turn, userInitials, onUpdateTurn }: ChatTurnBub
         <p className="max-w-[min(36rem,85%)] rounded-[1rem] rounded-tr-sm bg-mv-panel px-4 py-2.5 text-[0.875rem] text-foreground">
           {turn.question}
         </p>
-        <span
-          aria-hidden
-          className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-[0.6875rem] font-semibold text-primary-foreground"
-        >
-          {userInitials}
-        </span>
+        <UserAvatar session={session} size="sm" className="shrink-0" />
       </div>
 
       {turn.status === "loading" ? (

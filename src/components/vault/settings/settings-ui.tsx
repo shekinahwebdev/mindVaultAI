@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { mvContentCardClassName } from "@/lib/mv/layout-tokens";
+import { ACCENT_COLOR_SWATCHES } from "@/lib/settings/appearance-prefs";
 import {
   vaultCardTitleClassName,
   vaultLabelClassName,
@@ -388,15 +389,7 @@ export function SettingsAccentSwatches({
   onChange: (id: string) => void;
   disabled?: boolean;
 }) {
-  const swatches = [
-    { id: "blue", hex: "#3B82F6", label: "Blue" },
-    { id: "purple", hex: "#A855F7", label: "Purple" },
-    { id: "red", hex: "#EF4444", label: "Red" },
-    { id: "orange", hex: "#F97316", label: "Orange" },
-    { id: "yellow", hex: "#EAB308", label: "Yellow" },
-    { id: "green", hex: "#22C55E", label: "Green" },
-    { id: "pink", hex: "#EC4899", label: "Pink" },
-  ];
+  const swatches = ACCENT_COLOR_SWATCHES;
 
   return (
     <div className="flex flex-wrap gap-2.5">
@@ -412,7 +405,14 @@ export function SettingsAccentSwatches({
             onClick={() => onChange(swatch.id)}
             className={cn(
               "size-8 rounded-full border-2 transition-transform hover:scale-105 disabled:opacity-50",
-              active ? "border-foreground scale-105" : "border-transparent",
+              swatch.neutralSwatch
+                ? cn(
+                    "border-border shadow-[inset_0_0_0_1px_rgb(0_0_0/0.06)]",
+                    active && "border-foreground scale-105 ring-2 ring-foreground/25 ring-offset-2 ring-offset-background",
+                  )
+                : active
+                  ? "border-foreground scale-105"
+                  : "border-transparent",
             )}
             style={{ backgroundColor: swatch.hex }}
           />
@@ -447,7 +447,7 @@ export function SettingsSegmented<T extends string>({
             className={cn(
               "min-h-9 rounded-[6px] px-3 text-[0.8125rem] font-medium transition-colors",
               active
-                ? "bg-surface text-foreground shadow-[0_1px_2px_rgb(0_0_0/0.04)] ring-1 ring-border"
+                ? "bg-surface text-foreground shadow-[0_1px_2px_rgb(0_0_0/0.04)] ring-1 ring-[var(--mv-user-accent-border)]"
                 : "text-muted-foreground hover:text-foreground",
               disabled && "opacity-50",
             )}

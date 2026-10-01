@@ -1,3 +1,4 @@
+import { AI_LIMIT_REACHED_MESSAGE } from "@/lib/billing/messages";
 import {
   CHAT_PROVIDER_FAILURE_MESSAGE,
   type ChatAnswerOutcome,
@@ -28,7 +29,12 @@ export type ProcessChatMessageResult =
     }
   | {
       ok: false;
-      reason: "invalid_question" | "conversation_not_found" | "provider_failure" | "server_failure";
+      reason:
+        | "invalid_question"
+        | "conversation_not_found"
+        | "provider_failure"
+        | "ai_limit_reached"
+        | "server_failure";
       message: string;
       conversationId?: string;
       userMessageId?: string;
@@ -42,7 +48,7 @@ type AskVaultFn = (input: AskVaultInput) => Promise<
       sources: AskVaultSource[];
       groundedFromMessageId?: string;
     }
-  | { ok: false; reason: "invalid_question" | "provider_failure" }
+  | { ok: false; reason: "invalid_question" | "provider_failure" | "ai_limit_reached" }
 >;
 
 const MIN_QUESTION_LENGTH = 3;
@@ -103,6 +109,16 @@ export async function processChatMessage(params: {
           ok: false,
           reason: "invalid_question",
           message: "Ask a real question about your vault.",
+          conversationId: conversation.id,
+          userMessageId: userMessage.id,
+        };
+      }
+
+      if (rag.reason === "ai_limit_reached") {
+        return {
+          ok: false,
+          reason: "ai_limit_reached",
+          message: AI_LIMIT_REACHED_MESSAGE,
           conversationId: conversation.id,
           userMessageId: userMessage.id,
         };

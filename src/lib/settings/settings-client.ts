@@ -42,11 +42,25 @@ export async function fetchSettings() {
   return { response, data };
 }
 
-export async function updateAccountRequest(name: string) {
+export async function updateAvatarRequest(payload: {
+  avatarType: string;
+  avatarEmoji?: string;
+  avatarBackground?: string;
+}) {
+  const response = await fetch("/api/settings/avatar", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await readAuthJson<AccountUpdateResponse>(response);
+  return { response, data };
+}
+
+export async function updateAccountRequest(payload: { name: string; bio: string }) {
   const response = await fetch("/api/settings/account", {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name }),
+    body: JSON.stringify(payload),
   });
   const data = await readAuthJson<AccountUpdateResponse>(response);
   return { response, data };

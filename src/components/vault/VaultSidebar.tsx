@@ -22,7 +22,7 @@ import {
   type VaultNavItem,
 } from "@/lib/vault/nav";
 import type { ThemePreference } from "@/lib/theme";
-import { getVaultInitials } from "@/lib/vault/user-display";
+import { UserAvatar } from "@/components/vault/UserAvatar";
 import { cn } from "@/lib/utils";
 
 import {
@@ -33,6 +33,7 @@ import {
 } from "./vault-controls";
 import { useVaultSession } from "./VaultSessionProvider";
 import { useVaultSidebar } from "./VaultSidebarProvider";
+import { VaultSidebarPlanCard } from "./VaultSidebarPlanCard";
 import { vaultCaptureNavClassName, vaultSidebarRailClassName } from "./vault-shell-ui";
 
 const railIconClassName = "size-[1.125rem] stroke-[1.75]";
@@ -196,6 +197,7 @@ function ThemeToggleRow({
     : "Appearance";
 
   async function cycleTheme() {
+    const previous = preference;
     const index = themeCycle.indexOf(preference);
     const next = themeCycle[(index + 1) % themeCycle.length] ?? "system";
     setPreference(next);
@@ -204,6 +206,8 @@ function ThemeToggleRow({
     });
     if (data?.ok) {
       setPreferences(data.preferences);
+    } else {
+      setPreference(previous);
     }
   }
 
@@ -255,7 +259,6 @@ function SidebarProfile({
   reduceMotion: boolean | null;
 }) {
   const session = useVaultSession();
-  const initials = getVaultInitials(session);
   const displayName = session.name?.trim() || session.email.split("@")[0];
 
   return (
@@ -271,20 +274,10 @@ function SidebarProfile({
       )}
     >
       {collapsed ? (
-        <span
-          aria-hidden
-          className="flex size-8 items-center justify-center rounded-full bg-primary text-[0.68rem] font-medium text-primary-foreground"
-        >
-          {initials}
-        </span>
+        <UserAvatar session={session} size="sm" />
       ) : (
         <>
-          <span
-            aria-hidden
-            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-[0.75rem] font-medium leading-none text-primary-foreground"
-          >
-            {initials}
-          </span>
+          <UserAvatar session={session} size="md" />
           <SidebarLabel visible={expanded} reduceMotion={reduceMotion}>
             {displayName}
           </SidebarLabel>
@@ -404,6 +397,9 @@ export function VaultSidebar() {
         </div>
 
         <div className="mt-auto w-full shrink-0 border-t border-border/60 pt-3">
+          <div className={cn("mb-3 w-full", collapsed ? "flex justify-center" : "")}>
+            <VaultSidebarPlanCard collapsed={collapsed} expanded={expanded} />
+          </div>
           <div className={cn(railStackClassName(collapsed), !collapsed && "gap-0.5")}>
             <ThemeToggleRow
               collapsed={collapsed}

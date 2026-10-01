@@ -9,6 +9,10 @@ export type SessionData = {
   userId: string;
   email: string;
   name: string | null;
+  avatarType?: string;
+  avatarEmoji?: string | null;
+  avatarBackground?: string | null;
+  avatarImageUrl?: string | null;
 };
 
 type SignedSessionPayload = SessionData & {

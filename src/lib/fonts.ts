@@ -1,4 +1,10 @@
-import { Fraunces, Geist, Mrs_Saint_Delafield } from "next/font/google";
+import { Fraunces, Geist, Inter, Mrs_Saint_Delafield } from "next/font/google";
+
+export const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
 
 export const geist = Geist({
   subsets: ["latin"],

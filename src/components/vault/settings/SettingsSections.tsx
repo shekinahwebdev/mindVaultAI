@@ -9,6 +9,7 @@ import { useCategories } from "@/lib/categories/use-categories";
 import { captureNoteTypeOptions } from "@/lib/notes/capture-config";
 import { formatNoteDate } from "@/lib/notes/note-display";
 import { routes, vaultRoutes } from "@/lib/routes";
+import { PROFILE_BIO_MAX_LENGTH } from "@/lib/settings/profile-bio";
 import {
   ACCOUNT_UPDATE_SUCCESS,
   PASSWORD_UPDATE_SUCCESS,
@@ -29,7 +30,7 @@ import type { SerializedPreferences } from "@/lib/settings/settings-queries";
 import { usePreferences } from "@/lib/settings/preferences-context";
 import { useSettingsUiPrefs } from "@/lib/settings/use-settings-ui-prefs";
 import { useSettingsData } from "@/components/vault/settings/use-settings-data";
-import { getVaultInitials } from "@/lib/vault/user-display";
+import { SettingsProfileAvatar } from "@/components/vault/settings/SettingsProfileAvatar";
 import { useVaultSession } from "@/components/vault/VaultSessionProvider";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { toastError, toastInfo, toastSuccess } from "@/lib/vault-toast";
@@ -50,7 +51,6 @@ import {
 import {
   SettingsAccentSwatches,
   SettingsActionRow,
-  SettingsAvatarRow,
   SettingsDangerPanel,
   SettingsField,
   SettingsFormFooter,
@@ -77,9 +77,13 @@ export function AccountSettingsSection() {
   const { data, loading, error, reload } = useSettingsData();
   const { refreshPreferences } = usePreferences();
   const seedName = data?.account.name ?? session.name ?? "";
+  const seedBio = data?.account.bio ?? "";
   const [nameDraft, setNameDraft] = useState<string | null>(null);
+  const [bioDraft, setBioDraft] = useState<string | null>(null);
   const name = nameDraft ?? seedName;
+  const bio = bioDraft ?? seedBio;
   const [fieldError, setFieldError] = useState("");
+  const [bioFieldError, setBioFieldError] = useState("");
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
   const submittingRef = useRef(false);
@@ -91,18 +95,28 @@ export function AccountSettingsSection() {
     submittingRef.current = true;
     setSaving(true);
     setFieldError("");
+    setBioFieldError("");
     setFormError("");
 
-    const { data: response } = await updateAccountRequest(name.trim());
+    const { data: response } = await updateAccountRequest({
+      name: name.trim(),
+      bio,
+    });
 
     if (response?.ok) {
       toastSuccess(ACCOUNT_UPDATE_SUCCESS);
       setNameDraft(null);
+      setBioDraft(null);
       await reload();
       await refreshPreferences();
       router.refresh();
     } else if (response && !response.ok && response.errors?.name) {
       setFieldError(response.errors.name);
+      if (response.errors.bio) {
+        setBioFieldError(response.errors.bio);
+      }
+    } else if (response && !response.ok && response.errors?.bio) {
+      setBioFieldError(response.errors.bio);
     } else {
       toastError(response?.message || SETTINGS_SERVER_ERROR);
     }
@@ -119,16 +133,12 @@ export function AccountSettingsSection() {
     return <SettingsStatus message={error || SETTINGS_LOAD_ERROR} tone="error" />;
   }
 
-  const initials = getVaultInitials({
-    userId: data.account.id,
-    email: data.account.email,
-    name: data.account.name,
-  });
-
   const trimmedName = name.trim();
   const savedName = (data.account.name ?? "").trim();
-  const isDirty = trimmedName !== savedName;
+  const savedBio = data.account.bio ?? "";
+  const isDirty = trimmedName !== savedName || bio !== savedBio;
   const saveDisabled = saving || !isDirty || trimmedName.length === 0;
+  const bioCharCount = bio.length;
 
   return (
     <SettingsPanel
@@ -151,7 +161,11 @@ export function AccountSettingsSection() {
         className="space-y-8"
       >
         <SettingsSubsection title="Profile Information">
-          <SettingsAvatarRow initials={initials} onChangePhotoDisabled />
+          <SettingsProfileAvatar
+            session={session}
+            account={data.account}
+            onUpdated={reload}
+          />
 
           <div className={settingsFormStackClassName}>
             <SettingsField id="account-name" label="Full Name" error={fieldError}>
@@ -176,14 +190,31 @@ export function AccountSettingsSection() {
             <SettingsField
               id="account-bio"
               label="Bio (Optional)"
-              hint="Profile bios are not saved yet."
+              hint="Add a short description to your MindVault profile."
+              error={bioFieldError}
             >
               <textarea
                 id="account-bio"
-                disabled
+                value={bio}
+                onChange={(event) => {
+                  setBioDraft(event.target.value);
+                  setBioFieldError("");
+                }}
+                disabled={saving}
+                maxLength={PROFILE_BIO_MAX_LENGTH + 1}
                 placeholder="Tell us a little about yourself..."
                 className={settingsTextareaClassName}
+                aria-describedby="account-bio-counter"
               />
+              <p
+                id="account-bio-counter"
+                className={cn(
+                  "text-[0.75rem] text-mv-faint",
+                  bioCharCount > PROFILE_BIO_MAX_LENGTH && "text-muted-foreground",
+                )}
+              >
+                {bioCharCount} / {PROFILE_BIO_MAX_LENGTH}
+              </p>
             </SettingsField>
           </div>
 
@@ -225,15 +256,24 @@ export function AccountSettingsSection() {
 
 export function AppearanceSettingsSection() {
   const { data, loading, error, reload } = useSettingsData();
-  const { setPreferences } = usePreferences();
+  const { preferences, setPreferences } = usePreferences();
   const { preference, setPreference } = useTheme();
-  const { prefs, setPrefs, ready: uiReady } = useSettingsUiPrefs();
   const [saving, setSaving] = useState(false);
 
   async function saveAppearance(
     patch: Partial<SerializedPreferences>,
     nextTheme?: ThemePreference,
   ) {
+    const previousPreferences = preferences;
+    const previousTheme = preference;
+
+    const optimistic: SerializedPreferences = {
+      ...preferences,
+      ...patch,
+      ...(nextTheme ? { theme: preferenceToPrismaTheme(nextTheme) } : {}),
+    };
+
+    setPreferences(optimistic);
     if (nextTheme) {
       setPreference(nextTheme);
     }
@@ -250,6 +290,10 @@ export function AppearanceSettingsSection() {
       toastSuccess(PREFERENCES_UPDATE_SUCCESS);
       await reload();
     } else {
+      setPreferences(previousPreferences);
+      if (nextTheme) {
+        setPreference(previousTheme);
+      }
       toastError(response?.message || SETTINGS_SERVER_ERROR);
     }
 
@@ -289,9 +333,12 @@ export function AppearanceSettingsSection() {
     },
   ];
 
-  if (!uiReady) {
-    return <SettingsSectionLoading message="Loading appearance…" />;
-  }
+  const fontPreviewClassName =
+    preferences.fontFamily === "inter"
+      ? "font-[family-name:var(--font-inter)]"
+      : preferences.fontFamily === "system"
+        ? "font-[family-name:system-ui,-apple-system,BlinkMacSystemFont,'Segoe_UI',sans-serif]"
+        : "font-[family-name:var(--font-sans)]";
 
   return (
     <SettingsPanel
@@ -312,7 +359,7 @@ export function AppearanceSettingsSection() {
                 className={cn(
                   "rounded-[var(--mv-radius-control)] border px-3.5 py-3 text-left transition-colors",
                   active
-                    ? "border-primary/25 bg-surface"
+                    ? "border-[var(--mv-user-accent)] bg-surface ring-1 ring-[var(--mv-user-accent-soft)]"
                     : "border-border bg-mv-panel hover:border-foreground/20",
                   saving && "opacity-70",
                 )}
@@ -331,18 +378,20 @@ export function AppearanceSettingsSection() {
 
       <SettingsSubsection title="Accent color">
         <SettingsAccentSwatches
-          value={prefs.accentColor}
-          onChange={(id) =>
-            setPrefs({ accentColor: id as typeof prefs.accentColor })
-          }
+          value={preferences.accentColor}
+          disabled={saving}
+          onChange={(id) => void saveAppearance({ accentColor: id })}
         />
-        <SettingsPanelHint>Accent color applies to preview UI on this device.</SettingsPanelHint>
+        <SettingsPanelHint>
+          Choose the accent used for selected controls and highlights.
+        </SettingsPanelHint>
       </SettingsSubsection>
 
       <SettingsSubsection title="Interface density">
         <SettingsSegmented
-          value={prefs.interfaceDensity}
-          onChange={(value) => setPrefs({ interfaceDensity: value })}
+          value={preferences.interfaceDensity}
+          disabled={saving}
+          onChange={(value) => void saveAppearance({ interfaceDensity: value })}
           options={[
             { value: "comfortable", label: "Comfortable" },
             { value: "compact", label: "Compact" },
@@ -355,20 +404,24 @@ export function AppearanceSettingsSection() {
         <SettingsField id="settings-font" label="Font">
           <select
             id="settings-font"
-            value={prefs.typographyFont}
+            value={preferences.fontFamily}
+            disabled={saving}
             onChange={(event) =>
-              setPrefs({
-                typographyFont: event.target.value as typeof prefs.typographyFont,
-              })
+              void saveAppearance({ fontFamily: event.target.value })
             }
             className={settingsSelectClassName}
           >
-            <option value="inter">Inter (Default)</option>
+            <option value="inter">Inter</option>
             <option value="geist">Geist</option>
             <option value="system">System UI</option>
           </select>
         </SettingsField>
-        <p className="rounded-[var(--mv-radius-control)] border border-border bg-mv-panel/40 px-3 py-2.5 text-[0.875rem] text-foreground">
+        <p
+          className={cn(
+            "rounded-[var(--mv-radius-control)] border border-border bg-mv-panel/40 px-3 py-2.5 text-[0.875rem] text-foreground",
+            fontPreviewClassName,
+          )}
+        >
           The quick brown fox jumps over the lazy dog.
         </p>
       </SettingsSubsection>
@@ -376,7 +429,7 @@ export function AppearanceSettingsSection() {
       <SettingsToggleRow
         label="Reduced motion"
         description="Minimize non-essential animations across the vault."
-        checked={data.preferences.reducedMotion}
+        checked={preferences.reducedMotion}
         onChange={(checked) => void saveAppearance({ reducedMotion: checked })}
         disabled={saving}
       />

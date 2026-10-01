@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 
+import { UsageEventType } from "@/generated/prisma/enums";
 import { analyzeNote } from "@/lib/ai/analyze-note";
+import {
+  AI_LIMIT_REACHED_CODE,
+  AI_LIMIT_REACHED_MESSAGE,
+} from "@/lib/billing/messages";
+import { getUserEntitlements } from "@/lib/billing/entitlements";
+import { recordAiUsage } from "@/lib/billing/usage-metering";
 import { isUnauthorizedResponse, requireApiSession } from "@/lib/auth/guards";
 import { prisma } from "@/lib/db";
 import {
@@ -67,6 +74,18 @@ export async function POST(request: Request) {
     }
   }
 
+  const entitlements = await getUserEntitlements(session.userId);
+  if (entitlements.aiRequests.remaining <= 0) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: AI_LIMIT_REACHED_CODE,
+        message: AI_LIMIT_REACHED_MESSAGE,
+      },
+      { status: 429 },
+    );
+  }
+
   const result = await analyzeNote({
     content: parsed.content,
     categoryNames: categories.map((category) => category.name),
@@ -93,6 +112,8 @@ export async function POST(request: Request) {
       { status: 502 },
     );
   }
+
+  await recordAiUsage(session.userId, UsageEventType.AI_ANALYZE);
 
   const suggestion = validateAnalysisSuggestion(
     result.suggestion,

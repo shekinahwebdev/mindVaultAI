@@ -32,5 +32,6 @@ export const vaultRoutes = {
   archive: "/vault/archive",
   settings: "/vault/settings",
   subscription: "/vault/settings/subscription",
+  plans: "/vault/plans",
   capture: "/vault/capture",
 } as const;

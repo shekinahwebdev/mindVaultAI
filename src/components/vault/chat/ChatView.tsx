@@ -22,7 +22,6 @@ import {
 } from "@/lib/rag/chat-client";
 import { usePreferences } from "@/lib/settings/preferences-context";
 import { vaultRoutes } from "@/lib/routes";
-import { getVaultInitials } from "@/lib/vault/user-display";
 import { toastError, toastSuccess } from "@/lib/vault-toast";
 import { cn } from "@/lib/utils";
 
@@ -49,8 +48,6 @@ function formatHeaderDate(timestamp: number) {
 export function ChatView() {
   const session = useVaultSession();
   const { preferences, loading: preferencesLoading } = usePreferences();
-  const userInitials = getVaultInitials(session);
-
   const [conversationList, setConversationList] = useState<SerializedConversationSummary[]>([]);
   const [listLoading, setListLoading] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -375,7 +372,7 @@ export function ChatView() {
                     >
                       <ChatTurnBubble
                         turn={turn}
-                        userInitials={userInitials}
+                        session={session}
                         onUpdateTurn={() => {}}
                       />
                     </motion.li>
