@@ -54,7 +54,7 @@ export function AddToVaultMenu({ compact = false }: { compact?: boolean }) {
   }, [open]);
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} className={cn("relative", open && "z-50")}>
       <button
         type="button"
         aria-expanded={open}
@@ -76,7 +76,7 @@ export function AddToVaultMenu({ compact = false }: { compact?: boolean }) {
       {open ? (
         <div
           role="menu"
-          className="absolute top-[calc(100%+6px)] right-0 z-50 min-w-[12.5rem] rounded-[12px] border border-border bg-surface p-1.5 shadow-[0_16px_40px_rgb(0_0_0/0.14)]"
+          className="absolute top-[calc(100%+6px)] right-0 z-[60] min-w-[12.5rem] rounded-[12px] border border-border bg-surface p-1.5 shadow-[0_16px_40px_rgb(0_0_0/0.14)]"
         >
           {quickCaptureTypes.map((option) => {
             const Icon = getNoteTypeIcon(option.value);

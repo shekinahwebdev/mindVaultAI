@@ -9,7 +9,9 @@ export type AccentColorId =
   | "orange"
   | "yellow"
   | "green"
-  | "pink";
+  | "pink"
+  | "white"
+  | "black";
 
 export type InterfaceDensity = "comfortable" | "compact" | "minimal";
 export type TypographyFont = "inter" | "geist" | "system";
@@ -71,20 +73,6 @@ export const DEFAULT_SETTINGS_UI_PREFS: SettingsUiPrefs = {
   emailSecurityAlerts: true,
   experimentalBetaFeatures: false,
 };
-
-export const ACCENT_COLOR_SWATCHES: Array<{
-  id: AccentColorId;
-  label: string;
-  hex: string;
-}> = [
-  { id: "blue", label: "Blue", hex: "#3B82F6" },
-  { id: "purple", label: "Purple", hex: "#A855F7" },
-  { id: "red", label: "Red", hex: "#EF4444" },
-  { id: "orange", label: "Orange", hex: "#F97316" },
-  { id: "yellow", label: "Yellow", hex: "#EAB308" },
-  { id: "green", label: "Green", hex: "#22C55E" },
-  { id: "pink", label: "Pink", hex: "#EC4899" },
-];
 
 export function readSettingsUiPrefs(): SettingsUiPrefs {
   if (typeof window === "undefined") {

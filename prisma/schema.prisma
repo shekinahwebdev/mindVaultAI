@@ -29,6 +29,12 @@ model User {
   // collects a name, but future entry points (e.g. invites, OAuth)
   // may not.
   name String?
+  bio  String? @db.Text
+
+  avatarType         AvatarType @default(INITIALS) @map("avatar_type")
+  avatarEmoji        String?    @map("avatar_emoji")
+  avatarBackground   String?    @map("avatar_background")
+  avatarImageUrl     String?    @map("avatar_image_url")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -38,8 +44,111 @@ model User {
   tags          Tag[]
   preferences   UserPreferences?
   conversations Conversation[]
+  subscription        Subscription?
+  usageEvents         UsageEvent[]
+  billingTransactions BillingTransaction[]
 
   @@map("users")
+}
+
+enum SubscriptionPlan {
+  FREE
+  PRO
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+}
+
+enum BillingProvider {
+  NONE
+  STRIPE
+  PAYSTACK
+}
+
+enum UsageEventType {
+  AI_ANALYZE
+  AI_CHAT
+}
+
+model Subscription {
+  id String @id @default(cuid())
+
+  userId String @unique @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  plan   SubscriptionPlan   @default(FREE)
+  status SubscriptionStatus @default(ACTIVE)
+
+  provider                 BillingProvider @default(NONE)
+  providerCustomerId       String?         @map("provider_customer_id")
+  providerSubscriptionId   String?         @map("provider_subscription_id")
+  providerPlanCode         String?         @map("provider_plan_code")
+  providerEmailToken       String?         @map("provider_email_token")
+  pendingCheckoutReference String?         @map("pending_checkout_reference")
+  currentPeriodStart       DateTime?       @map("current_period_start")
+  currentPeriodEnd         DateTime?       @map("current_period_end")
+  cancelAtPeriodEnd        Boolean         @default(false) @map("cancel_at_period_end")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  billingTransactions BillingTransaction[]
+
+  @@map("subscriptions")
+}
+
+model BillingProviderEvent {
+  id        String   @id @default(cuid())
+  eventKey  String   @unique @map("event_key")
+  eventType String   @map("event_type")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("billing_provider_events")
+}
+
+model BillingTransaction {
+  id                 String   @id @default(cuid())
+  userId             String   @map("user_id")
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptionId     String?  @map("subscription_id")
+  subscription       Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  provider           BillingProvider
+  providerReference  String   @unique @map("provider_reference")
+  amount             Int
+  currency           String
+  status             String
+  paidAt             DateTime? @map("paid_at")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@map("billing_transactions")
+}
+
+model UsageEvent {
+  id String @id @default(cuid())
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type     UsageEventType
+  quantity Int            @default(1)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@index([userId, type, createdAt])
+  @@map("usage_events")
+}
+
+enum AvatarType {
+  INITIALS
+  EMOJI
+  IMAGE
 }
 
 enum ChatRole {
@@ -97,6 +206,30 @@ enum ThemeMode {
   SYSTEM
 }
 
+enum AccentColor {
+  BLUE
+  PURPLE
+  RED
+  ORANGE
+  YELLOW
+  GREEN
+  PINK
+  WHITE
+  BLACK
+}
+
+enum InterfaceDensity {
+  COMFORTABLE
+  COMPACT
+  MINIMAL
+}
+
+enum UiFontFamily {
+  INTER
+  GEIST
+  SYSTEM
+}
+
 model UserPreferences {
   id String @id @default(cuid())
 
@@ -108,8 +241,11 @@ model UserPreferences {
   defaultSearchMode   SearchMode @default(KEYWORD) @map("default_search_mode")
   aiAssistanceEnabled Boolean    @default(true) @map("ai_assistance_enabled")
   ragEnabled          Boolean    @default(true) @map("rag_enabled")
-  reducedMotion       Boolean    @default(false) @map("reduced_motion")
-  theme               ThemeMode  @default(LIGHT)
+  reducedMotion       Boolean          @default(false) @map("reduced_motion")
+  theme               ThemeMode        @default(SYSTEM)
+  accentColor         AccentColor      @default(BLUE) @map("accent_color")
+  interfaceDensity    InterfaceDensity @default(COMFORTABLE) @map("interface_density")
+  fontFamily          UiFontFamily     @default(GEIST) @map("font_family")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

@@ -13,6 +13,11 @@ import {
   type ConversationContextMessage,
 } from "./conversation-context";
 import { retrieveRagContext } from "./retrieve-context";
+import { UsageEventType } from "@/generated/prisma/enums";
+import { noopAskVaultBilling } from "@/lib/billing/billing-noop";
+import { getUserEntitlements } from "@/lib/billing/entitlements";
+import { recordAiUsage } from "@/lib/billing/usage-metering";
+
 import type { AskVaultResult, RagSource } from "./types";
 
 /** @deprecated Use CHAT_NO_RELEVANT_KNOWLEDGE_ANSWER */
@@ -32,16 +37,35 @@ export type AskVaultInput = {
   recentDirectGroundedTurn?: DirectGroundedTurn | null;
 };
 
+import type { AskVaultBilling } from "@/lib/billing/ask-vault-billing";
+
+export type { AskVaultBilling };
+
 export type AskVaultDependencies = {
   retrieve: typeof retrieveRagContext;
   answer: typeof answerQuestion;
   answerFromGroundedHistory: typeof answerFromGroundedHistory;
+  billing: AskVaultBilling;
+};
+
+const defaultBilling: AskVaultBilling = {
+  beforeGenerativeCall: async (userId) => {
+    const entitlements = await getUserEntitlements(userId);
+    if (entitlements.aiRequests.remaining <= 0) {
+      return { ok: false, reason: "ai_limit_reached" };
+    }
+    return null;
+  },
+  afterGenerativeSuccess: async (userId) => {
+    await recordAiUsage(userId, UsageEventType.AI_CHAT);
+  },
 };
 
 const defaultDependencies: AskVaultDependencies = {
   retrieve: retrieveRagContext,
   answer: answerQuestion,
   answerFromGroundedHistory,
+  billing: defaultBilling,
 };
 
 export async function askVault(
@@ -55,7 +79,14 @@ export async function runAskVaultPipeline(
   input: AskVaultInput,
   dependencies: Partial<AskVaultDependencies> = {},
 ): Promise<AskVaultResult> {
-  const deps: AskVaultDependencies = { ...defaultDependencies, ...dependencies };
+  const inNodeTest = process.env.NODE_TEST_CONTEXT !== undefined;
+  const deps: AskVaultDependencies = {
+    ...defaultDependencies,
+    ...dependencies,
+    billing:
+      dependencies.billing ??
+      (inNodeTest ? noopAskVaultBilling : defaultDependencies.billing),
+  };
 
   const question = input.question.trim();
   if (question.length < MIN_QUESTION_LENGTH || question.length > MAX_QUESTION_LENGTH) {
@@ -89,6 +120,8 @@ export async function runAskVaultPipeline(
 
   if (sources.length === 0) {
     const fallbackResult = await tryGroundedHistoryFallback({
+      userId: input.userId,
+      billing: deps.billing,
       question,
       history,
       retrievalQuery,
@@ -120,6 +153,11 @@ export async function runAskVaultPipeline(
       answer: CHAT_NO_RELEVANT_KNOWLEDGE_ANSWER,
       sources: [],
     };
+  }
+
+  const blocked = await deps.billing.beforeGenerativeCall(input.userId);
+  if (blocked) {
+    return blocked;
   }
 
   const generationStartedAt = Date.now();
@@ -157,6 +195,8 @@ export async function runAskVaultPipeline(
       ? sources.filter((source) => citedNumbers.includes(source.sourceNumber))
       : sources;
 
+  await deps.billing.afterGenerativeSuccess(input.userId);
+
   console.log("[rag:ask]", {
     operation: "rag_answer",
     outcome: "answered",
@@ -187,6 +227,8 @@ export async function runAskVaultPipeline(
 }
 
 async function tryGroundedHistoryFallback(params: {
+  userId: string;
+  billing: AskVaultBilling;
   question: string;
   history: ConversationContextMessage[];
   retrievalQuery: string;
@@ -199,6 +241,11 @@ async function tryGroundedHistoryFallback(params: {
 
   if (!groundedTurn || !isLikelyGroundedFollowUp(question)) {
     return null;
+  }
+
+  const blocked = await params.billing.beforeGenerativeCall(params.userId);
+  if (blocked) {
+    return blocked;
   }
 
   const generationStartedAt = Date.now();
@@ -226,6 +273,8 @@ async function tryGroundedHistoryFallback(params: {
     });
     return { ok: false, reason: "provider_failure" };
   }
+
+  await params.billing.afterGenerativeSuccess(params.userId);
 
   console.log("[rag:ask]", {
     operation: "rag_answer",

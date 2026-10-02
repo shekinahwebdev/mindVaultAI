@@ -17,7 +17,7 @@ export function VaultMobileHeader() {
   const { setOpen } = useVaultCommand();
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border bg-mv-page/95 px-3 backdrop-blur-sm md:hidden">
+    <header className="relative z-30 flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border bg-mv-page/95 px-3 backdrop-blur-sm md:hidden">
       <Link href={vaultRoutes.dashboard} className="flex min-w-0 items-center gap-2.5">
         <Image
           src={brand.logo.src}

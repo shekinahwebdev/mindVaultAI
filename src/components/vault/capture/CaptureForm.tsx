@@ -267,6 +267,10 @@ export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
       });
 
       if (!data || !data.ok) {
+        if (data && !data.ok && data.error === "ai_limit_reached") {
+          toastError(data.message || "You've reached your AI limit for this month.");
+          return;
+        }
         toastError("MindVault couldn't analyze this right now.");
         return;
       }

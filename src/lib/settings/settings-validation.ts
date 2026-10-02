@@ -1,4 +1,27 @@
-import { NoteType, SearchMode, ThemeMode } from "@/generated/prisma/enums";
+import {
+  AccentColor,
+  InterfaceDensity,
+  NoteType,
+  SearchMode,
+  ThemeMode,
+  UiFontFamily,
+} from "@/generated/prisma/enums";
+
+import {
+  accentColorToPrisma,
+  interfaceDensityToPrisma,
+  isAccentColorId,
+  isInterfaceDensityId,
+  isThemeMode,
+  isUiFontId,
+  uiFontToPrisma,
+} from "./appearance-prefs";
+
+import {
+  normalizeProfileBio,
+  profileBioLengthError,
+  PROFILE_BIO_MAX_LENGTH,
+} from "./profile-bio";
 
 const NOTE_TYPES = new Set<string>(Object.values(NoteType));
 const SEARCH_MODES = new Set<string>(Object.values(SearchMode));
@@ -7,6 +30,7 @@ export type FieldErrors<T> = Partial<Record<keyof T, string>>;
 
 export type UpdateAccountPayload = {
   name: string;
+  bio: string | null;
 };
 
 export type ChangePasswordPayload = {
@@ -22,7 +46,10 @@ export type UpdatePreferencesPayload = {
   aiAssistanceEnabled?: boolean;
   ragEnabled?: boolean;
   reducedMotion?: boolean;
-  theme?: string;
+  theme?: ThemeMode;
+  accentColor?: AccentColor;
+  interfaceDensity?: InterfaceDensity;
+  fontFamily?: UiFontFamily;
 };
 
 export type DeleteAccountPayload = {
@@ -52,12 +79,29 @@ export function parseUpdateAccountBody(body: unknown):
     errors.name = "Name must be at most 120 characters.";
   }
 
+  if (!("bio" in body)) {
+    errors.bio = "Invalid request.";
+  } else if (typeof body.bio !== "string") {
+    errors.bio = "Bio must be text.";
+  } else {
+    const trimmed = body.bio.trim();
+    const lengthError = profileBioLengthError(trimmed.length);
+    if (lengthError) {
+      errors.bio = lengthError;
+    }
+  }
+
   if (Object.keys(errors).length > 0) {
     return { success: false, errors };
   }
 
-  return { success: true, data: { name } };
+  const bio =
+    typeof body.bio === "string" ? normalizeProfileBio(body.bio) : null;
+
+  return { success: true, data: { name, bio } };
 }
+
+export { PROFILE_BIO_MAX_LENGTH };
 
 export function parseChangePasswordBody(body: unknown):
   | { success: true; data: ChangePasswordPayload }
@@ -175,10 +219,37 @@ export function parseUpdatePreferencesBody(body: unknown):
 
   if ("theme" in body) {
     const value = typeof body.theme === "string" ? body.theme : "";
-    if (!Object.values(ThemeMode).includes(value as ThemeMode)) {
+    if (!isThemeMode(value)) {
       errors.theme = "Invalid theme.";
     } else {
       data.theme = value;
+    }
+  }
+
+  if ("accentColor" in body) {
+    const value = typeof body.accentColor === "string" ? body.accentColor : "";
+    if (!isAccentColorId(value)) {
+      errors.accentColor = "Invalid accent color.";
+    } else {
+      data.accentColor = accentColorToPrisma(value);
+    }
+  }
+
+  if ("interfaceDensity" in body) {
+    const value = typeof body.interfaceDensity === "string" ? body.interfaceDensity : "";
+    if (!isInterfaceDensityId(value)) {
+      errors.interfaceDensity = "Invalid interface density.";
+    } else {
+      data.interfaceDensity = interfaceDensityToPrisma(value);
+    }
+  }
+
+  if ("fontFamily" in body) {
+    const value = typeof body.fontFamily === "string" ? body.fontFamily : "";
+    if (!isUiFontId(value)) {
+      errors.fontFamily = "Invalid font.";
+    } else {
+      data.fontFamily = uiFontToPrisma(value);
     }
   }
 

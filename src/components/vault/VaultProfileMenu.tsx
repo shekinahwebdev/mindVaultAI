@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { vaultRoutes } from "@/lib/routes";
-import { getVaultInitials } from "@/lib/vault/user-display";
+import { UserAvatar } from "@/components/vault/UserAvatar";
 import { cn } from "@/lib/utils";
 
 import { vaultActionFocus } from "./vault-controls";
@@ -24,7 +24,6 @@ export function VaultProfileMenu({ compact = false }: VaultProfileMenuProps) {
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
-  const initials = getVaultInitials(session);
   const displayName = session.name?.trim() || session.email.split("@")[0];
 
   useEffect(() => {
@@ -84,12 +83,7 @@ export function VaultProfileMenu({ compact = false }: VaultProfileMenuProps) {
           compact && "bg-transparent pr-0 shadow-none hover:bg-mv-panel",
         )}
       >
-        <span
-          aria-hidden
-          className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-[0.68rem] font-medium text-primary-foreground"
-        >
-          {initials}
-        </span>
+        <UserAvatar session={session} size="sm" className="shrink-0" />
         {compact ? null : (
           <>
             <span className="hidden max-w-[7.5rem] truncate text-[0.78rem] font-medium text-foreground lg:inline">

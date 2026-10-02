@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils";
 
 import { PreferencesProvider } from "@/lib/settings/preferences-context";
 
+import { VaultAppearanceBindings } from "./VaultAppearanceBindings";
+import { VaultThemeSync } from "./VaultThemeSync";
 import { VaultCommandPalette } from "./VaultCommandPalette";
 import { VaultCommandProvider, useVaultCommand } from "./VaultCommandProvider";
 import { VaultMobileHeader } from "./VaultMobileHeader";
@@ -82,6 +84,8 @@ export function VaultShell({
           <VaultCommandProvider>
             <VaultSidebarProvider>
               <VaultKeyboardShortcuts />
+              <VaultAppearanceBindings />
+              <VaultThemeSync />
               <div
                 id="mv-app"
                 className={cn(

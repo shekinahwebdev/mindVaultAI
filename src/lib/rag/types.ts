@@ -68,4 +68,4 @@ export type AskVaultResult =
       sources: AskVaultSource[];
       groundedFromMessageId?: string;
     }
-  | { ok: false; reason: "invalid_question" | "provider_failure" };
+  | { ok: false; reason: "invalid_question" | "provider_failure" | "ai_limit_reached" };

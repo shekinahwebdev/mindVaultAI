@@ -9,9 +9,10 @@ import { clearSession, setSession } from "@/lib/auth/session";
 import { LOGIN_INVALID_CREDENTIALS } from "@/lib/auth-validation";
 import { prisma } from "@/lib/db";
 import { SETTINGS_SERVER_ERROR } from "@/lib/settings/settings-config";
+import { serializeUserAvatar } from "@/lib/profile/user-avatar-types";
 import {
   deleteUserAccount,
-  updateAccountName,
+  updateAccountProfile,
 } from "@/lib/settings/settings-queries";
 import {
   parseDeleteAccountBody,
@@ -43,15 +44,15 @@ export async function PATCH(request: Request) {
   }
 
   try {
-    const account = await updateAccountName(
-      auth.session.userId,
-      parsed.data.name,
-    );
+    const account = await updateAccountProfile(auth.session.userId, parsed.data);
+
+    const avatar = serializeUserAvatar(account);
 
     await setSession({
       userId: account.id,
       email: account.email,
       name: account.name,
+      ...avatar,
     });
 
     return NextResponse.json({
@@ -60,7 +61,9 @@ export async function PATCH(request: Request) {
         id: account.id,
         name: account.name,
         email: account.email,
+        bio: account.bio,
         createdAt: account.createdAt.toISOString(),
+        ...avatar,
       },
     });
   } catch (error) {

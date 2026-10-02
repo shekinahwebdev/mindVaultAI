@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 import { brand } from "@/lib/brand";
-import { editorial, geist, signature } from "@/lib/fonts";
-import { themeInitScript } from "@/lib/theme";
+import { editorial, geist, inter, signature } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
 import "@/styles/globals.css";
 
@@ -20,16 +19,14 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
       className={cn(
         "dark font-sans",
         geist.variable,
+        inter.variable,
         signature.variable,
         editorial.variable,
       )}
     >
       <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: themeInitScript("system"),
-          }}
-        />
+        {/* Static file — not a React inline script (avoids client script reconciliation warnings). */}
+        <script src="/mindvault-theme-init.js" suppressHydrationWarning />
       </head>
       <body>{children}</body>
     </html>

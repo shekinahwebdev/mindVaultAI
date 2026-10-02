@@ -143,7 +143,7 @@ export type NoteAnalysisSuggestion = {
 
 export type AnalyzeNoteApiResponse =
   | { ok: true; suggestion: NoteAnalysisSuggestion }
-  | { ok: false; message?: string };
+  | { ok: false; message?: string; error?: string };
 
 export async function analyzeNoteRequest(
   content: string,

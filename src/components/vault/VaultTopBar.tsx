@@ -13,13 +13,12 @@ export function VaultTopBar() {
   const { setOpen } = useVaultCommand();
 
   return (
-    <header className="hidden h-12 shrink-0 items-center gap-2 border-b border-border/60 bg-surface/40 px-[var(--mv-page-padding-x)] backdrop-blur-sm md:flex">
+    <header className="relative z-30 hidden h-12 w-full shrink-0 items-center gap-2 border-b border-border/60 bg-surface/40 px-[var(--mv-page-padding-x)] backdrop-blur-sm md:flex">
       <button
         type="button"
         onClick={() => setOpen(true)}
         className={cn(
-          "inline-flex h-9 min-w-[12rem] flex-1 items-center gap-2 rounded-[10px] border border-border bg-surface px-3 text-[0.8rem] text-muted-foreground transition-colors duration-200 hover:bg-mv-panel hover:text-foreground",
-          "max-w-[36rem]",
+          "inline-flex h-9 min-w-[12rem] max-w-[36rem] flex-1 items-center gap-2 rounded-[10px] border border-border bg-surface px-3 text-[0.8rem] text-muted-foreground transition-colors duration-200 hover:bg-mv-panel hover:text-foreground",
           vaultActionFocus,
         )}
       >
@@ -30,8 +29,10 @@ export function VaultTopBar() {
         </kbd>
       </button>
 
-      <AddToVaultMenu />
-      <VaultProfileMenu />
+      <div className="ml-auto flex shrink-0 items-center gap-2">
+        <AddToVaultMenu />
+        <VaultProfileMenu />
+      </div>
     </header>
   );
 }

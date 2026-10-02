@@ -5,7 +5,7 @@ import { mvPageContainerClassName } from "@/lib/mv/layout-tokens";
 /** Default authenticated page content wrapper (Phase A tokens). */
 export const vaultMainContentClassName = cn(
   mvPageContainerClassName,
-  "py-4 sm:py-5 lg:py-6",
+  "mv-vault-main py-[var(--mv-space-page-y)] sm:py-[calc(var(--mv-space-page-y)+0.25rem)] lg:py-[calc(var(--mv-space-page-y)+0.5rem)]",
 );
 
 export const vaultShellFrameClassName =

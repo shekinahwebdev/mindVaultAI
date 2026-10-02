@@ -64,7 +64,7 @@ export const vaultRailTooltipClassName =
 
 /** Subtle active rail item — not a heavy filled pill. */
 export const vaultRailActive =
-  "bg-mv-panel text-foreground ring-1 ring-inset ring-border";
+  "bg-mv-panel text-foreground ring-1 ring-inset ring-[var(--mv-user-accent-border)]";
 
 export const vaultRailIdle =
   "text-muted-foreground transition-colors duration-200 hover:bg-mv-panel/80 hover:text-foreground";

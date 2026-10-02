@@ -1,8 +1,21 @@
-import { NoteType, SearchMode, ThemeMode } from "@/generated/prisma/client";
+import {
+  AccentColor,
+  InterfaceDensity,
+  NoteType,
+  SearchMode,
+  ThemeMode,
+  UiFontFamily,
+} from "@/generated/prisma/client";
+import {
+  accentColorFromPrisma,
+  interfaceDensityFromPrisma,
+  uiFontFromPrisma,
+} from "@/lib/settings/appearance-prefs";
 import { prisma } from "@/lib/db";
 import { EMBEDDING_DIMENSIONS, EMBEDDING_MODEL } from "@/lib/ai/embed-text";
 import { findNoteIdsNeedingEmbedding } from "@/lib/notes/embedding-repository";
 import { noteSelect, serializeNote } from "@/lib/notes/serialize";
+import { serializeUserAvatar } from "@/lib/profile/user-avatar-types";
 
 export type SerializedPreferences = {
   defaultNoteType: string;
@@ -12,13 +25,21 @@ export type SerializedPreferences = {
   ragEnabled: boolean;
   reducedMotion: boolean;
   theme: string;
+  accentColor: string;
+  interfaceDensity: string;
+  fontFamily: string;
 };
 
 export type SerializedAccount = {
   id: string;
   name: string | null;
   email: string;
+  bio: string | null;
   createdAt: string;
+  avatarType: string;
+  avatarEmoji: string | null;
+  avatarBackground: string | null;
+  avatarImageUrl: string | null;
 };
 
 export type VaultStorageStats = {
@@ -43,9 +64,12 @@ const defaultPreferencesSelect = {
   ragEnabled: true,
   reducedMotion: true,
   theme: true,
+  accentColor: true,
+  interfaceDensity: true,
+  fontFamily: true,
 } as const;
 
-function serializePreferences(
+export function serializePreferences(
   prefs: {
     defaultNoteType: NoteType;
     defaultCategoryId: string | null;
@@ -54,6 +78,9 @@ function serializePreferences(
     ragEnabled: boolean;
     reducedMotion: boolean;
     theme: ThemeMode;
+    accentColor: AccentColor;
+    interfaceDensity: InterfaceDensity;
+    fontFamily: UiFontFamily;
   },
 ): SerializedPreferences {
   return {
@@ -64,6 +91,9 @@ function serializePreferences(
     ragEnabled: prefs.ragEnabled,
     reducedMotion: prefs.reducedMotion,
     theme: prefs.theme,
+    accentColor: accentColorFromPrisma(prefs.accentColor),
+    interfaceDensity: interfaceDensityFromPrisma(prefs.interfaceDensity),
+    fontFamily: uiFontFromPrisma(prefs.fontFamily),
   };
 }
 
@@ -92,7 +122,12 @@ export async function getSettingsBundle(userId: string): Promise<SettingsBundle>
           id: true,
           name: true,
           email: true,
+          bio: true,
           createdAt: true,
+          avatarType: true,
+          avatarEmoji: true,
+          avatarBackground: true,
+          avatarImageUrl: true,
         },
       }),
       getOrCreateUserPreferences(userId),
@@ -118,7 +153,9 @@ export async function getSettingsBundle(userId: string): Promise<SettingsBundle>
       id: user.id,
       name: user.name,
       email: user.email,
+      bio: user.bio,
       createdAt: user.createdAt.toISOString(),
+      ...serializeUserAvatar(user),
     },
     preferences: serializePreferences(preferences),
     storage: {
@@ -131,18 +168,27 @@ export async function getSettingsBundle(userId: string): Promise<SettingsBundle>
   };
 }
 
-export async function updateAccountName(userId: string, name: string) {
+export async function updateAccountProfile(
+  userId: string,
+  data: { name: string; bio: string | null },
+) {
   return prisma.user.update({
     where: { id: userId },
-    data: { name },
+    data: { name: data.name, bio: data.bio },
     select: {
       id: true,
       name: true,
       email: true,
+      bio: true,
       createdAt: true,
+      avatarType: true,
+      avatarEmoji: true,
+      avatarBackground: true,
+      avatarImageUrl: true,
     },
   });
 }
+
 
 export async function updateUserPreferences(
   userId: string,
@@ -154,6 +200,9 @@ export async function updateUserPreferences(
     ragEnabled?: boolean;
     reducedMotion?: boolean;
     theme?: ThemeMode;
+    accentColor?: AccentColor;
+    interfaceDensity?: InterfaceDensity;
+    fontFamily?: UiFontFamily;
   },
 ) {
   await getOrCreateUserPreferences(userId);
