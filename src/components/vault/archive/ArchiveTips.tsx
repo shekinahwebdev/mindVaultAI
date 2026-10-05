@@ -6,10 +6,10 @@ import { mvContentCardClassName } from "@/lib/mv/layout-tokens";
 import { cn } from "@/lib/utils";
 
 const TIPS = [
-  "Archived notes are hidden from your main views.",
+  "Archived notes are hidden from active vault views.",
   "You can restore them anytime.",
-  "Use archive to keep your workspace clean.",
-  "Archived items still count towards your storage.",
+  "Archived notes are excluded from MindVault AI by default.",
+  "Permanently deleted notes cannot be recovered.",
 ] as const;
 
 export function ArchiveTips() {

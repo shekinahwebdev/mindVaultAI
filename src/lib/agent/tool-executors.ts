@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { categorySelect, serializeCategory } from "@/lib/categories/serialize";
 import { semanticSearchNotes } from "@/lib/notes/embedding-service";
 import { truncateNoteContent } from "@/lib/notes/note-display";
+import { activeNoteWhere } from "@/lib/notes/note-scope";
 import { noteSelect, serializeNote } from "@/lib/notes/serialize";
 
 /**
@@ -46,7 +47,7 @@ export async function executeSearchVault(
   if (mode === "keyword") {
     const notes = await prisma.note.findMany({
       where: {
-        userId,
+        ...activeNoteWhere(userId),
         OR: [
           { title: { contains: query, mode: "insensitive" } },
           { content: { contains: query, mode: "insensitive" } },

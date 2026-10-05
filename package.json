@@ -24,6 +24,7 @@
     "test:tags": "tsx --test src/lib/tags/*.test.ts",
     "test:tags:unit": "tsx --test src/lib/tags/tag-normalization.test.ts src/lib/tags/tag-validation.test.ts src/lib/tags/tags-client.test.ts",
     "test:notes:tags": "tsx --test src/lib/notes/note-tag-validation.test.ts src/lib/notes/note-tags.test.ts src/lib/notes/note-list-tag-filter.test.ts",
+    "test:notes:archive": "tsx --test src/lib/notes/note-archive.test.ts",
     "test:analyze": "tsx --test src/lib/ai/analyze-tag-suggestions.test.ts",
     "test:chat": "tsx --test src/components/vault/chat/chat-truthfulness.test.ts src/lib/chat/chat-title.test.ts src/lib/chat/chat-metadata.test.ts src/lib/chat/chat-validation.test.ts src/lib/chat/grounded-follow-up.test.ts src/lib/chat/grounded-turn.test.ts src/lib/chat/process-chat-message.test.ts src/lib/chat/chat-repository.test.ts src/lib/rag/conversation-context.test.ts src/lib/rag/build-retrieval-query.test.ts src/lib/rag/ask-vault-memory.test.ts src/lib/rag/ask-vault-outcomes.test.ts src/lib/rag/ask-vault-grounded-fallback.test.ts",
     "test:settings": "tsx --test src/lib/settings/settings-validation.test.ts src/lib/settings/settings-account.test.ts src/lib/settings/settings-appearance.test.ts src/lib/settings/settings-appearance-persistence.test.ts",

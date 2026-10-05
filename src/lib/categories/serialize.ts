@@ -5,7 +5,9 @@ export const categorySelect = {
   updatedAt: true,
   _count: {
     select: {
-      notes: true,
+      notes: {
+        where: { archivedAt: null },
+      },
     },
   },
 } as const;

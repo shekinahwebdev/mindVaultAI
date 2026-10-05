@@ -120,11 +120,18 @@ export async function PATCH(request: Request, context: RouteContext) {
         id,
         userId: session.userId,
       },
-      select: { id: true, title: true, content: true },
+      select: { id: true, title: true, content: true, archivedAt: true },
     });
 
     if (!existing) {
       return noteNotFoundResponse();
+    }
+
+    if (existing.archivedAt) {
+      return NextResponse.json(
+        { ok: false, message: "Archived notes cannot be edited. Restore the note first." },
+        { status: 409 },
+      );
     }
 
     const { tagIds, ...noteFields } = parsed.data;

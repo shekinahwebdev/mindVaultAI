@@ -18,6 +18,10 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { VaultDialog } from "@/components/vault/VaultDialog";
 import { useCategories } from "@/lib/categories/use-categories";
 import {
+  archiveNoteRequest,
+  restoreNoteRequest,
+} from "@/lib/notes/archive-client";
+import {
   deleteNoteRequest,
   fetchNote,
   NOTE_DELETE_FLASH_KEY,
@@ -93,6 +97,8 @@ export function NoteDetailView({ noteId }: NoteDetailViewProps) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [archiving, setArchiving] = useState(false);
+  const [restoring, setRestoring] = useState(false);
   const [starred, setStarred] = useState(false);
 
   const { notes: relatedPool } = useNotesList({
@@ -198,6 +204,7 @@ export function NoteDetailView({ noteId }: NoteDetailViewProps) {
   }
 
   function handleEditClick() {
+    if (note?.archivedAt) return;
     setEditing(true);
   }
 
@@ -261,6 +268,48 @@ export function NoteDetailView({ noteId }: NoteDetailViewProps) {
     }
   }
 
+  async function handleArchive() {
+    if (archiving || !note || note.archivedAt) return;
+    setArchiving(true);
+    try {
+      const { response, data } = await archiveNoteRequest(noteId);
+      if (response.status === 401) {
+        router.push(routes.signIn);
+        return;
+      }
+      if (!data?.ok) {
+        toastError(data?.message ?? "Could not archive this note.");
+        return;
+      }
+      toastSuccess("Note archived.");
+      router.push(vaultRoutes.notes);
+      router.refresh();
+    } finally {
+      setArchiving(false);
+    }
+  }
+
+  async function handleRestore() {
+    if (restoring || !note?.archivedAt) return;
+    setRestoring(true);
+    try {
+      const { response, data } = await restoreNoteRequest(noteId);
+      if (response.status === 401) {
+        router.push(routes.signIn);
+        return;
+      }
+      if (!data?.ok) {
+        toastError(data?.message ?? "Could not restore this note.");
+        return;
+      }
+      setNote(data.note);
+      toastSuccess("Note restored.");
+      router.refresh();
+    } finally {
+      setRestoring(false);
+    }
+  }
+
   async function handleDelete() {
     if (deleting || submittingRef.current) {
       return;
@@ -304,6 +353,8 @@ export function NoteDetailView({ noteId }: NoteDetailViewProps) {
       setDeleting(false);
     }
   }
+
+  const isArchived = Boolean(note?.archivedAt);
 
   if (loading) {
     return (
@@ -475,6 +526,11 @@ export function NoteDetailView({ noteId }: NoteDetailViewProps) {
               </h1>
 
               <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[0.75rem] text-muted-foreground">
+                {isArchived ? (
+                  <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 font-medium text-amber-800 dark:text-amber-200">
+                    Archived
+                  </span>
+                ) : null}
                 <span>Created {formatNoteDateTime(note.createdAt)}</span>
                 <span aria-hidden>·</span>
                 <span>{readMinutes} min read</span>
@@ -488,14 +544,47 @@ export function NoteDetailView({ noteId }: NoteDetailViewProps) {
               <NoteTagBadges tags={note.tags} className="mt-2" />
 
               <div className="mt-3 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={handleEditClick}
-                  className={cn(vaultSecondaryButton, "h-8 gap-1.5 px-2.5 text-[0.8125rem]")}
-                >
-                  <Pencil aria-hidden className="size-3.5" />
-                  Edit
-                </button>
+                {isArchived ? (
+                  <>
+                    <button
+                      type="button"
+                      disabled={restoring}
+                      onClick={() => void handleRestore()}
+                      className={cn(vaultSecondaryButton, "h-8 gap-1.5 px-2.5 text-[0.8125rem]")}
+                    >
+                      {restoring ? "Restoring…" : "Restore"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDeleteError("");
+                        setDeleteOpen(true);
+                      }}
+                      className={cn(vaultDestructiveButton, "h-8 px-2.5 text-[0.8125rem]")}
+                    >
+                      Delete permanently
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleEditClick}
+                      className={cn(vaultSecondaryButton, "h-8 gap-1.5 px-2.5 text-[0.8125rem]")}
+                    >
+                      <Pencil aria-hidden className="size-3.5" />
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      disabled={archiving}
+                      onClick={() => void handleArchive()}
+                      className={cn(vaultSecondaryButton, "h-8 px-2.5 text-[0.8125rem]")}
+                    >
+                      {archiving ? "Archiving…" : "Archive"}
+                    </button>
+                  </>
+                )}
                 <span className={cn("inline-flex h-8 items-center rounded-[var(--mv-radius-control)] border border-border px-2.5", vaultMetaClassName)}>
                   {typeLabel}
                 </span>
@@ -526,8 +615,12 @@ export function NoteDetailView({ noteId }: NoteDetailViewProps) {
 
       <VaultDialog
         open={deleteOpen}
-        title="Delete this note?"
-        description="This will permanently remove it from your vault."
+        title={isArchived ? "Delete this note permanently?" : "Delete this note?"}
+        description={
+          isArchived
+            ? "This cannot be undone."
+            : "This will permanently remove it from your vault."
+        }
         onClose={() => {
           if (!deleting) {
             setDeleteOpen(false);

@@ -15,6 +15,7 @@ import { prisma } from "@/lib/db";
 import { EMBEDDING_DIMENSIONS, EMBEDDING_MODEL } from "@/lib/ai/embed-text";
 import { findNoteIdsNeedingEmbedding } from "@/lib/notes/embedding-repository";
 import { noteSelect, serializeNote } from "@/lib/notes/serialize";
+import { activeNoteWhere } from "@/lib/notes/note-scope";
 import { serializeUserAvatar } from "@/lib/profile/user-avatar-types";
 
 export type SerializedPreferences = {
@@ -131,11 +132,11 @@ export async function getSettingsBundle(userId: string): Promise<SettingsBundle>
         },
       }),
       getOrCreateUserPreferences(userId),
-      prisma.note.count({ where: { userId } }),
+      prisma.note.count({ where: activeNoteWhere(userId) }),
       prisma.category.count({ where: { userId } }),
       prisma.note.groupBy({
         by: ["type"],
-        where: { userId },
+        where: activeNoteWhere(userId),
         _count: { _all: true },
       }),
       prisma.noteEmbedding.count({
