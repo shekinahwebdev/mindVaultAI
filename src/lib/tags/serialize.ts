@@ -5,7 +5,11 @@ export const tagSelect = {
   updatedAt: true,
   _count: {
     select: {
-      noteTags: true,
+      noteTags: {
+        where: {
+          note: { archivedAt: null },
+        },
+      },
     },
   },
 } as const;

@@ -7,6 +7,7 @@ export const noteSelect = {
   type: true,
   sourceUrl: true,
   categoryId: true,
+  archivedAt: true,
   createdAt: true,
   updatedAt: true,
   category: {
@@ -34,6 +35,7 @@ type NoteRecord = {
   type: NoteType;
   sourceUrl: string | null;
   categoryId: string | null;
+  archivedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
   category: {
@@ -65,6 +67,7 @@ export type SerializedNote = {
     name: string;
   } | null;
   tags: SerializedNoteTag[];
+  archivedAt: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -87,6 +90,7 @@ export function serializeNote(note: NoteRecord): SerializedNote {
     categoryId: note.categoryId,
     category: note.category,
     tags: serializeNoteTags(note.noteTags),
+    archivedAt: note.archivedAt?.toISOString() ?? null,
     createdAt: note.createdAt.toISOString(),
     updatedAt: note.updatedAt.toISOString(),
   };

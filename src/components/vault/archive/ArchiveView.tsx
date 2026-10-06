@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Archive, LayoutGrid, List, Search, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { ContentCard } from "@/components/mv/ContentCard";
@@ -10,12 +11,18 @@ import { PageHeader } from "@/components/mv/PageHeader";
 import { PageStack } from "@/components/mv/PageStack";
 import { NotesToolbarSelect } from "@/components/vault/notes/NotesToolbarSelect";
 import { VaultDialog } from "@/components/vault/VaultDialog";
-import { captureNoteTypeOptions } from "@/lib/notes/capture-config";
+import { useCategories } from "@/lib/categories/use-categories";
 import {
-  DEMO_ARCHIVED_ITEMS,
-  type ArchivedVaultItem,
-} from "@/lib/vault/archive-demo-data";
-import { toastSuccess } from "@/lib/vault-toast";
+  emptyArchiveRequest,
+  restoreNoteRequest,
+} from "@/lib/notes/archive-client";
+import type { ArchiveSortOption } from "@/lib/notes/archive-validation";
+import type { SerializedArchivedNoteItem } from "@/lib/notes/archive-types";
+import { deleteNoteRequest } from "@/lib/notes/capture-client";
+import { captureNoteTypeOptions } from "@/lib/notes/capture-config";
+import { useArchiveList } from "@/lib/notes/use-archive-list";
+import { vaultRoutes } from "@/lib/routes";
+import { toastError, toastSuccess } from "@/lib/vault-toast";
 import { cn } from "@/lib/utils";
 
 import {
@@ -33,51 +40,58 @@ import { ArchiveOverview } from "./ArchiveOverview";
 import { ArchiveTableRow } from "./ArchiveTableRow";
 import { ArchiveTips } from "./ArchiveTips";
 
-type SortOption = "archived_desc" | "archived_asc" | "title_asc";
 type ViewMode = "list" | "grid";
 
-const SORT_OPTIONS: Array<{ value: SortOption; label: string }> = [
-  { value: "archived_desc", label: "Recently archived" },
-  { value: "archived_asc", label: "Oldest archived" },
+const SORT_OPTIONS: Array<{ value: ArchiveSortOption; label: string }> = [
+  { value: "recently_archived", label: "Recently archived" },
+  { value: "oldest_archived", label: "Oldest archived" },
   { value: "title_asc", label: "Title (A–Z)" },
 ];
 
-function sortItems(items: ArchivedVaultItem[], sort: SortOption) {
-  const next = [...items];
-  if (sort === "archived_desc") {
-    next.sort(
-      (a, b) =>
-        new Date(b.archivedAt).getTime() - new Date(a.archivedAt).getTime(),
-    );
-  } else if (sort === "archived_asc") {
-    next.sort(
-      (a, b) =>
-        new Date(a.archivedAt).getTime() - new Date(b.archivedAt).getTime(),
-    );
-  } else {
-    next.sort((a, b) => a.title.localeCompare(b.title));
-  }
-  return next;
+function ArchiveListSkeleton() {
+  return (
+    <ContentCard padding="none" className="overflow-hidden">
+      <div className="space-y-0 p-4">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <div
+            key={index}
+            className="mb-3 h-14 animate-pulse rounded-[var(--mv-radius-control)] bg-mv-panel/60"
+          />
+        ))}
+      </div>
+    </ContentCard>
+  );
 }
 
 export function ArchiveView() {
-  const [items, setItems] = useState<ArchivedVaultItem[]>(() => [
-    ...DEMO_ARCHIVED_ITEMS,
-  ]);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
-  const [sort, setSort] = useState<SortOption>("archived_desc");
+  const [sort, setSort] = useState<ArchiveSortOption>("recently_archived");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [emptyOpen, setEmptyOpen] = useState(false);
+  const [emptying, setEmptying] = useState(false);
 
-  const categoryOptions = useMemo(() => {
-    const names = [...new Set(items.map((item) => item.category))].sort();
-    return [
+  const { categories } = useCategories();
+
+  const { notes, stats, loading, error, removeNote, clearAll, refresh } =
+    useArchiveList({
+      typeFilter,
+      categoryFilter,
+      sort,
+      searchQuery: search,
+    });
+
+  const categoryOptions = useMemo(
+    () => [
       { value: "", label: "All categories" },
-      ...names.map((name) => ({ value: name, label: name })),
-    ];
-  }, [items]);
+      ...categories.map((category) => ({
+        value: category.id,
+        label: category.name,
+      })),
+    ],
+    [categories],
+  );
 
   const typeOptions = useMemo(
     () => [
@@ -90,35 +104,47 @@ export function ArchiveView() {
     [],
   );
 
-  const visibleItems = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    const next = items.filter((item) => {
-      if (typeFilter && item.type !== typeFilter) return false;
-      if (categoryFilter && item.category !== categoryFilter) return false;
-      if (!query) return true;
-      const haystack = [
-        item.title,
-        item.description,
-        item.category,
-        ...item.tags,
-      ]
-        .join(" ")
-        .toLowerCase();
-      return haystack.includes(query);
-    });
-    return sortItems(next, sort);
-  }, [categoryFilter, items, search, sort, typeFilter]);
-
-  function handleRestore(item: ArchivedVaultItem) {
-    setItems((current) => current.filter((row) => row.id !== item.id));
-    toastSuccess(`“${item.title}” restored to your vault (preview).`);
+  async function handleRestore(item: SerializedArchivedNoteItem) {
+    const { data } = await restoreNoteRequest(item.id);
+    if (!data?.ok) {
+      toastError(data?.message ?? "Could not restore this note.");
+      return;
+    }
+    removeNote(item.id);
+    await refresh();
+    toastSuccess("Note restored.");
   }
 
-  function handleEmptyArchive() {
-    setItems([]);
+  async function handleDeletePermanent(item: SerializedArchivedNoteItem) {
+    const { data } = await deleteNoteRequest(item.id);
+    if (!data?.ok) {
+      toastError(data?.message ?? "Could not delete this note.");
+      return;
+    }
+    removeNote(item.id);
+    await refresh();
+    toastSuccess("Note permanently deleted.");
+  }
+
+  async function handleEmptyArchive() {
+    setEmptying(true);
+    const { data } = await emptyArchiveRequest();
+    setEmptying(false);
+    if (!data?.ok) {
+      toastError(data?.message ?? "Could not empty archive.");
+      return;
+    }
+    clearAll();
+    await refresh();
     setEmptyOpen(false);
-    toastSuccess("Archive cleared (preview).");
+    toastSuccess(
+      data.deletedCount === 1
+        ? "1 archived note permanently deleted."
+        : `${data.deletedCount} archived notes permanently deleted.`,
+    );
   }
+
+  const showEmpty = !loading && notes.length === 0 && !search && !typeFilter && !categoryFilter;
 
   return (
     <motion.div
@@ -134,13 +160,16 @@ export function ArchiveView() {
               Archive
             </span>
           }
-          lead="View and manage your archived notes. Archived notes are hidden from your main view but can be restored anytime."
+          lead="View and manage archived notes. Restore them anytime."
           actions={
             <button
               type="button"
-              disabled={items.length === 0}
+              disabled={loading || stats.total === 0}
               onClick={() => setEmptyOpen(true)}
-              className={cn(vaultPrimaryButton, items.length === 0 && "opacity-50")}
+              className={cn(
+                vaultPrimaryButton,
+                (loading || stats.total === 0) && "opacity-50",
+              )}
             >
               <Trash2 aria-hidden className="size-4" />
               Empty Archive
@@ -148,10 +177,11 @@ export function ArchiveView() {
           }
         />
 
-        <p className="text-[0.75rem] leading-relaxed text-mv-faint">
-          Preview UI with sample archived items. Restore and empty actions update this
-          page only until archive syncs with your vault API.
-        </p>
+        {error ? (
+          <p className="text-[0.8125rem] text-red-600 dark:text-red-300" role="alert">
+            {error}
+          </p>
+        ) : null}
 
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,18.5rem)] xl:gap-6">
           <div className="min-w-0 space-y-4">
@@ -190,7 +220,7 @@ export function ArchiveView() {
                   id="archive-sort"
                   label="Sort by"
                   value={sort}
-                  onChange={(value) => setSort(value as SortOption)}
+                  onChange={(value) => setSort(value as ArchiveSortOption)}
                   options={SORT_OPTIONS}
                 />
                 <div className={vaultSegmentedTrack}>
@@ -226,13 +256,20 @@ export function ArchiveView() {
               </div>
             </div>
 
-            {items.length === 0 ? (
+            {loading ? (
+              <ArchiveListSkeleton />
+            ) : showEmpty ? (
               <EmptyState
                 variant="dashed"
-                title="Your archive is empty."
-                description="When you archive notes from your vault, they will appear here."
+                title="Archive is empty"
+                description="Notes you archive will appear here and can be restored anytime."
+                action={
+                  <Link href={vaultRoutes.notes} className={vaultSecondaryButton}>
+                    View all notes
+                  </Link>
+                }
               />
-            ) : visibleItems.length === 0 ? (
+            ) : notes.length === 0 ? (
               <EmptyState
                 variant="solid"
                 title="Nothing matches this view."
@@ -289,11 +326,12 @@ export function ArchiveView() {
                       </tr>
                     </thead>
                     <tbody>
-                      {visibleItems.map((item) => (
+                      {notes.map((item) => (
                         <ArchiveTableRow
                           key={item.id}
                           item={item}
                           onRestore={handleRestore}
+                          onDeletePermanent={handleDeletePermanent}
                         />
                       ))}
                     </tbody>
@@ -302,15 +340,20 @@ export function ArchiveView() {
               </ContentCard>
             ) : (
               <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2">
-                {visibleItems.map((item) => (
-                  <ArchiveGridCard key={item.id} item={item} onRestore={handleRestore} />
+                {notes.map((item) => (
+                  <ArchiveGridCard
+                    key={item.id}
+                    item={item}
+                    onRestore={handleRestore}
+                    onDeletePermanent={handleDeletePermanent}
+                  />
                 ))}
               </ul>
             )}
           </div>
 
           <aside className="flex min-w-0 flex-col gap-4 xl:sticky xl:top-4 xl:self-start">
-            <ArchiveOverview items={items} />
+            <ArchiveOverview stats={stats} loading={loading} />
             <ArchiveTips />
           </aside>
         </div>
@@ -318,25 +361,31 @@ export function ArchiveView() {
 
       <VaultDialog
         open={emptyOpen}
-        title="Empty archive?"
-        description="This removes every archived item from this preview list. Your live vault notes are not changed until archive ships."
+        title="Empty archive permanently?"
+        description="This permanently deletes all archived notes. This action cannot be undone."
         onClose={() => setEmptyOpen(false)}
       >
         <p className="text-[0.8125rem] text-muted-foreground">
-          {items.length === 1
-            ? "1 item will be removed from the archive view."
-            : `${items.length} items will be removed from the archive view.`}
+          {stats.total === 1
+            ? "1 archived note will be permanently deleted. Active notes are not affected."
+            : `${stats.total} archived notes will be permanently deleted. Active notes are not affected.`}
         </p>
         <div className="mt-5 flex justify-end gap-2.5">
           <button
             type="button"
             onClick={() => setEmptyOpen(false)}
             className={vaultSecondaryButton}
+            disabled={emptying}
           >
             Cancel
           </button>
-          <button type="button" onClick={handleEmptyArchive} className={vaultDestructiveButton}>
-            Empty archive
+          <button
+            type="button"
+            onClick={() => void handleEmptyArchive()}
+            className={vaultDestructiveButton}
+            disabled={emptying}
+          >
+            {emptying ? "Deleting…" : "Empty archive"}
           </button>
         </div>
       </VaultDialog>

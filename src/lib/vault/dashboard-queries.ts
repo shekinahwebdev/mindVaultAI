@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { truncateNoteContent } from "@/lib/notes/note-display";
+import { activeNoteWhere } from "@/lib/notes/note-scope";
 
 export type DashboardStats = {
   totalNotes: number;
@@ -78,7 +79,7 @@ function wasEditedAfterCreation(createdAt: Date, updatedAt: Date) {
 }
 
 export async function getDashboardData(userId: string): Promise<DashboardData> {
-  const noteWhere = { userId };
+  const noteWhere = activeNoteWhere(userId);
 
   const [
     totalNotes,
@@ -115,7 +116,9 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
         id: true,
         name: true,
         _count: {
-          select: { notes: true },
+          select: {
+            notes: { where: { archivedAt: null } },
+          },
         },
       },
     }),

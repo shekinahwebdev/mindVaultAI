@@ -65,22 +65,6 @@ function isUniqueViolation(error: unknown): boolean {
   );
 }
 
-function sortOrderBy(sort: TagSortOption): Prisma.TagOrderByWithRelationInput[] {
-  switch (sort) {
-    case "most_used":
-      return [{ noteTags: { _count: "desc" } }, { name: "asc" }];
-    case "least_used":
-      return [{ noteTags: { _count: "asc" } }, { name: "asc" }];
-    case "name_desc":
-      return [{ name: "desc" }];
-    case "newest":
-      return [{ createdAt: "desc" }];
-    case "name_asc":
-    default:
-      return [{ name: "asc" }];
-  }
-}
-
 function buildListWhere(
   userId: string,
   options: ListTagsForUserOptions,
@@ -91,9 +75,9 @@ function buildListWhere(
   const where: Prisma.TagWhereInput = { userId };
 
   if (filter === "used") {
-    where.noteTags = { some: {} };
+    where.noteTags = { some: { note: { archivedAt: null } } };
   } else if (filter === "unused") {
-    where.noteTags = { none: {} };
+    where.noteTags = { none: { note: { archivedAt: null } } };
   }
 
   if (query) {
@@ -124,6 +108,38 @@ export async function findDuplicateTagForUser(
   });
 }
 
+function sortSerializedTags(
+  tags: SerializedTag[],
+  sort: TagSortOption,
+): SerializedTag[] {
+  const next = [...tags];
+  switch (sort) {
+    case "most_used":
+      next.sort(
+        (a, b) => b.noteCount - a.noteCount || a.name.localeCompare(b.name),
+      );
+      return next;
+    case "least_used":
+      next.sort(
+        (a, b) => a.noteCount - b.noteCount || a.name.localeCompare(b.name),
+      );
+      return next;
+    case "name_desc":
+      next.sort((a, b) => b.name.localeCompare(a.name));
+      return next;
+    case "newest":
+      next.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+      return next;
+    case "name_asc":
+    default:
+      next.sort((a, b) => a.name.localeCompare(b.name));
+      return next;
+  }
+}
+
 export async function listTagsForUser(
   userId: string,
   options: ListTagsForUserOptions = {},
@@ -131,11 +147,11 @@ export async function listTagsForUser(
   const sort = options.sort ?? "most_used";
   const tags = await prisma.tag.findMany({
     where: buildListWhere(userId, options),
-    orderBy: sortOrderBy(sort),
+    orderBy: sort === "newest" ? [{ createdAt: "desc" }] : [{ name: "asc" }],
     select: tagSelect,
   });
 
-  return tags.map(serializeTag);
+  return sortSerializedTags(tags.map(serializeTag), sort);
 }
 
 export async function findTagForUser(
@@ -302,26 +318,34 @@ export async function deleteTagForUser(
 }
 
 export async function getTagStatsForUser(userId: string): Promise<TagStats> {
-  const [totalTags, unusedTags, mostUsed] = await Promise.all([
+  const [totalTags, unusedTags, tagsForRank] = await Promise.all([
     prisma.tag.count({ where: { userId } }),
     prisma.tag.count({
-      where: { userId, noteTags: { none: {} } },
+      where: {
+        userId,
+        noteTags: { none: { note: { archivedAt: null } } },
+      },
     }),
-    prisma.tag.findFirst({
+    prisma.tag.findMany({
       where: { userId },
-      orderBy: [{ noteTags: { _count: "desc" } }, { name: "asc" }],
       select: tagSelect,
     }),
   ]);
 
+  const ranked = sortSerializedTags(
+    tagsForRank.map(serializeTag),
+    "most_used",
+  );
+  const top = ranked[0];
+
   return {
     totalTags,
     unusedTags,
-    mostUsedTag: mostUsed
+    mostUsedTag: top
       ? {
-          id: mostUsed.id,
-          name: mostUsed.name,
-          noteCount: mostUsed._count.noteTags,
+          id: top.id,
+          name: top.name,
+          noteCount: top.noteCount,
         }
       : null,
   };
@@ -337,14 +361,14 @@ export async function getTopTagsForUser(
 ): Promise<Array<{ id: string; name: string; noteCount: number }>> {
   const tags = await prisma.tag.findMany({
     where: { userId },
-    orderBy: [{ noteTags: { _count: "desc" } }, { name: "asc" }],
-    take: limit,
     select: tagSelect,
   });
 
-  return tags.map((tag) => ({
-    id: tag.id,
-    name: tag.name,
-    noteCount: tag._count.noteTags,
-  }));
+  return sortSerializedTags(tags.map(serializeTag), "most_used")
+    .slice(0, limit)
+    .map((tag) => ({
+      id: tag.id,
+      name: tag.name,
+      noteCount: tag.noteCount,
+    }));
 }

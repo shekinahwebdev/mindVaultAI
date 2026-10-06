@@ -9,7 +9,9 @@ import { ContentCard } from "@/components/mv/ContentCard";
 import { EmptyState } from "@/components/mv/EmptyState";
 import { PageHeader } from "@/components/mv/PageHeader";
 import { PageStack } from "@/components/mv/PageStack";
+import { archiveNoteRequest } from "@/lib/notes/archive-client";
 import { NOTE_DELETE_FLASH_KEY } from "@/lib/notes/capture-client";
+import type { SerializedNote } from "@/lib/notes/serialize";
 import { captureNoteTypeOptions } from "@/lib/notes/capture-config";
 import {
   NOTE_SORT_LABELS,
@@ -20,7 +22,7 @@ import {
 import { useNotesList } from "@/lib/notes/use-notes-list";
 import { useCategories } from "@/lib/categories/use-categories";
 import { vaultRoutes } from "@/lib/routes";
-import { toastSuccess } from "@/lib/vault-toast";
+import { toastError, toastSuccess } from "@/lib/vault-toast";
 import { cn } from "@/lib/utils";
 
 import { vaultPrimaryButton, vaultSecondaryButton } from "../vault-controls";
@@ -59,7 +61,8 @@ export function NotesView({
   }, []);
 
   const { categories, loading: categoriesLoading } = useCategories();
-  const { notes, total, totalPages, loading, loadingMore, error } = useNotesList(
+  const { notes, total, totalPages, loading, loadingMore, error, setNotes } =
+    useNotesList(
     {
       typeFilter,
       categoryFilter,
@@ -76,6 +79,16 @@ export function NotesView({
 
   function resetToFirstPage() {
     if (page !== 1) setPage(1);
+  }
+
+  async function handleArchive(note: SerializedNote) {
+    const { data } = await archiveNoteRequest(note.id);
+    if (!data?.ok) {
+      toastError(data?.message ?? "Could not archive this note.");
+      return;
+    }
+    setNotes((current) => current.filter((row) => row.id !== note.id));
+    toastSuccess("Note archived.");
   }
 
   function handleTypeChange(value: string) {
@@ -267,7 +280,11 @@ export function NotesView({
                   </thead>
                   <tbody>
                     {notes.map((note) => (
-                      <NotesTableRow key={note.id} note={note} />
+                      <NotesTableRow
+                        key={note.id}
+                        note={note}
+                        onArchive={handleArchive}
+                      />
                     ))}
                   </tbody>
                 </table>

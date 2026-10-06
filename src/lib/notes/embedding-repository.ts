@@ -116,6 +116,7 @@ export async function searchNotesBySimilarity(
     JOIN notes n ON n.id = ne.note_id
     LEFT JOIN categories c ON c.id = n.category_id
     WHERE n.user_id = ${userId}
+      AND n.archived_at IS NULL
     ORDER BY ne.embedding <=> ${vectorLiteral}::vector ASC
     LIMIT ${topK}
   `;

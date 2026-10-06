@@ -6,7 +6,8 @@ import { PrismaPg } from "@prisma/adapter-pg";
  * Bumped when schema/client delegates change — invalidates dev singleton after `prisma generate`.
  * (Stale singletons lack new models/enums e.g. BillingTransaction, AccentColor WHITE/BLACK.)
  */
-const PRISMA_CLIENT_GENERATION = `mv-prisma-${AccentColor.WHITE}-${AccentColor.BLACK}-billing-v1`;
+const PRISMA_CLIENT_GENERATION =
+  "mv-prisma-archive-v1-user-prefs-appearance-billing";
 
 function createPrismaClient() {
   const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });

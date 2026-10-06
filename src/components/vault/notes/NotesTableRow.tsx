@@ -14,9 +14,10 @@ import { vaultActionFocus } from "../vault-controls";
 
 type NotesTableRowProps = {
   note: SerializedNote;
+  onArchive?: (note: SerializedNote) => void | Promise<void>;
 };
 
-export function NotesTableRow({ note }: NotesTableRowProps) {
+export function NotesTableRow({ note, onArchive }: NotesTableRowProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const typeLabel = getNoteTypeLabel(note.type);
@@ -108,6 +109,19 @@ export function NotesTableRow({ note }: NotesTableRowProps) {
               >
                 Open
               </Link>
+              {onArchive ? (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="block w-full rounded-[6px] px-2.5 py-2 text-left text-[0.8125rem] text-foreground hover:bg-mv-panel"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    void onArchive(note);
+                  }}
+                >
+                  Archive
+                </button>
+              ) : null}
             </div>
           ) : null}
         </div>

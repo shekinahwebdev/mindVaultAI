@@ -192,6 +192,7 @@ export async function semanticSearchNotes(
         : null,
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
+      archivedAt: null,
       tags: [],
     },
     similarity: row.similarity,

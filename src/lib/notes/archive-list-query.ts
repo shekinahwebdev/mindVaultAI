@@ -1,30 +1,20 @@
 import type { Prisma } from "@/generated/prisma/client";
 
-import type { NotesListQuery } from "@/lib/note-validation";
-import { activeNoteWhere } from "@/lib/notes/note-scope";
+import type { ArchiveListQuery } from "@/lib/notes/archive-validation";
+import { archivedNoteWhere } from "@/lib/notes/note-scope";
 
-export function buildNotesListWhere(
+export function buildArchiveListWhere(
   userId: string,
-  query: NotesListQuery,
+  query: ArchiveListQuery,
 ): Prisma.NoteWhereInput {
-  const conditions: Prisma.NoteWhereInput[] = [activeNoteWhere(userId)];
+  const conditions: Prisma.NoteWhereInput[] = [archivedNoteWhere(userId)];
 
   if (query.type) {
     conditions.push({ type: query.type });
   }
 
-  if (query.uncategorizedOnly) {
-    conditions.push({ categoryId: null });
-  } else if (query.categoryId) {
+  if (query.categoryId) {
     conditions.push({ categoryId: query.categoryId });
-  }
-
-  if (query.tagId) {
-    conditions.push({
-      noteTags: {
-        some: { tagId: query.tagId },
-      },
-    });
   }
 
   if (query.search) {
