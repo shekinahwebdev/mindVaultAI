@@ -13,24 +13,30 @@ type MindVaultCompanionProps = {
 
 const sizeClassName = "size-8 sm:size-9";
 
+/** Static SVG companion — fallback when Lottie is unavailable or reduced motion is on. */
+export function MindVaultCompanionFallback({ className }: MindVaultCompanionProps) {
+  const clipId = `mv-companion-${useId().replace(/:/g, "")}`;
+
+  return (
+    <span
+      className={cn(
+        "relative -top-px inline-flex shrink-0 align-middle",
+        className ?? sizeClassName,
+      )}
+      aria-hidden
+    >
+      <CompanionArt waveDeg={0} eyeScaleY={1} headTiltDeg={0} clipId={clipId} />
+    </span>
+  );
+}
+
 /** Minimal monochrome AI companion — one-shot hello on mount; static when reduced motion. */
 export function MindVaultCompanion({ className }: MindVaultCompanionProps) {
   const reduceMotion = useReducedMotion();
   const clipId = `mv-companion-${useId().replace(/:/g, "")}`;
 
   if (reduceMotion) {
-    return (
-      <span
-        className={cn(
-          "relative -top-px inline-flex shrink-0 align-middle",
-          sizeClassName,
-          className,
-        )}
-        aria-hidden
-      >
-        <CompanionArt waveDeg={0} eyeScaleY={1} headTiltDeg={0} clipId={clipId} />
-      </span>
-    );
+    return <MindVaultCompanionFallback className={className} />;
   }
 
   return (

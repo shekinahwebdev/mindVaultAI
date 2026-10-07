@@ -7,7 +7,7 @@ import { dashboardInspirationalQuote } from "@/lib/vault/dashboard-data";
 import { getVaultGreetingName, getVaultTimeGreeting } from "@/lib/vault/user-display";
 import { cn } from "@/lib/utils";
 
-import { MindVaultCompanion } from "../MindVaultCompanion";
+import { MindVaultRobot } from "../MindVaultRobot";
 
 type DashboardHeroProps = {
   session: SessionData;
@@ -28,10 +28,12 @@ export function DashboardHero({ session, lead }: DashboardHeroProps) {
       <PageHeader
         className="min-w-0 flex-1"
         title={
-          <>
-            {greeting}, {name}{" "}
-            <MindVaultCompanion />
-          </>
+          <span className="inline-flex max-w-full flex-wrap items-end gap-x-2.5 gap-y-1 sm:gap-x-3">
+            <span className="min-w-0">
+              {greeting}, {name}
+            </span>
+            <MindVaultRobot variant="hero" />
+          </span>
         }
         lead={lead}
       />

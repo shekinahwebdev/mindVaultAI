@@ -8,11 +8,7 @@ import {
   type TagErrorCode,
   type TagNameFieldErrors,
 } from "./tag-errors";
-import {
-  normalizeTagFields,
-  normalizeTagDisplayName,
-  normalizeTagName,
-} from "./tag-normalization";
+import { normalizeTagFields, normalizeTagName } from "./tag-normalization";
 import { validateTagName } from "./tag-validation";
 import { serializeTag, tagSelect, type SerializedTag } from "./serialize";
 

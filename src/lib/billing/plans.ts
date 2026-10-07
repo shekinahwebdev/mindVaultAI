@@ -37,7 +37,8 @@ const BASE_FEATURES: PlanFeatureFlags = {
   documentUpload: false,
 };
 
-export function getPlanFeatureFlags(_plan: SubscriptionPlan): PlanFeatureFlags {
+export function getPlanFeatureFlags(plan: SubscriptionPlan): PlanFeatureFlags {
+  void plan;
   return { ...BASE_FEATURES };
 }
 

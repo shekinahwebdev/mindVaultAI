@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 
 import {
   CHAT_GROUNDED_HISTORY_LABEL,
@@ -19,15 +20,59 @@ import type { SessionData } from "@/lib/auth/session";
 
 import { UserAvatar } from "../UserAvatar";
 
+import { ChatMessageActions, ChatMessageEditActions } from "./ChatMessageActions";
 import type { ChatTurn } from "./chat-types";
 
 type ChatTurnBubbleProps = {
   turn: ChatTurn;
   session: SessionData;
   onUpdateTurn: (id: string, patch: Partial<ChatTurn>) => void;
+  onEditQuestion?: (turnId: string, newQuestion: string) => void;
+  editDisabled?: boolean;
 };
 
-export function ChatTurnBubble({ turn, session, onUpdateTurn }: ChatTurnBubbleProps) {
+export function ChatTurnBubble({
+  turn,
+  session,
+  onUpdateTurn,
+  onEditQuestion,
+  editDisabled,
+}: ChatTurnBubbleProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [draftQuestion, setDraftQuestion] = useState(turn.question);
+
+  const canEditUserMessage =
+    Boolean(onEditQuestion) &&
+    !editDisabled &&
+    turn.status !== "loading" &&
+    !turn.id.startsWith("pending-");
+
+  function startEdit() {
+    setDraftQuestion(turn.question);
+    setIsEditing(true);
+  }
+
+  function cancelEdit() {
+    setDraftQuestion(turn.question);
+    setIsEditing(false);
+  }
+
+  function saveEdit() {
+    const next = draftQuestion.trim();
+    if (!next || next === turn.question.trim()) {
+      cancelEdit();
+      return;
+    }
+    onEditQuestion?.(turn.id, next);
+    setIsEditing(false);
+  }
+
+  const assistantCopyText =
+    turn.status === "error"
+      ? (turn.error ?? "")
+      : turn.status === "loading"
+        ? ""
+        : (turn.answer ?? "");
   async function confirmSaveAction() {
     if (!turn.action) return;
     onUpdateTurn(turn.id, { actionState: "saving" });
@@ -61,24 +106,56 @@ export function ChatTurnBubble({ turn, session, onUpdateTurn }: ChatTurnBubblePr
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end gap-2.5">
-        <p className="max-w-[min(36rem,85%)] rounded-[1rem] rounded-tr-sm bg-mv-panel px-4 py-2.5 text-[0.875rem] text-foreground">
-          {turn.question}
-        </p>
-        <UserAvatar session={session} size="sm" className="shrink-0" />
+      <div className="group flex flex-col items-end gap-1">
+        <div className="flex justify-end gap-2.5">
+          {isEditing ? (
+            <textarea
+              value={draftQuestion}
+              onChange={(event) => setDraftQuestion(event.target.value)}
+              rows={Math.min(8, Math.max(2, draftQuestion.split("\n").length))}
+              className="max-w-[min(36rem,85%)] min-h-[2.75rem] resize-y rounded-[1rem] rounded-tr-sm border border-border bg-mv-panel px-4 py-2.5 text-[0.875rem] text-foreground outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          ) : (
+            <p className="max-w-[min(36rem,85%)] rounded-[1rem] rounded-tr-sm bg-mv-panel px-4 py-2.5 text-[0.875rem] text-foreground whitespace-pre-wrap">
+              {turn.question}
+            </p>
+          )}
+          <UserAvatar session={session} size="sm" className="shrink-0" />
+        </div>
+        {isEditing ? (
+          <ChatMessageEditActions
+            onCancel={cancelEdit}
+            onSave={saveEdit}
+            saveDisabled={!draftQuestion.trim()}
+          />
+        ) : (
+          <ChatMessageActions
+            align="end"
+            copyText={turn.question}
+            showEdit={canEditUserMessage}
+            onEdit={startEdit}
+            className="pr-9"
+          />
+        )}
       </div>
 
       {turn.status === "loading" ? (
-        <AssistantCard>
-          <p className="text-[0.875rem] text-muted-foreground">
-            {turn.mode === "agent" ? "Working on it…" : "Reading your vault…"}
-          </p>
-        </AssistantCard>
+        <div className="group max-w-[min(42rem,92%)]">
+          <AssistantCard>
+            <p className="text-[0.875rem] text-muted-foreground">
+              {turn.mode === "agent" ? "Working on it…" : "Reading your vault…"}
+            </p>
+          </AssistantCard>
+        </div>
       ) : turn.status === "error" ? (
-        <AssistantCard>
-          <p className="text-[0.875rem] text-muted-foreground">{turn.error}</p>
-        </AssistantCard>
+        <div className="group max-w-[min(42rem,92%)]">
+          <AssistantCard>
+            <p className="text-[0.875rem] text-muted-foreground">{turn.error}</p>
+          </AssistantCard>
+          <ChatMessageActions align="start" copyText={assistantCopyText} />
+        </div>
       ) : (
+        <div className="group max-w-[min(42rem,92%)]">
         <AssistantCard>
           <p className="text-[0.9rem] leading-relaxed whitespace-pre-wrap text-foreground">
             {turn.answer}
@@ -146,6 +223,8 @@ export function ChatTurnBubble({ turn, session, onUpdateTurn }: ChatTurnBubblePr
             </details>
           ) : null}
         </AssistantCard>
+        <ChatMessageActions align="start" copyText={assistantCopyText} />
+        </div>
       )}
     </div>
   );

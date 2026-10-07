@@ -21,5 +21,5 @@
       el.classList.remove("light", "dark");
       el.classList.add("mv-app", resolved);
     }
-  } catch (e) {}
+  } catch {}
 })();
