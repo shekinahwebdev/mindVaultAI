@@ -23,7 +23,6 @@ import { useNotesList } from "@/lib/notes/use-notes-list";
 import { useCategories } from "@/lib/categories/use-categories";
 import { vaultRoutes } from "@/lib/routes";
 import { toastError, toastSuccess } from "@/lib/vault-toast";
-import { cn } from "@/lib/utils";
 
 import { vaultPrimaryButton, vaultSecondaryButton } from "../vault-controls";
 import { vaultEase } from "../vault-motion";

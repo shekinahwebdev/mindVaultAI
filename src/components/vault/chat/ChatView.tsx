@@ -73,6 +73,10 @@ export function ChatView() {
     return null;
   }, [turns]);
 
+  const lastTurn = turns[turns.length - 1];
+  const lastTurnStatus = lastTurn?.status;
+  const lastTurnAnswer = lastTurn?.answer;
+
   const refreshConversationList = useCallback(async () => {
     const { data } = await fetchConversations();
     if (data?.ok) {
@@ -107,7 +111,7 @@ export function ChatView() {
 
   useEffect(() => {
     scrollAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [turns.length, turns[turns.length - 1]?.status, turns[turns.length - 1]?.answer]);
+  }, [turns.length, lastTurnStatus, lastTurnAnswer]);
 
   const loadConversation = useCallback(async (id: string) => {
     setDetailLoading(true);

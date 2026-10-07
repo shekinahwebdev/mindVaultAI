@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import {
   CHAT_GROUNDED_HISTORY_LABEL,
@@ -40,12 +40,6 @@ export function ChatTurnBubble({
 }: ChatTurnBubbleProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [draftQuestion, setDraftQuestion] = useState(turn.question);
-
-  useEffect(() => {
-    if (!isEditing) {
-      setDraftQuestion(turn.question);
-    }
-  }, [isEditing, turn.question]);
 
   const canEditUserMessage =
     Boolean(onEditQuestion) &&

@@ -1,5 +1,4 @@
 import { PrismaClient } from "@/generated/prisma/client";
-import { AccentColor } from "@/generated/prisma/enums";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 /**

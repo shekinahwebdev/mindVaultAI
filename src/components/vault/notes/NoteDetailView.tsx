@@ -47,11 +47,7 @@ import {
   readNoteStarred,
   writeNoteStarred,
 } from "@/lib/notes/note-detail-utils";
-import {
-  formatNoteDate,
-  formatNoteDateTime,
-  noteTypeLabels,
-} from "@/lib/notes/note-display";
+import { formatNoteDateTime, noteTypeLabels } from "@/lib/notes/note-display";
 import { useNotesList } from "@/lib/notes/use-notes-list";
 import { routes, vaultRoutes } from "@/lib/routes";
 import { toastError, toastInfo, toastSuccess } from "@/lib/vault-toast";
