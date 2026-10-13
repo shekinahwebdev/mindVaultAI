@@ -47,8 +47,148 @@ model User {
   subscription        Subscription?
   usageEvents         UsageEvent[]
   billingTransactions BillingTransaction[]
+  documents           Document[]
+  storageReservations StorageReservation[]
 
   @@map("users")
+}
+
+enum DocumentStatus {
+  PENDING_UPLOAD
+  QUEUED
+  PROCESSING
+  READY
+  FAILED
+  EXPIRED
+  DELETING
+}
+
+model Document {
+  id String @id @default(cuid())
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title            String
+  originalFilename String   @map("original_filename")
+  mimeType         String   @map("mime_type")
+  sizeBytes        Int      @map("size_bytes")
+  storageKey       String   @map("storage_key")
+
+  status            DocumentStatus @default(PENDING_UPLOAD)
+  processingVersion Int            @default(1) @map("processing_version")
+
+  uploadedAt             DateTime? @map("uploaded_at")
+  processingStartedAt    DateTime? @map("processing_started_at")
+  processingCompletedAt  DateTime? @map("processing_completed_at")
+  processingStage        String?   @map("processing_stage")
+  processingTotalChunks  Int?      @map("processing_total_chunks")
+  processingCompletedChunks Int?   @map("processing_completed_chunks")
+  failureReason          String?   @map("failure_reason") @db.Text
+  uploadExpiresAt        DateTime  @map("upload_expires_at")
+  archivedAt             DateTime? @map("archived_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  storageReservation StorageReservation?
+  processingJobs     DocumentProcessingJob[]
+  chunks             DocumentChunk[]
+
+  @@unique([storageKey])
+  @@index([userId, createdAt])
+  @@index([userId, status])
+  @@index([status, uploadExpiresAt])
+  @@map("documents")
+}
+
+/// Holds bytes against plan storage while a document is PENDING_UPLOAD (concurrency-safe quota).
+model StorageReservation {
+  id String @id @default(cuid())
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  documentId String   @unique @map("document_id")
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  reservedBytes Int      @map("reserved_bytes")
+  expiresAt     DateTime @map("expires_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId, expiresAt])
+  @@map("storage_reservations")
+}
+
+enum DocumentProcessingJobStatus {
+  PENDING
+  RUNNING
+  RETRY_WAIT
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+model DocumentProcessingJob {
+  id String @id @default(cuid())
+
+  documentId String   @map("document_id")
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  processingVersion Int @map("processing_version")
+
+  status       DocumentProcessingJobStatus @default(PENDING)
+  attemptCount Int                           @default(0) @map("attempt_count")
+  maxAttempts  Int                           @default(5) @map("max_attempts")
+
+  availableAt DateTime @default(now()) @map("available_at")
+
+  lockedBy        String?   @map("locked_by")
+  leaseExpiresAt  DateTime? @map("lease_expires_at")
+  heartbeatAt     DateTime? @map("heartbeat_at")
+  /// Incremented on every claim; workers must match to heartbeat or finalize (fencing).
+  claimGeneration Int       @default(0) @map("claim_generation")
+
+  startedAt   DateTime? @map("started_at")
+  completedAt DateTime? @map("completed_at")
+  lastError   String?   @map("last_error") @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([documentId, processingVersion])
+  @@index([status, availableAt])
+  @@index([status, leaseExpiresAt])
+  @@map("document_processing_jobs")
+}
+
+/// Text chunks + embeddings for document semantic search (Phase 2B indexing).
+model DocumentChunk {
+  id String @id @default(cuid())
+
+  documentId String   @map("document_id")
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  processingVersion Int @map("processing_version")
+  chunkIndex        Int @map("chunk_index")
+
+  content         String @db.Text
+  pageStart       Int    @map("page_start")
+  pageEnd         Int    @map("page_end")
+  characterCount  Int    @map("character_count")
+  tokenCount      Int?   @map("token_count")
+
+  embeddingModel      String? @map("embedding_model")
+  embeddingDimensions Int?    @map("embedding_dimensions")
+  embedding           Unsupported("vector(768)")?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([documentId, processingVersion, chunkIndex])
+  @@index([documentId, processingVersion])
+  @@map("document_chunks")
 }
 
 enum SubscriptionPlan {
@@ -169,6 +309,10 @@ model Conversation {
 
   title String?
   mode  ChatMode @default(ASK)
+
+  /// PDFs selected for document-scoped chat retrieval (ids only, not file contents).
+  attachedDocumentIds     String[] @default([]) @map("attached_document_ids")
+  attachmentIncludeNotes  Boolean  @default(false) @map("attachment_include_notes")
 
   messages ChatMessage[]
 

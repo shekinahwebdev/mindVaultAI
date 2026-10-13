@@ -12,7 +12,13 @@ import {
   fetchConversation,
   fetchConversations,
   renameConversationRequest,
+  updateConversationAttachmentsRequest,
 } from "@/lib/chat/conversations-client";
+import {
+  listDocumentsRequest,
+  uploadPdfDocumentFromFile,
+  type SerializedDocument,
+} from "@/lib/documents/documents-client";
 import { messagesToTurns } from "@/lib/chat/messages-to-turns";
 import type { SerializedConversationSummary } from "@/lib/chat/serialize";
 import {
@@ -27,8 +33,10 @@ import { cn } from "@/lib/utils";
 
 import { vaultEase } from "../vault-motion";
 
+import { mergeAttachmentDocs } from "./chat-attachment-types";
 import { ChatComposer } from "./ChatComposer";
 import { ChatContextPanel } from "./ChatContextPanel";
+import { ChatDocumentPickerDialog } from "./ChatDocumentPickerDialog";
 import { ChatHistorySidebar } from "./ChatHistorySidebar";
 import { ChatTurnBubble } from "./ChatTurnBubble";
 import type { ChatTurn } from "./chat-types";
@@ -60,6 +68,61 @@ export function ChatView() {
   const submittingRef = useRef(false);
   const pendingTurnIdRef = useRef(0);
   const scrollAnchorRef = useRef<HTMLDivElement>(null);
+  const uploadInputRef = useRef<HTMLInputElement>(null);
+  const [attachedDocumentIds, setAttachedDocumentIds] = useState<string[]>([]);
+  const [includeNotesWithAttachments, setIncludeNotesWithAttachments] = useState(false);
+  const [documentCatalog, setDocumentCatalog] = useState<SerializedDocument[]>([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerSession, setPickerSession] = useState(0);
+  const [documentsLoading, setDocumentsLoading] = useState(false);
+  const [uploadInProgress, setUploadInProgress] = useState(false);
+  const [uploadProgressLabel, setUploadProgressLabel] = useState<string | undefined>();
+
+  const attachmentDocs = useMemo(
+    () => mergeAttachmentDocs(attachedDocumentIds, documentCatalog),
+    [attachedDocumentIds, documentCatalog],
+  );
+
+  const shouldPollAttachments = useMemo(
+    () =>
+      attachmentDocs.some((doc) => doc.processingDisplayStatus !== "ready" && doc.processingDisplayStatus !== "failed"),
+    [attachmentDocs],
+  );
+
+  const refreshDocumentCatalog = useCallback(async () => {
+    const { data } = await listDocumentsRequest();
+    if (data?.ok) {
+      setDocumentCatalog(data.documents);
+    }
+  }, []);
+
+  const persistAttachments = useCallback(
+    async (ids: string[], includeNotes: boolean) => {
+      if (!activeId) return;
+      await updateConversationAttachmentsRequest(activeId, {
+        attachedDocumentIds: ids,
+        attachmentIncludeNotes: includeNotes,
+      });
+    },
+    [activeId],
+  );
+
+  const applyAttachments = useCallback(
+    (ids: string[], includeNotes?: boolean) => {
+      setAttachedDocumentIds(ids);
+      if (includeNotes !== undefined) {
+        setIncludeNotesWithAttachments(includeNotes);
+        void persistAttachments(ids, includeNotes);
+        return;
+      }
+      const include = ids.length === 0 ? false : includeNotesWithAttachments;
+      if (ids.length === 0) {
+        setIncludeNotesWithAttachments(false);
+      }
+      void persistAttachments(ids, include);
+    },
+    [includeNotesWithAttachments, persistAttachments],
+  );
 
   const isBusy = turns.some((turn) => turn.status === "loading");
 
@@ -128,8 +191,11 @@ export function ChatView() {
     setActiveTitle(data.conversation.title);
     setActiveUpdatedAt(new Date(data.conversation.updatedAt).getTime());
     setTurns(messagesToTurns(data.conversation.messages));
+    setAttachedDocumentIds(data.conversation.attachedDocumentIds ?? []);
+    setIncludeNotesWithAttachments(data.conversation.attachmentIncludeNotes ?? false);
+    void refreshDocumentCatalog();
     setDetailLoading(false);
-  }, []);
+  }, [refreshDocumentCatalog]);
 
   const submitMessage = useCallback(async (message: string) => {
     const trimmed = message.trim();
@@ -154,6 +220,8 @@ export function ChatView() {
     try {
       const { data } = await askVaultRequest(trimmed, {
         conversationId: activeId ?? undefined,
+        attachedDocumentIds,
+        attachmentIncludeNotes: includeNotesWithAttachments,
       });
 
       if (data?.ok) {
@@ -219,7 +287,45 @@ export function ChatView() {
     } finally {
       submittingRef.current = false;
     }
-  }, [activeId, refreshConversationList]);
+  }, [activeId, attachedDocumentIds, includeNotesWithAttachments, refreshConversationList]);
+
+  useEffect(() => {
+    if (!shouldPollAttachments) return;
+    const interval = window.setInterval(() => {
+      void refreshDocumentCatalog();
+    }, 5_000);
+    return () => window.clearInterval(interval);
+  }, [refreshDocumentCatalog, shouldPollAttachments]);
+
+  async function openVaultPicker() {
+    setPickerSession((value) => value + 1);
+    setDocumentsLoading(true);
+    setPickerOpen(true);
+    await refreshDocumentCatalog();
+    setDocumentsLoading(false);
+  }
+
+  async function handleUploadPdf(file: File) {
+    setUploadInProgress(true);
+    setUploadProgressLabel("Uploading PDF…");
+    const result = await uploadPdfDocumentFromFile(file, {
+      onProgress: (ratio) => {
+        setUploadProgressLabel(`Uploading PDF… ${Math.round(ratio * 100)}%`);
+      },
+    });
+    setUploadInProgress(false);
+    setUploadProgressLabel(undefined);
+    if (!result.ok) {
+      toastError(result.message);
+      return;
+    }
+    await refreshDocumentCatalog();
+    const nextIds = attachedDocumentIds.includes(result.document.id)
+      ? attachedDocumentIds
+      : [...attachedDocumentIds, result.document.id];
+    applyAttachments(nextIds);
+    toastSuccess("PDF uploaded. It will appear in Documents while indexing runs.");
+  }
 
   const handleUpdateTurn = useCallback((id: string, patch: Partial<ChatTurn>) => {
     setTurns((current) =>
@@ -250,6 +356,8 @@ export function ChatView() {
     setActiveUpdatedAt(null);
     setTurns([]);
     setInput("");
+    setAttachedDocumentIds([]);
+    setIncludeNotesWithAttachments(false);
   }
 
   function handleSelectHistory(id: string) {
@@ -417,11 +525,49 @@ export function ChatView() {
             <div ref={scrollAnchorRef} className="h-px shrink-0" aria-hidden />
           </div>
 
+          <input
+            ref={uploadInputRef}
+            type="file"
+            accept="application/pdf,.pdf"
+            className="sr-only"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = "";
+              if (file) void handleUploadPdf(file);
+            }}
+          />
+
           <ChatComposer
             input={input}
             busy={isBusy}
+            attachments={attachmentDocs}
+            includeNotesWithAttachments={includeNotesWithAttachments}
+            onIncludeNotesWithAttachmentsChange={(value) => {
+              setIncludeNotesWithAttachments(value);
+              void persistAttachments(attachedDocumentIds, value);
+            }}
+            onRemoveAttachment={(id) => {
+              applyAttachments(attachedDocumentIds.filter((item) => item !== id));
+            }}
+            onChooseFromVault={() => void openVaultPicker()}
+            onUploadPdfClick={() => uploadInputRef.current?.click()}
+            uploadInProgress={uploadInProgress}
+            uploadProgressLabel={uploadProgressLabel}
             onInputChange={setInput}
             onSubmit={() => void submitMessage(input)}
+          />
+
+          <ChatDocumentPickerDialog
+            key={pickerSession}
+            open={pickerOpen}
+            documents={documentCatalog}
+            loading={documentsLoading}
+            selectedIds={attachedDocumentIds}
+            onClose={() => setPickerOpen(false)}
+            onConfirm={(ids) => {
+              applyAttachments(ids);
+              setPickerOpen(false);
+            }}
           />
         </section>
 

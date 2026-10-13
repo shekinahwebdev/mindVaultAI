@@ -9,8 +9,11 @@ import {
 import { runAskVaultPipeline } from "./ask-vault";
 import type { RagSource } from "./types";
 
+const emptyAvailability = { noteSearchUnavailable: false, documentSearchUnavailable: false };
+
 const sampleSources: RagSource[] = [
   {
+    kind: "note",
     sourceNumber: 1,
     noteId: "note-1",
     title: "JWT",
@@ -28,7 +31,7 @@ describe("askVault outcomes", () => {
     const result = await runAskVaultPipeline(
       { userId: "user-1", question: "What is your name?" },
       {
-        retrieve: async () => ({ ok: true, sources: [] }),
+        retrieve: async () => ({ ok: true, sources: [], availability: emptyAvailability }),
         answer: async () => {
           answerCalled = true;
           throw new Error("should not run");
@@ -48,7 +51,11 @@ describe("askVault outcomes", () => {
     const result = await runAskVaultPipeline(
       { userId: "user-1", question: "What have I saved about JWT?" },
       {
-        retrieve: async () => ({ ok: true, sources: sampleSources }),
+        retrieve: async () => ({
+          ok: true,
+          sources: sampleSources,
+          availability: emptyAvailability,
+        }),
         answer: async () => ({
           ok: false,
           reason: "provider_error",
@@ -66,7 +73,11 @@ describe("askVault outcomes", () => {
     const result = await runAskVaultPipeline(
       { userId: "user-1", question: "What have I saved about JWT?" },
       {
-        retrieve: async () => ({ ok: true, sources: sampleSources }),
+        retrieve: async () => ({
+          ok: true,
+          sources: sampleSources,
+          availability: emptyAvailability,
+        }),
         answer: async () => ({
           ok: true,
           answer: { answer: "JWT notes.", sourceNumbers: [1] },

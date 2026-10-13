@@ -1,20 +1,58 @@
 "use client";
 
-import { ArrowUp, ChevronDown, Paperclip } from "lucide-react";
-import type { KeyboardEvent } from "react";
+import { ArrowUp, ChevronDown, FileText, FolderOpen, Paperclip } from "lucide-react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 
 import { cn } from "@/lib/utils";
 
 import { vaultIconShape } from "../vault-controls";
 
+import { ChatAttachmentBar } from "./ChatAttachmentBar";
+import type { ChatAttachmentDoc } from "./chat-attachment-types";
+
 type ChatComposerProps = {
   input: string;
   busy: boolean;
+  attachments: ChatAttachmentDoc[];
+  includeNotesWithAttachments: boolean;
+  onIncludeNotesWithAttachmentsChange: (value: boolean) => void;
+  onRemoveAttachment: (documentId: string) => void;
+  onChooseFromVault: () => void;
+  onUploadPdfClick: () => void;
+  uploadInProgress?: boolean;
+  uploadProgressLabel?: string;
   onInputChange: (value: string) => void;
   onSubmit: () => void;
 };
 
-export function ChatComposer({ input, busy, onInputChange, onSubmit }: ChatComposerProps) {
+export function ChatComposer({
+  input,
+  busy,
+  attachments,
+  includeNotesWithAttachments,
+  onIncludeNotesWithAttachmentsChange,
+  onRemoveAttachment,
+  onChooseFromVault,
+  onUploadPdfClick,
+  uploadInProgress,
+  uploadProgressLabel,
+  onInputChange,
+  onSubmit,
+}: ChatComposerProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handlePointerDown(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    window.addEventListener("mousedown", handlePointerDown);
+    return () => window.removeEventListener("mousedown", handlePointerDown);
+  }, [menuOpen]);
+
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
@@ -31,6 +69,14 @@ export function ChatComposer({ input, busy, onInputChange, onSubmit }: ChatCompo
         }}
         className="rounded-[var(--mv-radius-card)] border border-border bg-mv-panel p-2"
       >
+        <ChatAttachmentBar
+          attachments={attachments}
+          includeNotes={includeNotesWithAttachments}
+          onIncludeNotesChange={onIncludeNotesWithAttachmentsChange}
+          onRemove={onRemoveAttachment}
+          uploadInProgress={uploadInProgress}
+          uploadLabel={uploadProgressLabel}
+        />
         <textarea
           value={input}
           onChange={(event) => onInputChange(event.target.value)}
@@ -41,16 +87,49 @@ export function ChatComposer({ input, busy, onInputChange, onSubmit }: ChatCompo
           className="max-h-32 min-h-[3.25rem] w-full resize-none bg-transparent px-2 py-1.5 text-[0.875rem] text-foreground outline-none placeholder:text-mv-faint disabled:opacity-60"
         />
         <div className="mt-1 flex items-center justify-between gap-2 px-1">
-          <button
-            type="button"
-            disabled
-            aria-disabled="true"
-            title="Document upload coming soon"
-            aria-label="Attach file — document upload coming soon"
-            className="flex size-9 cursor-not-allowed items-center justify-center rounded-[var(--mv-radius-control)] text-muted-foreground opacity-50"
-          >
-            <Paperclip aria-hidden className="size-4" />
-          </button>
+          <div className="relative" ref={menuRef}>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => setMenuOpen((open) => !open)}
+              aria-label="Attach document"
+              aria-expanded={menuOpen}
+              className="flex size-9 items-center justify-center rounded-[var(--mv-radius-control)] text-muted-foreground transition-colors hover:bg-surface hover:text-foreground disabled:opacity-50"
+            >
+              <Paperclip aria-hidden className="size-4" />
+            </button>
+            {menuOpen ? (
+              <div
+                role="menu"
+                className="absolute bottom-full left-0 z-20 mb-1 min-w-[11rem] rounded-[var(--mv-radius-control)] border border-border bg-surface py-1 shadow-sm"
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onChooseFromVault();
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-[0.8125rem] text-foreground hover:bg-mv-panel"
+                >
+                  <FolderOpen aria-hidden className="size-4 text-mv-faint" />
+                  Choose from Vault
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onUploadPdfClick();
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-[0.8125rem] text-foreground hover:bg-mv-panel"
+                >
+                  <FileText aria-hidden className="size-4 text-mv-faint" />
+                  Upload PDF
+                </button>
+              </div>
+            ) : null}
+          </div>
 
           <div className="relative min-w-[11rem] flex-1 sm:max-w-[14rem]">
             <label htmlFor="chat-mode" className="sr-only">
@@ -61,11 +140,15 @@ export function ChatComposer({ input, busy, onInputChange, onSubmit }: ChatCompo
               value="ask"
               onChange={() => {}}
               aria-describedby="chat-mode-agent-hint"
-              title="MindVault AI — read-only answers from your saved notes"
+              title="MindVault AI — answers from your notes and PDFs"
               className="h-9 w-full cursor-default appearance-none rounded-[var(--mv-radius-control)] border border-border bg-surface pl-3 pr-8 text-[0.8125rem] font-medium text-foreground outline-none"
             >
               <option value="ask">MindVault AI</option>
-              <option value="agent" disabled title="Agent mode can perform multi-step actions across your vault. Coming soon.">
+              <option
+                value="agent"
+                disabled
+                title="Agent mode can perform multi-step actions across your vault. Coming soon."
+              >
                 MindVault Agent (Coming soon)
               </option>
             </select>
@@ -93,7 +176,7 @@ export function ChatComposer({ input, busy, onInputChange, onSubmit }: ChatCompo
         </div>
       </form>
       <p className="mt-2 text-center text-[0.6875rem] text-mv-faint">
-        MindVault AI answers from your saved notes and can follow the context of this conversation.
+        MindVault AI answers from your saved notes and attached PDFs when indexed.
       </p>
     </div>
   );

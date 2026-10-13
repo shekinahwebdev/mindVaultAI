@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 
 import {
@@ -8,9 +7,10 @@ import {
   CHAT_NO_RELEVANT_KNOWLEDGE_HINT,
 } from "@/lib/chat/chat-outcomes";
 import { createNoteRequest } from "@/lib/notes/capture-client";
-import { noteDetailPath, noteTypeLabels } from "@/lib/notes/note-display";
 import type { AskVaultSource } from "@/lib/rag/chat-client";
-import { getNoteTypeIcon } from "@/lib/vault/note-type-ui";
+import { noteTypeLabels } from "@/lib/notes/note-display";
+
+import { ChatSourceLinks } from "./ChatSourceLinks";
 import { toastSuccess } from "@/lib/vault-toast";
 import { cn } from "@/lib/utils";
 
@@ -266,30 +266,9 @@ function StructuredSources({
 
       <section>
         <h3 className="text-[0.8125rem] font-semibold text-foreground">Related content</h3>
-        <ul className="mt-2 space-y-2">
-          {sources.map((source) => {
-            const Icon = getNoteTypeIcon(source.type);
-            return (
-              <li key={source.noteId}>
-                <Link
-                  href={noteDetailPath(source.noteId)}
-                  className="flex items-start gap-2.5 rounded-[var(--mv-radius-control)] border border-border bg-mv-panel/40 px-3 py-2.5 transition-colors hover:bg-mv-panel/70"
-                >
-                  <Icon aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                  <span className="min-w-0">
-                    <span className="block text-[0.8125rem] font-medium text-foreground">
-                      {source.title}
-                    </span>
-                    <span className="text-[0.6875rem] text-mv-faint">
-                      {noteTypeLabels[source.type] ?? source.type}
-                      {source.categoryName ? ` · ${source.categoryName}` : ""}
-                    </span>
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        <div className="mt-2">
+          <ChatSourceLinks sources={sources} />
+        </div>
       </section>
     </div>
   );

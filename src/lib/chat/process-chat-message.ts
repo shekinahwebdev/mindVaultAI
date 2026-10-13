@@ -1,5 +1,9 @@
 import { AI_LIMIT_REACHED_MESSAGE } from "@/lib/billing/messages";
 import {
+  normalizeAttachedDocumentIds,
+  resolveChatAttachmentScope,
+} from "@/lib/chat/chat-attachments";
+import {
   CHAT_PROVIDER_FAILURE_MESSAGE,
   type ChatAnswerOutcome,
 } from "@/lib/chat/chat-outcomes";
@@ -15,6 +19,7 @@ import {
   getRecentConversationMessagesForUser,
   resolveConversationForUser,
   touchConversationUpdatedAt,
+  updateConversationAttachmentsForUser,
 } from "./chat-repository";
 
 export type ProcessChatMessageResult =
@@ -58,6 +63,8 @@ export async function processChatMessage(params: {
   userId: string;
   question: string;
   conversationId?: string;
+  attachedDocumentIds?: string[];
+  attachmentIncludeNotes?: boolean;
   askVault: AskVaultFn;
 }): Promise<ProcessChatMessageResult> {
   const trimmed = params.question.trim();
@@ -96,11 +103,30 @@ export async function processChatMessage(params: {
     );
     const recentDirectGroundedTurn = findMostRecentDirectGroundedTurn(groundingMessages);
 
+    const requestedAttachmentIds = normalizeAttachedDocumentIds(params.attachedDocumentIds);
+    const attachmentScope = await resolveChatAttachmentScope(
+      params.userId,
+      requestedAttachmentIds,
+      params.attachmentIncludeNotes === true,
+    );
+
+    const ownedAttachmentIds = requestedAttachmentIds.filter(
+      (id) => !attachmentScope.droppedDocumentIds.includes(id),
+    );
+
+    await updateConversationAttachmentsForUser(
+      params.userId,
+      conversation.id,
+      ownedAttachmentIds,
+      attachmentScope.hasAttachments ? attachmentScope.includeNotes : false,
+    );
+
     const rag = await params.askVault({
       userId: params.userId,
       question: trimmed,
       conversationHistory,
       recentDirectGroundedTurn,
+      attachmentScope,
     });
 
     if (!rag.ok) {

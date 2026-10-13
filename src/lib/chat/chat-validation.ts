@@ -1,3 +1,4 @@
+import { normalizeAttachedDocumentIds } from "./chat-attachments";
 import { CONVERSATION_TITLE_MAX_LENGTH } from "./chat-title";
 
 export type RenameConversationInput = {
@@ -35,14 +36,26 @@ export function parseRenameConversationBody(
   return { success: true, data: { title } };
 }
 
+export type ChatPostInput = {
+  question: string;
+  conversationId?: string;
+  attachedDocumentIds: string[];
+  attachmentIncludeNotes: boolean;
+};
+
 export function parseChatPostBody(body: unknown):
-  | { success: true; question: string; conversationId?: string }
+  | { success: true; data: ChatPostInput }
   | { success: false } {
   if (typeof body !== "object" || body === null || Array.isArray(body)) {
     return { success: false };
   }
 
-  const record = body as { question?: unknown; conversationId?: unknown };
+  const record = body as {
+    question?: unknown;
+    conversationId?: unknown;
+    attachedDocumentIds?: unknown;
+    attachmentIncludeNotes?: unknown;
+  };
   if (typeof record.question !== "string") {
     return { success: false };
   }
@@ -55,5 +68,43 @@ export function parseChatPostBody(body: unknown):
     conversationId = record.conversationId.trim();
   }
 
-  return { success: true, question: record.question, conversationId };
+  const attachedDocumentIds = normalizeAttachedDocumentIds(record.attachedDocumentIds);
+  const attachmentIncludeNotes =
+    attachedDocumentIds.length > 0 && record.attachmentIncludeNotes === true;
+
+  return {
+    success: true,
+    data: {
+      question: record.question,
+      conversationId,
+      attachedDocumentIds,
+      attachmentIncludeNotes,
+    },
+  };
+}
+
+export type ConversationAttachmentsInput = {
+  attachedDocumentIds: string[];
+  attachmentIncludeNotes: boolean;
+};
+
+export function parseConversationAttachmentsBody(body: unknown):
+  | { success: true; data: ConversationAttachmentsInput }
+  | { success: false } {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    return { success: false };
+  }
+
+  const record = body as {
+    attachedDocumentIds?: unknown;
+    attachmentIncludeNotes?: unknown;
+  };
+
+  const attachedDocumentIds = normalizeAttachedDocumentIds(record.attachedDocumentIds);
+  const attachmentIncludeNotes = record.attachmentIncludeNotes === true;
+
+  return {
+    success: true,
+    data: { attachedDocumentIds, attachmentIncludeNotes },
+  };
 }

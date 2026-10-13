@@ -56,7 +56,8 @@ describe("processChatMessage", { skip: !runIntegration }, () => {
     assert.ok(conversation);
     assert.equal(conversation.messages.length, 2);
     assert.equal(conversation.title, "What have I saved about authentication?");
-    assert.equal(conversation.messages[1]?.sources?.[0]?.noteId, "note-auth");
+    const firstSource = conversation.messages[1]?.sources?.[0];
+    assert.equal(firstSource && firstSource.kind !== "document" ? firstSource.noteId : null, "note-auth");
   });
 
   it("keeps user message when provider fails", async () => {

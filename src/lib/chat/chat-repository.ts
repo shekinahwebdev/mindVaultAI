@@ -7,6 +7,7 @@ import type { AskVaultSource } from "@/lib/rag/types";
 import type { ConversationContextMessage } from "@/lib/rag/conversation-context";
 import { boundConversationHistory } from "@/lib/rag/conversation-context";
 
+import { normalizeAttachedDocumentIds } from "./chat-attachments";
 import { buildAssistantMetadata } from "./chat-metadata";
 import type { GroundingConversationMessage } from "./grounded-turn";
 import { conversationTitleFromFirstMessage } from "./chat-title";
@@ -62,6 +63,8 @@ export async function getConversationForUser(
     mode: conversation.mode === ChatMode.AGENT ? "agent" : "ask",
     createdAt: conversation.createdAt.toISOString(),
     updatedAt: conversation.updatedAt.toISOString(),
+    attachedDocumentIds: conversation.attachedDocumentIds ?? [],
+    attachmentIncludeNotes: conversation.attachmentIncludeNotes ?? false,
     messages: conversation.messages.map(serializeChatMessage),
   };
 }
@@ -155,6 +158,23 @@ export async function renameConversationForUser(
   const result = await prisma.conversation.updateMany({
     where: { id: conversationId, userId },
     data: { title },
+  });
+  return result.count > 0;
+}
+
+export async function updateConversationAttachmentsForUser(
+  userId: string,
+  conversationId: string,
+  attachedDocumentIds: string[],
+  attachmentIncludeNotes: boolean,
+): Promise<boolean> {
+  const normalized = normalizeAttachedDocumentIds(attachedDocumentIds);
+  const result = await prisma.conversation.updateMany({
+    where: { id: conversationId, userId },
+    data: {
+      attachedDocumentIds: normalized,
+      attachmentIncludeNotes: normalized.length > 0 ? attachmentIncludeNotes : false,
+    },
   });
   return result.count > 0;
 }

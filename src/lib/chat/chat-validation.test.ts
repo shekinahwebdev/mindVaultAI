@@ -8,8 +8,9 @@ describe("parseChatPostBody", () => {
     const parsed = parseChatPostBody({ question: "Hello vault" });
     assert.equal(parsed.success, true);
     if (parsed.success) {
-      assert.equal(parsed.question, "Hello vault");
-      assert.equal(parsed.conversationId, undefined);
+      assert.equal(parsed.data.question, "Hello vault");
+      assert.equal(parsed.data.conversationId, undefined);
+      assert.deepEqual(parsed.data.attachedDocumentIds, []);
     }
   });
 
@@ -17,7 +18,20 @@ describe("parseChatPostBody", () => {
     const parsed = parseChatPostBody({ question: "Hi", conversationId: "conv-1" });
     assert.equal(parsed.success, true);
     if (parsed.success) {
-      assert.equal(parsed.conversationId, "conv-1");
+      assert.equal(parsed.data.conversationId, "conv-1");
+    }
+  });
+
+  it("parses attachment ids and include-notes flag", () => {
+    const parsed = parseChatPostBody({
+      question: "Explain this PDF",
+      attachedDocumentIds: ["doc-1", "doc-1"],
+      attachmentIncludeNotes: true,
+    });
+    assert.equal(parsed.success, true);
+    if (parsed.success) {
+      assert.deepEqual(parsed.data.attachedDocumentIds, ["doc-1"]);
+      assert.equal(parsed.data.attachmentIncludeNotes, true);
     }
   });
 });

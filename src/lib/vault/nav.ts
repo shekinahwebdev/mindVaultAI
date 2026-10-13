@@ -8,6 +8,7 @@ import {
   MessageSquare,
   Plus,
   Quote,
+  FileText,
   Search,
   Settings,
   StickyNote,
@@ -49,6 +50,11 @@ export const vaultSidebarPrimaryNav: VaultNavItem[] = [
     icon: Tag,
   },
   { label: "Search", href: vaultRoutes.search, icon: Search },
+  {
+    label: "Documents",
+    href: vaultRoutes.documents,
+    icon: FileText,
+  },
   {
     label: "AI Chat",
     href: vaultRoutes.chat,

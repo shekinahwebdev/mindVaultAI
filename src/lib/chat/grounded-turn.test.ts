@@ -28,7 +28,8 @@ describe("findMostRecentDirectGroundedTurn", () => {
     assert.ok(turn);
     assert.equal(turn.assistantMessageId, "a1");
     assert.equal(turn.userQuestion, "What did I save about JWT?");
-    assert.equal(turn.sources[0]?.noteId, "note-jwt");
+    const s0 = turn.sources[0];
+    assert.equal(s0 && s0.kind !== "document" ? s0.noteId : null, "note-jwt");
   });
 
   it("skips no_relevant_knowledge assistants", () => {

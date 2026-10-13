@@ -1,6 +1,5 @@
 import type { ConversationContextMessage } from "./conversation-context";
-
-const MAX_RETRIEVAL_QUERY_CHARS = 2000;
+import { RETRIEVAL_EMBEDDING_QUERY_MAX_CHARS } from "./retrieval-query-limits";
 
 /**
  * Builds an embedding search query from recent dialogue + the current question.
@@ -25,9 +24,9 @@ export function buildRetrievalQuery(
   lines.push(`Current question: ${trimmedQuestion}`);
 
   const query = lines.join("\n");
-  if (query.length <= MAX_RETRIEVAL_QUERY_CHARS) {
+  if (query.length <= RETRIEVAL_EMBEDDING_QUERY_MAX_CHARS) {
     return query;
   }
 
-  return query.slice(0, MAX_RETRIEVAL_QUERY_CHARS);
+  return query.slice(0, RETRIEVAL_EMBEDDING_QUERY_MAX_CHARS);
 }

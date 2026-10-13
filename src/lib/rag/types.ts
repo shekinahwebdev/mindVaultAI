@@ -1,14 +1,10 @@
 /**
  * Provider-independent RAG types. Nothing here should leak
- * Gemini-specific response shapes into the API route or UI — same
- * pattern as src/lib/ai/types.ts for Analyze and embeddings.
+ * Gemini-specific response shapes into the API route or UI.
  */
 
-// A note that passed retrieval + the relevance threshold, renumbered
-// 1..N for this request only. The model only ever sees/cites this
-// number — never the real database id — so there is nothing for it to
-// "invent" that could resolve to a real note (see answer-question.ts).
-export type RagSource = {
+export type RagNoteSource = {
+  kind: "note";
   sourceNumber: number;
   noteId: string;
   title: string;
@@ -18,8 +14,27 @@ export type RagSource = {
   similarity: number;
 };
 
+export type RagDocumentSource = {
+  kind: "document";
+  sourceNumber: number;
+  documentId: string;
+  chunkId: string;
+  title: string;
+  content: string;
+  pageStart: number;
+  pageEnd: number;
+  similarity: number;
+};
+
+export type RagSource = RagNoteSource | RagDocumentSource;
+
+export type RetrievalAvailability = {
+  noteSearchUnavailable?: boolean;
+  documentSearchUnavailable?: boolean;
+};
+
 export type RetrieveContextResult =
-  | { ok: true; sources: RagSource[] }
+  | { ok: true; sources: RagSource[]; availability: RetrievalAvailability }
   | {
       ok: false;
       reason: "invalid_query" | "provider_error" | "rate_limit" | "timeout" | "invalid_output";
@@ -45,15 +60,26 @@ export type AnswerQuestionResult =
       meta: Pick<AnswerQuestionMeta, "model" | "latencyMs">;
     };
 
-// What the API route sends to the browser. `sources` here are always
-// server-validated — a subset of what was actually retrieved, never
-// whatever the model happened to say.
-export type AskVaultSource = {
+export type AskVaultNoteSource = {
+  /** Omitted on legacy persisted rows; treated as a note. */
+  kind?: "note";
   noteId: string;
   title: string;
   categoryName: string | null;
   type: string;
 };
+
+export type AskVaultDocumentSource = {
+  kind: "document";
+  documentId: string;
+  chunkId: string;
+  title: string;
+  pageStart: number;
+  pageEnd: number;
+};
+
+/** Legacy rows may omit `kind` — treated as notes when parsing metadata. */
+export type AskVaultSource = AskVaultNoteSource | AskVaultDocumentSource;
 
 export type AskVaultSuccessOutcome =
   | "answered"
@@ -67,5 +93,32 @@ export type AskVaultResult =
       answer: string;
       sources: AskVaultSource[];
       groundedFromMessageId?: string;
+      retrievalAvailability?: RetrievalAvailability;
     }
   | { ok: false; reason: "invalid_question" | "provider_failure" | "ai_limit_reached" };
+
+export function isAskVaultDocumentSource(
+  source: AskVaultSource,
+): source is AskVaultDocumentSource {
+  return source.kind === "document";
+}
+
+export function ragSourceToAskVaultSource(source: RagSource): AskVaultSource {
+  if (source.kind === "document") {
+    return {
+      kind: "document",
+      documentId: source.documentId,
+      chunkId: source.chunkId,
+      title: source.title,
+      pageStart: source.pageStart,
+      pageEnd: source.pageEnd,
+    };
+  }
+  return {
+    kind: "note",
+    noteId: source.noteId,
+    title: source.title,
+    categoryName: source.categoryName,
+    type: source.type,
+  };
+}

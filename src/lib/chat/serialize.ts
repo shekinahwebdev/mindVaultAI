@@ -27,6 +27,8 @@ export type SerializedConversationDetail = {
   mode: "ask" | "agent";
   createdAt: string;
   updatedAt: string;
+  attachedDocumentIds: string[];
+  attachmentIncludeNotes: boolean;
   messages: SerializedChatMessage[];
 };
 

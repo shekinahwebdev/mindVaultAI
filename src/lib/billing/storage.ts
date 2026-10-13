@@ -1,9 +1,10 @@
 import { AvatarType } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db";
+import { getDocumentStorageUsageBytes } from "@/lib/documents/storage-quota";
 
 /**
  * V1 storage quota tracks uploaded binary data only (not note text in PostgreSQL).
- * Today that means profile avatar data URLs when avatarType is IMAGE.
+ * Profile avatar data URLs (IMAGE) and committed/reserved document bytes.
  */
 export function estimateDataUrlBytes(dataUrl: string): number {
   const comma = dataUrl.indexOf(",");
@@ -16,21 +17,25 @@ export function estimateDataUrlBytes(dataUrl: string): number {
 }
 
 export async function getUserStorageUsageBytes(userId: string): Promise<number> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { avatarType: true, avatarImageUrl: true },
-  });
+  const [user, documentBytes] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { avatarType: true, avatarImageUrl: true },
+    }),
+    getDocumentStorageUsageBytes(userId),
+  ]);
 
   if (!user) {
-    return 0;
+    return documentBytes;
   }
 
+  let avatarBytes = 0;
   if (
     user.avatarType === AvatarType.IMAGE &&
     user.avatarImageUrl?.startsWith("data:")
   ) {
-    return estimateDataUrlBytes(user.avatarImageUrl);
+    avatarBytes = estimateDataUrlBytes(user.avatarImageUrl);
   }
 
-  return 0;
+  return avatarBytes + documentBytes;
 }

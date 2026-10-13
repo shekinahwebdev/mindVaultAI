@@ -46,3 +46,20 @@ export async function renameConversationRequest(id: string, title: string) {
   const data = await readAuthJson<RenameConversationResponse>(response);
   return { response, data };
 }
+
+export type UpdateConversationAttachmentsResponse =
+  | { ok: true; conversation: SerializedConversationDetail }
+  | { ok: false; message?: string };
+
+export async function updateConversationAttachmentsRequest(
+  id: string,
+  payload: { attachedDocumentIds: string[]; attachmentIncludeNotes: boolean },
+) {
+  const response = await fetch(`/api/conversations/${id}/attachments`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await readAuthJson<UpdateConversationAttachmentsResponse>(response);
+  return { response, data };
+}

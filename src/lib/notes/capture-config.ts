@@ -24,8 +24,9 @@ export const CAPTURE_SERVER_ERROR =
 export const CAPTURE_UNAUTHORIZED =
   "Your session expired. Please sign in again.";
 
-export const CAPTURE_DISCARD_CONFIRM =
-  "Discard this capture? Your unsaved work will be lost.";
+export const CAPTURE_DISCARD_DIALOG_TITLE = "Discard capture?";
+export const CAPTURE_DISCARD_DIALOG_DESCRIPTION =
+  "Your unsaved work will be lost.";
 
 export const CAPTURE_ANALYZE_MIN_LENGTH = 20;
 

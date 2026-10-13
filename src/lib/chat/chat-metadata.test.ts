@@ -16,7 +16,7 @@ describe("chat metadata", () => {
 
     const parsed = parseAssistantMetadata(metadata);
     assert.equal(parsed.sources?.length, 1);
-    assert.equal(parsed.sources?.[0]?.noteId, "note-1");
+    assert.equal(parsed.sources?.[0]?.kind === "document" ? null : parsed.sources?.[0]?.noteId, "note-1");
     assert.equal(parsed.outcome, "answered");
   });
 
