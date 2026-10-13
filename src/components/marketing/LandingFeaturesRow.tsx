@@ -1,12 +1,19 @@
 import { landingFeatureHighlights } from "@/lib/marketing/landing-content";
 import { cn } from "@/lib/utils";
 
-export function LandingFeaturesRow() {
+type LandingFeaturesRowProps = {
+  className?: string;
+};
+
+export function LandingFeaturesRow({ className }: LandingFeaturesRowProps) {
   return (
     <section
       id="features"
       aria-labelledby="landing-features-heading"
-      className="relative z-10 border-t border-white/[0.06] px-[var(--mv-page-padding-x)] pb-10 pt-8 sm:pb-12 sm:pt-10 lg:pb-14"
+      className={cn(
+        "relative z-10 border-t border-white/[0.06] px-[var(--mv-page-padding-x)] pb-10 pt-8 sm:pb-12 sm:pt-10 lg:pb-14",
+        className,
+      )}
     >
       <h2 id="landing-features-heading" className="sr-only">
         Features

@@ -3,11 +3,11 @@
 import { usePathname } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 
-import { ThemeProvider } from "@/components/theme/ThemeProvider";
+import { ThemeProvider, useTheme } from "@/components/theme/ThemeProvider";
 import { VaultToaster } from "@/components/theme/VaultToaster";
 import type { SessionData } from "@/lib/auth/session";
 import { vaultRoutes } from "@/lib/routes";
-import type { ResolvedTheme, ThemePreference } from "@/lib/theme";
+import type { ThemePreference } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 import { PreferencesProvider } from "@/lib/settings/preferences-context";
@@ -27,9 +27,76 @@ import { vaultMainContentClassName, vaultShellFrameClassName } from "./vault-she
 type VaultShellProps = {
   session: SessionData;
   themePreference: ThemePreference;
-  resolvedTheme: ResolvedTheme;
   children: ReactNode;
 };
+
+type VaultAppRootProps = {
+  children: ReactNode;
+  isCapture: boolean;
+  isChat: boolean;
+  isFixedViewport: boolean;
+};
+
+/** Applies live theme class to `#mv-app` (must render inside ThemeProvider). */
+function VaultAppRoot({
+  children,
+  isCapture,
+  isChat,
+  isFixedViewport,
+}: VaultAppRootProps) {
+  const { resolved } = useTheme();
+
+  return (
+    <div
+      id="mv-app"
+      className={cn(
+        "mv-app text-foreground",
+        resolved,
+        isFixedViewport ? "h-dvh overflow-hidden" : "h-dvh overflow-hidden md:p-3",
+      )}
+    >
+      <div
+        className={cn(
+          vaultShellFrameClassName,
+          (isCapture || isChat) && "md:rounded-none",
+        )}
+      >
+        <VaultSidebar />
+
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          {!isCapture ? <VaultMobileHeader /> : null}
+          {!isCapture ? <VaultTopBar /> : null}
+
+          <main
+            className={cn(
+              "flex min-h-0 flex-1 flex-col",
+              isFixedViewport ? "overflow-hidden" : "overflow-y-auto overscroll-y-contain",
+            )}
+          >
+            <div
+              className={cn(
+                isCapture
+                  ? "flex h-full min-h-0 flex-1 flex-col px-[var(--mv-page-padding-x)] py-3 sm:py-4"
+                  : isChat
+                    ? cn(
+                        vaultMainContentClassName,
+                        "flex h-full min-h-0 flex-1 flex-col py-2 sm:py-3 pb-20 md:pb-4",
+                      )
+                    : cn(vaultMainContentClassName, "pb-24 md:pb-6"),
+              )}
+            >
+              {children}
+            </div>
+          </main>
+        </div>
+      </div>
+
+      {!isCapture ? <VaultMobileNav /> : null}
+      {!isCapture ? <VaultCommandPalette /> : null}
+      <VaultToaster />
+    </div>
+  );
+}
 
 function VaultKeyboardShortcuts() {
   const { toggle } = useVaultCommand();
@@ -71,7 +138,6 @@ function VaultKeyboardShortcuts() {
 export function VaultShell({
   session,
   themePreference,
-  resolvedTheme,
   children,
 }: VaultShellProps) {
   const pathname = usePathname();
@@ -88,62 +154,13 @@ export function VaultShell({
               <VaultKeyboardShortcuts />
               <VaultAppearanceBindings />
               <VaultThemeSync />
-              <div
-                id="mv-app"
-                className={cn(
-                  "mv-app text-foreground",
-                  resolvedTheme,
-                  isFixedViewport
-                    ? "h-dvh overflow-hidden"
-                    : "h-dvh overflow-hidden md:p-3",
-                )}
+              <VaultAppRoot
+                isCapture={isCapture}
+                isChat={isChat}
+                isFixedViewport={isFixedViewport}
               >
-                <div
-                  className={cn(
-                    vaultShellFrameClassName,
-                    (isCapture || isChat) && "md:rounded-none",
-                  )}
-                >
-                  <VaultSidebar />
-
-                  <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-                    {!isCapture ? (
-                      <VaultMobileHeader />
-                    ) : null}
-                    {!isCapture ? (
-                      <VaultTopBar />
-                    ) : null}
-
-                    <main
-                      className={cn(
-                        "flex min-h-0 flex-1 flex-col",
-                        isFixedViewport
-                          ? "overflow-hidden"
-                          : "overflow-y-auto overscroll-y-contain",
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          isCapture
-                            ? "flex h-full min-h-0 flex-1 flex-col px-[var(--mv-page-padding-x)] py-3 sm:py-4"
-                            : isChat
-                              ? cn(
-                                  vaultMainContentClassName,
-                                  "flex h-full min-h-0 flex-1 flex-col py-2 sm:py-3 pb-20 md:pb-4",
-                                )
-                              : cn(vaultMainContentClassName, "pb-24 md:pb-6"),
-                        )}
-                      >
-                        {children}
-                      </div>
-                    </main>
-                  </div>
-                </div>
-
-                {!isCapture ? <VaultMobileNav /> : null}
-                {!isCapture ? <VaultCommandPalette /> : null}
-                <VaultToaster />
-              </div>
+                {children}
+              </VaultAppRoot>
             </VaultSidebarProvider>
           </VaultCommandProvider>
         </PreferencesProvider>
