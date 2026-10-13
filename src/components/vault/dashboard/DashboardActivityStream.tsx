@@ -7,10 +7,10 @@ import { useMemo } from "react";
 import { ContentCard } from "@/components/mv/ContentCard";
 import { EmptyState } from "@/components/mv/EmptyState";
 import type { DashboardNotePreview } from "@/lib/vault/dashboard-queries";
-import { formatRelativeTime } from "@/lib/vault/format-relative-time";
 import { vaultRoutes } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
+import { RelativeTime } from "../RelativeTime";
 import { vaultActionShape } from "../vault-controls";
 
 import { DashboardSectionHeader } from "./DashboardSectionHeader";
@@ -95,7 +95,7 @@ export function DashboardActivityStream({
               <li key={note.id}>
                 <VaultItemRow
                   note={note}
-                  dateLabel={formatRelativeTime(note.updatedAt)}
+                  dateLabel={<RelativeTime iso={note.updatedAt} />}
                 />
               </li>
             ))}

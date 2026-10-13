@@ -38,6 +38,33 @@ describe("ingestUrl orchestrator", () => {
     assert.deepEqual(result, { ok: false, code: "timeout" });
   });
 
+  it("uses YouTube oEmbed for watch URLs", async () => {
+    const result = await ingestUrl("https://www.youtube.com/watch?v=abc123", {
+      fetchYouTubeOEmbedPreview: async () => ({
+        ok: true,
+        value: {
+          originalUrl: "https://www.youtube.com/watch?v=abc123",
+          finalUrl: "https://www.youtube.com/watch?v=abc123",
+          title: "My video",
+          authorName: "Creator",
+          authorUrl: "https://www.youtube.com/@creator",
+          content: "My video\n\nChannel: Creator",
+          contentLength: 24,
+        },
+      }),
+      fetchValidatedUrl: async () => {
+        throw new Error("HTML fetch should not run for YouTube");
+      },
+    });
+
+    assert.equal(result.ok, true);
+    if (result.ok) {
+      assert.equal(result.preview.extractor, "youtube_oembed");
+      assert.deepEqual(result.preview.warnings, ["youtube_oembed", "no_transcript"]);
+      assert.equal(result.preview.title, "My video");
+    }
+  });
+
   it("returns extract-stage failure codes", async () => {
     const result = await ingestUrl("https://public.example/x", {
       fetchValidatedUrl: async () => ({

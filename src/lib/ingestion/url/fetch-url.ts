@@ -75,7 +75,12 @@ export function createPinnedDispatcher(
   return new Agent({
     connect: {
       servername: hostname,
-      lookup(_hostname, _options, callback) {
+      lookup(_hostname, options, callback) {
+        // Node may request `{ all: true }` (array callback) for dual-stack connect.
+        if (options?.all) {
+          callback(null, [{ address: pinnedAddress, family }]);
+          return;
+        }
         callback(null, pinnedAddress, family);
       },
     },

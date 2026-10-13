@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import type { SerializedNote } from "@/lib/notes/serialize";
 import { noteDetailPath } from "@/lib/notes/note-display";
 import { getNoteTypeLabel, NoteTypeIcon } from "@/lib/vault/note-type-ui";
-import { formatRelativeTime } from "@/lib/vault/format-relative-time";
+import { RelativeTime } from "@/components/vault/RelativeTime";
 import { cn } from "@/lib/utils";
 
 import { vaultActionFocus } from "../vault-controls";
@@ -22,8 +22,6 @@ export function NotesTableRow({ note, onArchive }: NotesTableRowProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const typeLabel = getNoteTypeLabel(note.type);
   const categoryLabel = note.category?.name ?? "—";
-  const updatedLabel = formatRelativeTime(note.updatedAt);
-
   useEffect(() => {
     if (!menuOpen) return;
 
@@ -77,7 +75,7 @@ export function NotesTableRow({ note, onArchive }: NotesTableRowProps) {
         {typeLabel}
       </td>
       <td className="w-[5.5rem] px-2 py-3 align-middle text-[0.8125rem] tabular-nums text-muted-foreground whitespace-nowrap">
-        {updatedLabel}
+        <RelativeTime iso={note.updatedAt} />
       </td>
       <td className="relative w-10 px-2 py-3 align-middle">
         <div ref={menuRef} className="flex justify-end">

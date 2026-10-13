@@ -20,7 +20,7 @@ export function MindVaultCompanionFallback({ className }: MindVaultCompanionProp
   return (
     <span
       className={cn(
-        "relative -top-px inline-flex shrink-0 align-middle",
+        "relative inline-flex shrink-0 align-middle text-foreground",
         className ?? sizeClassName,
       )}
       aria-hidden

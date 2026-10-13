@@ -54,7 +54,10 @@ function CaptureFieldMessage({
 }
 
 type CaptureInputFieldProps = CaptureFieldBaseProps &
-  Omit<InputHTMLAttributes<HTMLInputElement>, "id">;
+  Omit<InputHTMLAttributes<HTMLInputElement>, "id"> & {
+    /** When false, error is omitted from the field column (e.g. shown below a button row). */
+    showInlineError?: boolean;
+  };
 
 export function CaptureInputField({
   id,
@@ -63,6 +66,7 @@ export function CaptureInputField({
   hint,
   className,
   disabled,
+  showInlineError = true,
   ...inputProps
 }: CaptureInputFieldProps) {
   const describedBy = error ? `${id}-error` : hint ? `${id}-hint` : undefined;
@@ -82,7 +86,11 @@ export function CaptureInputField({
         )}
         {...inputProps}
       />
-      <CaptureFieldMessage id={id} error={error} hint={hint} />
+      {showInlineError ? (
+        <CaptureFieldMessage id={id} error={error} hint={hint} />
+      ) : hint ? (
+        <CaptureFieldMessage id={id} hint={hint} />
+      ) : null}
     </label>
   );
 }
