@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowUp, ChevronDown, FileText, FolderOpen, Paperclip } from "lucide-react";
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -49,11 +49,20 @@ export function ChatComposer({
         setMenuOpen(false);
       }
     }
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+      }
+    }
     window.addEventListener("mousedown", handlePointerDown);
-    return () => window.removeEventListener("mousedown", handlePointerDown);
+    window.addEventListener("keydown", handleEscape);
+    return () => {
+      window.removeEventListener("mousedown", handlePointerDown);
+      window.removeEventListener("keydown", handleEscape);
+    };
   }, [menuOpen]);
 
-  function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+  function handleKeyDown(event: ReactKeyboardEvent<HTMLTextAreaElement>) {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
       onSubmit();
@@ -101,7 +110,8 @@ export function ChatComposer({
             {menuOpen ? (
               <div
                 role="menu"
-                className="absolute bottom-full left-0 z-20 mb-1 min-w-[11rem] rounded-[var(--mv-radius-control)] border border-border bg-surface py-1 shadow-sm"
+                aria-label="Attach PDF"
+                className="absolute top-full left-0 z-50 mt-1 min-w-[12rem] rounded-[var(--mv-radius-control)] border border-border bg-surface py-1 shadow-sm"
               >
                 <button
                   type="button"
@@ -125,7 +135,7 @@ export function ChatComposer({
                   className="flex w-full items-center gap-2 px-3 py-2 text-left text-[0.8125rem] text-foreground hover:bg-mv-panel"
                 >
                   <FileText aria-hidden className="size-4 text-mv-faint" />
-                  Upload PDF
+                  Upload New PDF
                 </button>
               </div>
             ) : null}

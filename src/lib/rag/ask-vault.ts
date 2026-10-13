@@ -19,7 +19,11 @@ import { getUserEntitlements } from "@/lib/billing/entitlements";
 import { recordAiUsage } from "@/lib/billing/usage-metering";
 
 import type { ChatAttachmentScope } from "@/lib/chat/chat-attachments";
-import { buildAttachmentIndexingDisclaimer, buildRetrievalDisclaimer } from "./retrieval-disclaimer";
+import {
+  buildAttachmentEmptyAnswer,
+  buildAttachmentIndexingDisclaimer,
+  buildRetrievalDisclaimer,
+} from "./retrieval-disclaimer";
 import type { RetrieveRagContextOptions } from "./retrieve-context";
 import type { AskVaultResult, RagSource } from "./types";
 import { ragSourceToAskVaultSource } from "./types";
@@ -137,6 +141,49 @@ export async function runAskVaultPipeline(
     .join(" ") || undefined;
 
   if (sources.length === 0) {
+    if (scope?.hasAttachments) {
+      const fallbackResult = scope.includeNotes
+        ? await tryGroundedHistoryFallback({
+            userId: input.userId,
+            billing: deps.billing,
+            question,
+            history,
+            retrievalQuery,
+            retrievalLatencyMs,
+            totalStartedAt,
+            groundedTurn: input.recentDirectGroundedTurn ?? null,
+            answerFromGroundedHistory: deps.answerFromGroundedHistory,
+          })
+        : null;
+
+      if (fallbackResult) {
+        return fallbackResult;
+      }
+
+      console.log("[rag:ask]", {
+        operation: "rag_answer",
+        outcome: "no_relevant_knowledge",
+        attachmentScoped: true,
+        readyAttachmentCount: scope.readyDocumentIds.length,
+        notReadyAttachmentCount: scope.notReadyDocumentIds.length,
+        droppedAttachmentCount: scope.droppedDocumentIds.length,
+        retrievedCount: 0,
+        usedSourceCount: 0,
+        historyMessageCount: history.length,
+        retrievalQueryCharCount: retrievalQuery.length,
+        retrievalLatencyMs,
+        generationLatencyMs: 0,
+        totalLatencyMs: Date.now() - totalStartedAt,
+      });
+
+      return {
+        ok: true,
+        outcome: "no_relevant_knowledge",
+        answer: buildAttachmentEmptyAnswer(scope),
+        sources: [],
+      };
+    }
+
     const fallbackResult = await tryGroundedHistoryFallback({
       userId: input.userId,
       billing: deps.billing,

@@ -69,7 +69,7 @@ describe("chat UI truthfulness", () => {
     const source = readChatFile("ChatComposer.tsx");
     assert.match(source, /MindVault Agent \(Coming soon\)/);
     assert.match(source, /Choose from Vault/);
-    assert.match(source, /Upload PDF/);
+    assert.match(source, /Upload New PDF/);
     assert.match(source, /Attach document/);
   });
 

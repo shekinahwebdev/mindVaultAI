@@ -525,6 +525,7 @@ export function ChatView() {
             <div ref={scrollAnchorRef} className="h-px shrink-0" aria-hidden />
           </div>
 
+          <div className="relative z-30 shrink-0 overflow-visible">
           <input
             ref={uploadInputRef}
             type="file"
@@ -569,6 +570,7 @@ export function ChatView() {
               setPickerOpen(false);
             }}
           />
+          </div>
         </section>
 
         <ChatContextPanel activeTurn={lastDoneTurn} open={contextPanelOpen} />

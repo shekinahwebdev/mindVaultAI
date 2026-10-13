@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 
 import { VaultDialog } from "@/components/vault/VaultDialog";
 import type { SerializedDocument } from "@/lib/documents/documents-client";
+import { formatBytes } from "@/lib/documents/format-bytes";
 import { cn } from "@/lib/utils";
 
 import { vaultPrimaryButton, vaultSecondaryButton } from "../vault-controls";
@@ -101,8 +102,8 @@ export function ChatDocumentPickerDialog({
                       {doc.title}
                     </span>
                     <span className="block text-[0.75rem] text-muted-foreground">
-                      {doc.processingLabel}
-                      {!ready ? " · Indexing must finish before this PDF is searchable." : ""}
+                      {formatBytes(doc.sizeBytes)} · {doc.processingLabel}
+                      {!ready ? " · Not searchable until Ready." : ""}
                     </span>
                   </span>
                 </label>
