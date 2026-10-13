@@ -76,6 +76,8 @@ export function VaultShell({
 }: VaultShellProps) {
   const pathname = usePathname();
   const isCapture = pathname === vaultRoutes.capture;
+  const isChat = pathname === vaultRoutes.chat;
+  const isFixedViewport = isCapture || isChat;
 
   return (
     <VaultSessionProvider session={session}>
@@ -91,10 +93,17 @@ export function VaultShell({
                 className={cn(
                   "mv-app text-foreground",
                   resolvedTheme,
-                  isCapture ? "h-dvh overflow-hidden" : "h-dvh overflow-hidden md:p-3",
+                  isFixedViewport
+                    ? "h-dvh overflow-hidden"
+                    : "h-dvh overflow-hidden md:p-3",
                 )}
               >
-                <div className={cn(vaultShellFrameClassName, isCapture && "md:rounded-none")}>
+                <div
+                  className={cn(
+                    vaultShellFrameClassName,
+                    (isCapture || isChat) && "md:rounded-none",
+                  )}
+                >
                   <VaultSidebar />
 
                   <div className="flex min-h-0 min-w-0 flex-1 flex-col">
@@ -108,14 +117,21 @@ export function VaultShell({
                     <main
                       className={cn(
                         "flex min-h-0 flex-1 flex-col",
-                        isCapture ? "overflow-hidden" : "overflow-y-auto overscroll-y-contain",
+                        isFixedViewport
+                          ? "overflow-hidden"
+                          : "overflow-y-auto overscroll-y-contain",
                       )}
                     >
                       <div
                         className={cn(
                           isCapture
                             ? "flex h-full min-h-0 flex-1 flex-col px-[var(--mv-page-padding-x)] py-3 sm:py-4"
-                            : cn(vaultMainContentClassName, "pb-24 md:pb-6"),
+                            : isChat
+                              ? cn(
+                                  vaultMainContentClassName,
+                                  "flex h-full min-h-0 flex-1 flex-col py-2 sm:py-3 pb-20 md:pb-4",
+                                )
+                              : cn(vaultMainContentClassName, "pb-24 md:pb-6"),
                         )}
                       >
                         {children}

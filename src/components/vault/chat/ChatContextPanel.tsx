@@ -41,7 +41,7 @@ export function ChatContextPanel({ activeTurn, open }: ChatContextPanelProps) {
         <p className="text-[0.75rem] text-muted-foreground">From your vault</p>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">
+      <div className="mv-scrollbar mv-scrollbar-chat min-h-0 flex-1 overflow-y-auto p-4">
         <div className="space-y-4">
           {sources.length > 0 ? (
             <p className="text-[0.75rem] text-muted-foreground">

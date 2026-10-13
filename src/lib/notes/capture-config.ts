@@ -47,6 +47,9 @@ export const CAPTURE_IMPORT_URL_PLACEHOLDER = "https://example.com/article";
 export const CAPTURE_IMPORT_HELPER =
   "Paste a public article or webpage and MindVault will extract the readable content.";
 
+export const CAPTURE_IMPORT_YOUTUBE_HINT =
+  "YouTube links import the video title and channel via YouTube — not the transcript. You can edit the note before saving.";
+
 export const CAPTURE_IMPORT_BUTTON = "Import";
 
 export const CAPTURE_IMPORT_LOADING = "Reading page...";

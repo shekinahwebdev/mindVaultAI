@@ -101,7 +101,7 @@ export function ChatHistorySidebar({
         </label>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-2 py-3">
+      <div className="mv-scrollbar mv-scrollbar-chat min-h-0 flex-1 overflow-y-auto px-2 py-3">
         {loading ? (
           <p className="px-3 py-6 text-center text-[0.8125rem] text-muted-foreground">
             Loading conversations…

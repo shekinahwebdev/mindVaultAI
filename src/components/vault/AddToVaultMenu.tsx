@@ -10,7 +10,7 @@ import { vaultRoutes } from "@/lib/routes";
 import { getNoteTypeIcon } from "@/lib/vault/note-type-ui";
 import { cn } from "@/lib/utils";
 
-import { vaultActionFocus, vaultPrimaryButton } from "./vault-controls";
+import { vaultPrimaryButton } from "./vault-controls";
 
 const quickCaptureTypeSet = new Set<string>([
   NoteType.NOTE,

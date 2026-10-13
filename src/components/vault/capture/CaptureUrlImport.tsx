@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   CAPTURE_IMPORT_BUTTON,
@@ -10,8 +10,10 @@ import {
   CAPTURE_IMPORT_URL_LABEL,
   CAPTURE_IMPORT_URL_PLACEHOLDER,
   CAPTURE_IMPORT_URL_REQUIRED,
+  CAPTURE_IMPORT_YOUTUBE_HINT,
   CAPTURE_UNAUTHORIZED,
 } from "@/lib/notes/capture-config";
+import { parseYouTubeIngestUrl } from "@/lib/ingestion/url/youtube-oembed";
 import {
   ingestUrlRequest,
   messageForIngestResponse,
@@ -44,6 +46,10 @@ export function CaptureUrlImport({
   const [error, setError] = useState("");
   const abortRef = useRef<AbortController | null>(null);
   const requestIdRef = useRef(0);
+  const showYouTubeHint = useMemo(
+    () => Boolean(importUrl.trim() && parseYouTubeIngestUrl(importUrl)),
+    [importUrl],
+  );
 
   useEffect(() => {
     return () => {
@@ -133,6 +139,7 @@ export function CaptureUrlImport({
           placeholder={CAPTURE_IMPORT_URL_PLACEHOLDER}
           disabled={disabled || importing}
           error={error}
+          showInlineError={false}
           autoComplete="off"
           className="min-w-0 flex-1"
           onKeyDown={(event) => {
@@ -156,6 +163,20 @@ export function CaptureUrlImport({
           {importing ? CAPTURE_IMPORT_LOADING : CAPTURE_IMPORT_BUTTON}
         </button>
       </div>
+      {error ? (
+        <p
+          id="capture-import-url-error"
+          role="alert"
+          className="mt-1.5 text-[0.75rem] text-muted-foreground"
+        >
+          {error}
+        </p>
+      ) : null}
+      {showYouTubeHint ? (
+        <p className="mt-2 text-[0.75rem] leading-relaxed text-muted-foreground">
+          {CAPTURE_IMPORT_YOUTUBE_HINT}
+        </p>
+      ) : null}
     </section>
   );
 }

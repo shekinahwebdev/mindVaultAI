@@ -8,7 +8,7 @@ import type { SerializedNote } from "@/lib/notes/serialize";
 import { noteDetailPath, truncateNoteContent } from "@/lib/notes/note-display";
 import { useNotesList } from "@/lib/notes/use-notes-list";
 import { vaultRoutes } from "@/lib/routes";
-import { formatRelativeTime } from "@/lib/vault/format-relative-time";
+import { RelativeTime } from "@/components/vault/RelativeTime";
 import { NoteTypeIcon } from "@/lib/vault/note-type-ui";
 import { cn } from "@/lib/utils";
 
@@ -169,7 +169,7 @@ function NoteRailCard({ note, active }: { note: SerializedNote; active: boolean 
               {truncateNoteContent(note.content, 90)}
             </p>
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[0.625rem] text-mv-faint">
-              <span>{formatRelativeTime(note.updatedAt)}</span>
+              <RelativeTime iso={note.updatedAt} />
               {note.category ? (
                 <span className="rounded-full border border-border px-1.5 py-0.5 text-muted-foreground">
                   {note.category.name}

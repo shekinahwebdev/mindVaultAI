@@ -59,6 +59,7 @@ export function ChatView() {
   const [contextPanelOpen, setContextPanelOpen] = useState(true);
   const submittingRef = useRef(false);
   const pendingTurnIdRef = useRef(0);
+  const scrollAnchorRef = useRef<HTMLDivElement>(null);
 
   const isBusy = turns.some((turn) => turn.status === "loading");
 
@@ -71,6 +72,10 @@ export function ChatView() {
     }
     return null;
   }, [turns]);
+
+  const lastTurn = turns[turns.length - 1];
+  const lastTurnStatus = lastTurn?.status;
+  const lastTurnAnswer = lastTurn?.answer;
 
   const refreshConversationList = useCallback(async () => {
     const { data } = await fetchConversations();
@@ -104,6 +109,10 @@ export function ChatView() {
     };
   }, [preferences.ragEnabled, preferencesLoading]);
 
+  useEffect(() => {
+    scrollAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [turns.length, lastTurnStatus, lastTurnAnswer]);
+
   const loadConversation = useCallback(async (id: string) => {
     setDetailLoading(true);
     const { data } = await fetchConversation(id);
@@ -122,7 +131,7 @@ export function ChatView() {
     setDetailLoading(false);
   }, []);
 
-  async function submitMessage(message: string) {
+  const submitMessage = useCallback(async (message: string) => {
     const trimmed = message.trim();
     if (!trimmed || submittingRef.current) return;
 
@@ -210,7 +219,30 @@ export function ChatView() {
     } finally {
       submittingRef.current = false;
     }
-  }
+  }, [activeId, refreshConversationList]);
+
+  const handleUpdateTurn = useCallback((id: string, patch: Partial<ChatTurn>) => {
+    setTurns((current) =>
+      current.map((turn) => (turn.id === id ? { ...turn, ...patch } : turn)),
+    );
+  }, []);
+
+  const handleEditQuestion = useCallback(
+    (turnId: string, newQuestion: string) => {
+      if (submittingRef.current) {
+        return;
+      }
+      setTurns((current) => {
+        const index = current.findIndex((turn) => turn.id === turnId);
+        if (index === -1) {
+          return current;
+        }
+        return current.slice(0, index);
+      });
+      void submitMessage(newQuestion);
+    },
+    [submitMessage],
+  );
 
   function handleNewChat() {
     setActiveId(null);
@@ -295,9 +327,9 @@ export function ChatView() {
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.28, ease: vaultEase }}
-      className="-mx-[var(--mv-page-padding-x)] flex min-h-[calc(100dvh-7.5rem)] flex-col overflow-hidden border-y border-border bg-surface md:mx-0 md:rounded-[var(--mv-radius-card)] md:border"
+      className="-mx-[var(--mv-page-padding-x)] flex h-full min-h-0 flex-1 flex-col overflow-hidden border-y border-border bg-surface md:mx-0 md:rounded-[var(--mv-radius-card)] md:border"
     >
-      <div className="flex min-h-0 flex-1">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
         <div className="hidden lg:flex">
           <ChatHistorySidebar
             activeId={activeId}
@@ -310,7 +342,7 @@ export function ChatView() {
           />
         </div>
 
-        <section className="flex min-w-0 flex-1 flex-col">
+        <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <header className="flex shrink-0 items-start justify-between gap-3 border-b border-border px-4 py-3 sm:px-5">
             <div className="min-w-0">
               <h2 className="line-clamp-1 text-[0.9375rem] font-semibold text-foreground sm:text-[1rem]">
@@ -346,7 +378,7 @@ export function ChatView() {
             </div>
           </header>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5">
+          <div className="mv-scrollbar mv-scrollbar-chat min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 py-4 sm:px-5">
             {detailLoading ? (
               <p className="py-8 text-center text-[0.8125rem] text-muted-foreground">
                 Loading conversation…
@@ -373,13 +405,16 @@ export function ChatView() {
                       <ChatTurnBubble
                         turn={turn}
                         session={session}
-                        onUpdateTurn={() => {}}
+                        onUpdateTurn={handleUpdateTurn}
+                        onEditQuestion={handleEditQuestion}
+                        editDisabled={isBusy}
                       />
                     </motion.li>
                   ))}
                 </AnimatePresence>
               </ul>
             )}
+            <div ref={scrollAnchorRef} className="h-px shrink-0" aria-hidden />
           </div>
 
           <ChatComposer

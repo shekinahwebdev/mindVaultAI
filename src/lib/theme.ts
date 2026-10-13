@@ -40,16 +40,12 @@ export function applyDocumentTheme(resolved: ResolvedTheme) {
   root.classList.remove("light", "dark");
   root.classList.add(resolved);
   root.style.colorScheme = resolved;
-
-  const app = document.getElementById("mv-app");
-  if (app) {
-    app.classList.remove("light", "dark");
-    app.classList.add("mv-app", resolved);
-  }
+  // `#mv-app` light/dark classes are set by React (VaultShell) — do not mutate here
+  // or classList.add() will reorder classes and cause hydration mismatches.
 }
 
 export function themeInitScript(preference: ThemePreference) {
-  return `(function(){try{var m=document.cookie.match(/(?:^|; )${THEME_COOKIE}=([^;]*)/);var pref=m?decodeURIComponent(m[1]):${JSON.stringify(preference)};var resolved=pref==="light"||pref==="dark"?pref:(window.matchMedia("(prefers-color-scheme: light)").matches?"light":"dark");var root=document.documentElement;root.classList.remove("light","dark");root.classList.add(resolved);root.style.colorScheme=resolved;var el=document.getElementById("mv-app");if(el){el.classList.remove("light","dark");el.classList.add("mv-app",resolved);}}catch(e){}})();`;
+  return `(function(){try{var m=document.cookie.match(/(?:^|; )${THEME_COOKIE}=([^;]*)/);var pref=m?decodeURIComponent(m[1]):${JSON.stringify(preference)};var resolved=pref==="light"||pref==="dark"?pref:(window.matchMedia("(prefers-color-scheme: light)").matches?"light":"dark");var root=document.documentElement;root.classList.remove("light","dark");root.classList.add(resolved);root.style.colorScheme=resolved;}catch(e){}})();`;
 }
 
 export function persistThemeCookie(preference: ThemePreference) {

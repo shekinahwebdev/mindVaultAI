@@ -98,9 +98,15 @@ export const INGEST_EXTRACT_MIN_MEANINGFUL_CHARS = 150;
 export type ExtractContentWarning =
   | "truncated"
   | "title_missing"
-  | "dom_fallback";
+  | "dom_fallback"
+  | "youtube_oembed"
+  | "no_transcript";
 
-export type ExtractContentExtractor = "readability" | "plain_text" | "dom_fallback";
+export type ExtractContentExtractor =
+  | "readability"
+  | "plain_text"
+  | "dom_fallback"
+  | "youtube_oembed";
 
 export type ExtractContentErrorCode =
   | "extract_failed"

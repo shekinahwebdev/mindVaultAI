@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { MoreHorizontal } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import type { DashboardNotePreview } from "@/lib/vault/dashboard-queries";
 import { noteDetailPath } from "@/lib/notes/note-display";
@@ -17,7 +17,7 @@ import { vaultActionFocus } from "../vault-controls";
 
 type VaultItemRowProps = {
   note: DashboardNotePreview;
-  dateLabel: string;
+  dateLabel: ReactNode;
 };
 
 export function VaultItemRow({ note, dateLabel }: VaultItemRowProps) {

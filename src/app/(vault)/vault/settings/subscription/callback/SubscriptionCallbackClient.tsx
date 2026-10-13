@@ -15,13 +15,15 @@ type CallbackState = "confirming" | "success" | "pending" | "error";
 export function SubscriptionCallbackClient() {
   const searchParams = useSearchParams();
   const reference = searchParams.get("reference") ?? searchParams.get("trxref") ?? "";
-  const [state, setState] = useState<CallbackState>("confirming");
-  const [message, setMessage] = useState("Confirming your subscription…");
+  const [state, setState] = useState<CallbackState>(() =>
+    reference ? "confirming" : "error",
+  );
+  const [message, setMessage] = useState(() =>
+    reference ? "Confirming your subscription…" : "Missing payment reference.",
+  );
 
   useEffect(() => {
     if (!reference) {
-      setState("error");
-      setMessage("Missing payment reference.");
       return;
     }
 

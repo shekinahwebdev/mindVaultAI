@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import type { ReactNode } from "react";
 
 import { brand } from "@/lib/brand";
@@ -24,11 +25,10 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
         editorial.variable,
       )}
     >
-      <head>
-        {/* Static file — not a React inline script (avoids client script reconciliation warnings). */}
-        <script src="/mindvault-theme-init.js" suppressHydrationWarning />
-      </head>
-      <body>{children}</body>
+      <body>
+        <Script src="/mindvault-theme-init.js" strategy="beforeInteractive" />
+        {children}
+      </body>
     </html>
   );
 }

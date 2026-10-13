@@ -130,6 +130,11 @@ html.dark,
   --sidebar-accent-foreground: #f5f5f5;
   --sidebar-border: rgb(255 255 255 / 0.08);
   --sidebar-ring: #707070;
+  --mv-scrollbar-size: 8px;
+  --mv-scrollbar-track: transparent;
+  --mv-scrollbar-thumb: rgb(255 255 255 / 0.14);
+  --mv-scrollbar-thumb-hover: rgb(255 255 255 / 0.26);
+  --mv-scrollbar-thumb-active: rgb(255 255 255 / 0.34);
 }
 
 html.light {
@@ -182,6 +187,9 @@ html.light {
   --sidebar-accent: #f1f1ef;
   --sidebar-accent-foreground: #151515;
   --sidebar-border: #e4e4e1;
+  --mv-scrollbar-thumb: rgb(21 21 21 / 0.12);
+  --mv-scrollbar-thumb-hover: rgb(21 21 21 / 0.22);
+  --mv-scrollbar-thumb-active: rgb(21 21 21 / 0.32);
 }
 
 @layer base {
@@ -389,6 +397,61 @@ html.light .mv-app {
 
 .mv-frame {
   background: var(--mv-page);
+}
+
+/* Vault scrollbars — thin pill thumb, theme-aware (Firefox + WebKit) */
+.mv-scrollbar {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--mv-scrollbar-thumb) var(--mv-scrollbar-track);
+}
+
+.mv-scrollbar::-webkit-scrollbar {
+  width: var(--mv-scrollbar-size);
+  height: var(--mv-scrollbar-size);
+}
+
+.mv-scrollbar::-webkit-scrollbar-track {
+  margin-block: 4px;
+  background: var(--mv-scrollbar-track);
+}
+
+.mv-scrollbar::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-color: var(--mv-scrollbar-thumb);
+  background-clip: padding-box;
+  transition: background-color 0.15s ease;
+}
+
+.mv-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: var(--mv-scrollbar-thumb-hover);
+}
+
+.mv-scrollbar::-webkit-scrollbar-thumb:active {
+  background-color: var(--mv-scrollbar-thumb-active);
+}
+
+.mv-scrollbar::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Chat panes — slightly slimmer; thumb softens when idle, clearer on hover */
+.mv-scrollbar-chat {
+  --mv-scrollbar-size: 6px;
+}
+
+.mv-scrollbar-chat:not(:hover):not(:focus-within)::-webkit-scrollbar-thumb {
+  background-color: rgb(255 255 255 / 0.08);
+}
+
+html.light .mv-scrollbar-chat:not(:hover):not(:focus-within)::-webkit-scrollbar-thumb {
+  background-color: rgb(21 21 21 / 0.07);
+}
+
+.mv-scrollbar-chat:hover::-webkit-scrollbar-thumb,
+.mv-scrollbar-chat:focus-within::-webkit-scrollbar-thumb {
+  background-color: var(--mv-scrollbar-thumb);
 }
 
 html.light .mv-frame,

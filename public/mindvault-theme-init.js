@@ -16,10 +16,5 @@
     root.classList.remove("light", "dark");
     root.classList.add(resolved);
     root.style.colorScheme = resolved;
-    var el = document.getElementById("mv-app");
-    if (el) {
-      el.classList.remove("light", "dark");
-      el.classList.add("mv-app", resolved);
-    }
-  } catch (e) {}
+  } catch {}
 })();
