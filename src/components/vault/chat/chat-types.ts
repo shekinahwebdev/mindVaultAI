@@ -1,6 +1,7 @@
 import type { AgentAction } from "@/lib/agent/agent-client";
 import type { AgentTraceStep } from "@/lib/agent/types";
 import type { ChatAnswerOutcome } from "@/lib/chat/chat-outcomes";
+import type { UserMessageAttachment } from "@/lib/chat/chat-metadata";
 import type { AskVaultSource } from "@/lib/rag/chat-client";
 
 export type ChatMode = "ask" | "agent";
@@ -13,6 +14,8 @@ export type ChatTurn = {
   mode: ChatMode;
   status: "loading" | "done" | "error" | "pending_action";
   createdAt: number;
+  /** PDFs attached when this question was sent. */
+  attachedDocuments?: UserMessageAttachment[];
   answer?: string;
   answerOutcome?: ChatAnswerOutcome;
   sources?: AskVaultSource[];

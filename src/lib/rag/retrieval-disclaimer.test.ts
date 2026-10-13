@@ -10,6 +10,7 @@ function scope(partial: Partial<ChatAttachmentScope> & Pick<ChatAttachmentScope,
     readyDocumentIds: [],
     droppedDocumentIds: [],
     notReadyDocumentIds: [],
+    attachedDocuments: [],
     includeNotes: false,
     ...partial,
   };

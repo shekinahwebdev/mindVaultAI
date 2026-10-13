@@ -1,6 +1,11 @@
 import { DocumentStatus } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db";
 
+export type ChatMessageAttachment = {
+  documentId: string;
+  title: string;
+};
+
 export type ChatAttachmentScope = {
   /** User selected one or more attachment ids (ready or still processing). */
   hasAttachments: boolean;
@@ -10,6 +15,8 @@ export type ChatAttachmentScope = {
   droppedDocumentIds: string[];
   /** Owned docs that are not READY yet (shown in UI, not searched). */
   notReadyDocumentIds: string[];
+  /** Owned attachments in request order (for per-message chat UI). */
+  attachedDocuments: ChatMessageAttachment[];
   includeNotes: boolean;
 };
 
@@ -48,6 +55,7 @@ export async function resolveChatAttachmentScope(
       readyDocumentIds: [],
       droppedDocumentIds: [],
       notReadyDocumentIds: [],
+      attachedDocuments: [],
       includeNotes: true,
     };
   }
@@ -58,21 +66,23 @@ export async function resolveChatAttachmentScope(
       userId,
       archivedAt: null,
     },
-    select: { id: true, status: true },
+    select: { id: true, status: true, title: true },
   });
 
-  const found = new Map(rows.map((row) => [row.id, row.status]));
+  const found = new Map(rows.map((row) => [row.id, row]));
   const readyDocumentIds: string[] = [];
   const notReadyDocumentIds: string[] = [];
   const droppedDocumentIds: string[] = [];
+  const attachedDocuments: ChatMessageAttachment[] = [];
 
   for (const id of uniqueRequested) {
-    const status = found.get(id);
-    if (!status) {
+    const row = found.get(id);
+    if (!row) {
       droppedDocumentIds.push(id);
       continue;
     }
-    if (status === DocumentStatus.READY) {
+    attachedDocuments.push({ documentId: id, title: row.title });
+    if (row.status === DocumentStatus.READY) {
       readyDocumentIds.push(id);
     } else {
       notReadyDocumentIds.push(id);
@@ -84,6 +94,7 @@ export async function resolveChatAttachmentScope(
     readyDocumentIds,
     droppedDocumentIds,
     notReadyDocumentIds,
+    attachedDocuments,
     includeNotes,
   };
 }

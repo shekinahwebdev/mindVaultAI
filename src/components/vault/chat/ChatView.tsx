@@ -205,6 +205,11 @@ export function ChatView() {
     pendingTurnIdRef.current += 1;
     const pendingTurnId = `pending-${pendingTurnIdRef.current}`;
 
+    const sentAttachments =
+      attachmentDocs.length > 0
+        ? attachmentDocs.map((doc) => ({ documentId: doc.id, title: doc.title }))
+        : undefined;
+
     setTurns((current) => [
       ...current,
       {
@@ -213,6 +218,7 @@ export function ChatView() {
         mode: "ask",
         status: "loading",
         createdAt: Date.now(),
+        attachedDocuments: sentAttachments,
       },
     ]);
     setInput("");
@@ -235,6 +241,7 @@ export function ChatView() {
                   mode: "ask",
                   status: "done",
                   createdAt: turn.createdAt,
+                  attachedDocuments: turn.attachedDocuments,
                   answer: data.answer,
                   answerOutcome: data.outcome,
                   sources: data.sources,
@@ -265,6 +272,7 @@ export function ChatView() {
                   mode: "ask",
                   status: "error",
                   createdAt: turn.createdAt,
+                  attachedDocuments: turn.attachedDocuments,
                   error: err,
                 }
               : turn,
@@ -287,7 +295,7 @@ export function ChatView() {
     } finally {
       submittingRef.current = false;
     }
-  }, [activeId, attachedDocumentIds, includeNotesWithAttachments, refreshConversationList]);
+  }, [activeId, attachedDocumentIds, attachmentDocs, includeNotesWithAttachments, refreshConversationList]);
 
   useEffect(() => {
     if (!shouldPollAttachments) return;

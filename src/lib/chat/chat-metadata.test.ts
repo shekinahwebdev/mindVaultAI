@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { buildAssistantMetadata, parseAssistantMetadata } from "./chat-metadata";
+import {
+  buildAssistantMetadata,
+  buildUserMessageMetadata,
+  parseAssistantMetadata,
+  parseUserMessageMetadata,
+} from "./chat-metadata";
 
 describe("chat metadata", () => {
   it("round-trips validated assistant sources", () => {
@@ -39,5 +44,15 @@ describe("chat metadata", () => {
 
   it("rejects malformed metadata", () => {
     assert.deepEqual(parseAssistantMetadata({ sources: "bad" }), {});
+  });
+
+  it("round-trips user message PDF attachments", () => {
+    const metadata = buildUserMessageMetadata([
+      { documentId: "doc-1", title: "Patricia_Freelance_Web_Development_Guide.pdf" },
+    ]);
+    assert.ok(metadata);
+    const parsed = parseUserMessageMetadata(metadata);
+    assert.equal(parsed.attachments.length, 1);
+    assert.equal(parsed.attachments[0]?.documentId, "doc-1");
   });
 });

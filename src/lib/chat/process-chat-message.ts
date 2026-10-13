@@ -88,7 +88,22 @@ export async function processChatMessage(params: {
       };
     }
 
-    const userMessage = await createUserMessage(conversation.id, trimmed);
+    const requestedAttachmentIds = normalizeAttachedDocumentIds(params.attachedDocumentIds);
+    const attachmentScope = await resolveChatAttachmentScope(
+      params.userId,
+      requestedAttachmentIds,
+      params.attachmentIncludeNotes === true,
+    );
+
+    const ownedAttachmentIds = requestedAttachmentIds.filter(
+      (id) => !attachmentScope.droppedDocumentIds.includes(id),
+    );
+
+    const userMessage = await createUserMessage(
+      conversation.id,
+      trimmed,
+      attachmentScope.attachedDocuments,
+    );
 
     const conversationHistory = await getRecentConversationMessagesForUser(
       params.userId,
@@ -102,17 +117,6 @@ export async function processChatMessage(params: {
       { excludeMessageId: userMessage.id },
     );
     const recentDirectGroundedTurn = findMostRecentDirectGroundedTurn(groundingMessages);
-
-    const requestedAttachmentIds = normalizeAttachedDocumentIds(params.attachedDocumentIds);
-    const attachmentScope = await resolveChatAttachmentScope(
-      params.userId,
-      requestedAttachmentIds,
-      params.attachmentIncludeNotes === true,
-    );
-
-    const ownedAttachmentIds = requestedAttachmentIds.filter(
-      (id) => !attachmentScope.droppedDocumentIds.includes(id),
-    );
 
     await updateConversationAttachmentsForUser(
       params.userId,

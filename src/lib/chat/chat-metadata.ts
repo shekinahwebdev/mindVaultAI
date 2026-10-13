@@ -81,3 +81,31 @@ export function buildAssistantMetadata(
     ...(groundedFromMessageId ? { groundedFromMessageId } : {}),
   };
 }
+
+const UserMessageAttachmentSchema = z.object({
+  documentId: z.string(),
+  title: z.string(),
+});
+
+const UserMessageMetadataSchema = z.object({
+  attachments: z.array(UserMessageAttachmentSchema).optional(),
+});
+
+export type UserMessageAttachment = z.infer<typeof UserMessageAttachmentSchema>;
+
+export function parseUserMessageMetadata(raw: unknown): { attachments: UserMessageAttachment[] } {
+  const parsed = UserMessageMetadataSchema.safeParse(raw);
+  if (!parsed.success || !parsed.data.attachments?.length) {
+    return { attachments: [] };
+  }
+  return { attachments: parsed.data.attachments };
+}
+
+export function buildUserMessageMetadata(
+  attachments: UserMessageAttachment[],
+): Record<string, unknown> | undefined {
+  if (attachments.length === 0) {
+    return undefined;
+  }
+  return { attachments };
+}

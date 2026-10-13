@@ -73,6 +73,17 @@ describe("chat UI truthfulness", () => {
     assert.match(source, /Attach document/);
   });
 
+  it("ChatTurnBubble shows PDF attachments on sent user messages", () => {
+    const source = readChatFile("ChatTurnBubble.tsx");
+    assert.match(source, /ChatTurnAttachmentChips/);
+    assert.match(source, /attachedDocuments/);
+  });
+
+  it("ChatTurnBubble renders assistant answers with formatted markdown", () => {
+    const source = readChatFile("ChatTurnBubble.tsx");
+    assert.match(source, /ChatAssistantAnswer/);
+  });
+
   it("ChatContextPanel is sources-only", () => {
     const source = readChatFile("ChatContextPanel.tsx");
     assert.match(source, /Sources/);

@@ -8,7 +8,11 @@ import type { ConversationContextMessage } from "@/lib/rag/conversation-context"
 import { boundConversationHistory } from "@/lib/rag/conversation-context";
 
 import { normalizeAttachedDocumentIds } from "./chat-attachments";
-import { buildAssistantMetadata } from "./chat-metadata";
+import {
+  buildAssistantMetadata,
+  buildUserMessageMetadata,
+  type UserMessageAttachment,
+} from "./chat-metadata";
 import type { GroundingConversationMessage } from "./grounded-turn";
 import { conversationTitleFromFirstMessage } from "./chat-title";
 import {
@@ -100,12 +104,15 @@ export async function resolveConversationForUser(
 export async function createUserMessage(
   conversationId: string,
   content: string,
+  attachments: UserMessageAttachment[] = [],
 ) {
+  const metadata = buildUserMessageMetadata(attachments);
   return prisma.chatMessage.create({
     data: {
       conversationId,
       role: ChatRole.USER,
       content,
+      ...(metadata ? { metadata: metadata as Prisma.InputJsonValue } : {}),
     },
   });
 }

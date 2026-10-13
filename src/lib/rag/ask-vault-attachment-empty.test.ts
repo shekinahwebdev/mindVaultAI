@@ -14,6 +14,7 @@ describe("attachment-scoped empty retrieval", () => {
           readyDocumentIds: ["doc-1"],
           droppedDocumentIds: [],
           notReadyDocumentIds: [],
+          attachedDocuments: [{ documentId: "doc-1", title: "Guide" }],
           includeNotes: false,
         },
       },

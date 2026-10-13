@@ -28,6 +28,7 @@ describe("document-scoped ask vault", () => {
           readyDocumentIds: ["doc-1"],
           droppedDocumentIds: [],
           notReadyDocumentIds: [],
+          attachedDocuments: [{ documentId: "doc-1", title: "ai-engineer" }],
           includeNotes: false,
         },
       },

@@ -20,7 +20,9 @@ import type { SessionData } from "@/lib/auth/session";
 
 import { UserAvatar } from "../UserAvatar";
 
+import { ChatAssistantAnswer } from "./ChatAssistantAnswer";
 import { ChatMessageActions, ChatMessageEditActions } from "./ChatMessageActions";
+import { ChatTurnAttachmentChips } from "./ChatTurnAttachmentChips";
 import type { ChatTurn } from "./chat-types";
 
 type ChatTurnBubbleProps = {
@@ -107,6 +109,12 @@ export function ChatTurnBubble({
   return (
     <div className="space-y-4">
       <div className="group flex flex-col items-end gap-1">
+        {turn.attachedDocuments?.length && !isEditing ? (
+          <ChatTurnAttachmentChips
+            attachments={turn.attachedDocuments}
+            className="max-w-[min(36rem,85%)] pr-9"
+          />
+        ) : null}
         <div className="flex justify-end gap-2.5">
           {isEditing ? (
             <textarea
@@ -157,9 +165,7 @@ export function ChatTurnBubble({
       ) : (
         <div className="group max-w-[min(42rem,92%)]">
         <AssistantCard>
-          <p className="text-[0.9rem] leading-relaxed whitespace-pre-wrap text-foreground">
-            {turn.answer}
-          </p>
+          <ChatAssistantAnswer text={turn.answer ?? ""} />
 
           {turn.answerOutcome === "no_relevant_knowledge" ? (
             <p className="text-[0.8125rem] text-muted-foreground">{CHAT_NO_RELEVANT_KNOWLEDGE_HINT}</p>
@@ -170,7 +176,7 @@ export function ChatTurnBubble({
           ) : null}
 
           {turn.sources && turn.sources.length > 0 ? (
-            <StructuredSources answer={turn.answer ?? ""} sources={turn.sources} />
+            <StructuredSources sources={turn.sources} />
           ) : null}
 
           {turn.status === "pending_action" && turn.action ? (
@@ -238,38 +244,13 @@ function AssistantCard({ children }: { children: React.ReactNode }) {
   );
 }
 
-function StructuredSources({
-  answer,
-  sources,
-}: {
-  answer: string;
-  sources: AskVaultSource[];
-}) {
-  const bullets = answer
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.startsWith("-") || line.startsWith("•"))
-    .slice(0, 6);
-
+function StructuredSources({ sources }: { sources: AskVaultSource[] }) {
   return (
-    <div className="space-y-4 border-t border-border pt-4">
-      {bullets.length > 0 ? (
-        <section>
-          <h3 className="text-[0.8125rem] font-semibold text-foreground">Key topics</h3>
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-[0.8125rem] text-muted-foreground">
-            {bullets.map((line) => (
-              <li key={line}>{line.replace(/^[-•]\s*/, "")}</li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
-      <section>
-        <h3 className="text-[0.8125rem] font-semibold text-foreground">Related content</h3>
-        <div className="mt-2">
-          <ChatSourceLinks sources={sources} />
-        </div>
-      </section>
+    <div className="border-t border-border pt-4">
+      <h3 className="text-[0.8125rem] font-semibold text-foreground">Related content</h3>
+      <div className="mt-2">
+        <ChatSourceLinks sources={sources} />
+      </div>
     </div>
   );
 }

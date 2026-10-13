@@ -35,6 +35,8 @@ export function messagesToTurns(messages: SerializedChatMessage[]): ChatTurn[] {
         mode: "ask",
         status: "done",
         createdAt: new Date(message.createdAt).getTime(),
+        attachedDocuments:
+          message.attachments.length > 0 ? message.attachments : undefined,
         answer: assistant.content,
         answerOutcome: inferAssistantOutcome(assistant),
         sources: assistant.sources,
@@ -49,6 +51,8 @@ export function messagesToTurns(messages: SerializedChatMessage[]): ChatTurn[] {
       mode: "ask",
       status: "error",
       createdAt: new Date(message.createdAt).getTime(),
+      attachedDocuments:
+        message.attachments.length > 0 ? message.attachments : undefined,
       error: CHAT_PROVIDER_FAILURE,
     });
     index += 1;

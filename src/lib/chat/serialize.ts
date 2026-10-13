@@ -1,12 +1,14 @@
 import type { ChatMessage, Conversation } from "@/generated/prisma/client";
 import { ChatMode, ChatRole } from "@/generated/prisma/enums";
 
-import { parseAssistantMetadata } from "./chat-metadata";
+import { parseAssistantMetadata, parseUserMessageMetadata } from "./chat-metadata";
+import type { UserMessageAttachment } from "./chat-metadata";
 
 export type SerializedChatMessage = {
   id: string;
   role: "USER" | "ASSISTANT";
   content: string;
+  attachments: UserMessageAttachment[];
   sources: ReturnType<typeof parseAssistantMetadata>["sources"];
   outcome?: ReturnType<typeof parseAssistantMetadata>["outcome"];
   createdAt: string;
@@ -37,17 +39,20 @@ export function serializeChatMode(mode: ChatMode): "ask" | "agent" {
 }
 
 export function serializeChatMessage(message: ChatMessage): SerializedChatMessage {
-  const metadata =
+  const assistantMetadata =
     message.role === ChatRole.ASSISTANT
       ? parseAssistantMetadata(message.metadata)
-      : {};
+      : null;
+  const userMetadata =
+    message.role === ChatRole.USER ? parseUserMessageMetadata(message.metadata) : null;
 
   return {
     id: message.id,
     role: message.role,
     content: message.content,
-    sources: metadata.sources,
-    outcome: metadata.outcome,
+    attachments: userMetadata?.attachments ?? [],
+    sources: assistantMetadata?.sources,
+    outcome: assistantMetadata?.outcome,
     createdAt: message.createdAt.toISOString(),
   };
 }
