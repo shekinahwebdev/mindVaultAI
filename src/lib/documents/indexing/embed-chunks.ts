@@ -1,4 +1,4 @@
-import { embedText, EMBEDDING_DIMENSIONS, EMBEDDING_MODEL } from "@/lib/ai/embed-text";
+import { embedText, getWriteProviderSpec } from "@/lib/ai/embed-text";
 import { ProcessingError } from "@/lib/documents/processing/job-errors";
 
 import { buildDocumentChunkEmbeddingInput } from "./embedding-input";
@@ -14,6 +14,7 @@ export type EmbedChunksOptions = {
     embedding: number[];
     model: string;
     dimensions: number;
+    provider: "gemini" | "openai";
   }) => Promise<void>;
   concurrency?: number;
   embed?: EmbedFn;
@@ -69,15 +70,17 @@ export async function embedDocumentChunks(options: EmbedChunksOptions): Promise<
     if (!result.ok) {
       throw classifyEmbedFailure(result.reason);
     }
-    if (result.embedding.length !== EMBEDDING_DIMENSIONS) {
+    const writeSpec = getWriteProviderSpec();
+    if (result.embedding.length !== writeSpec.dimensions) {
       throw new ProcessingError("Invalid embedding dimensions.", "transient");
     }
 
     await options.writeEmbedding({
       chunkIndex,
       embedding: result.embedding,
-      model: EMBEDDING_MODEL,
-      dimensions: EMBEDDING_DIMENSIONS,
+      model: result.meta.model,
+      dimensions: result.meta.dimensions,
+      provider: writeSpec.provider,
     });
 
     completed += 1;

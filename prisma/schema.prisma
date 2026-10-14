@@ -186,6 +186,10 @@ model DocumentChunk {
   embeddingDimensions Int?    @map("embedding_dimensions")
   embedding           Unsupported("vector(768)")?
 
+  openaiEmbeddingModel      String? @map("openai_embedding_model")
+  openaiEmbeddingDimensions Int?    @map("openai_embedding_dimensions")
+  openaiEmbedding           Unsupported("vector(768)")? @map("openai_embedding")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -568,8 +572,21 @@ model NoteEmbedding {
   model      String
   dimensions Int
 
+  openaiEmbedding  Unsupported("vector(768)")? @map("openai_embedding")
+  openaiModel      String?                     @map("openai_model")
+  openaiDimensions Int?                        @map("openai_dimensions")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("note_embeddings")
+}
+
+/// Resumable OpenAI embedding migration checkpoints (global + per-user cursors).
+model EmbeddingMigrationCheckpoint {
+  key       String   @id
+  payload   Json
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("embedding_migration_checkpoints")
 }

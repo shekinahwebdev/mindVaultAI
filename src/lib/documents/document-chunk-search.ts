@@ -1,4 +1,6 @@
 import { Prisma } from "@/generated/prisma/client";
+import { getProviderSpec, type EmbeddingProviderName } from "@/lib/ai/embedding-providers/config";
+import { getRetrievalProviderSpec } from "@/lib/ai/embed-text";
 import { prisma } from "@/lib/db";
 
 export type DocumentChunkSearchRow = {
@@ -21,10 +23,9 @@ function toVectorLiteral(embedding: number[]): string {
  * userId must come from the authenticated session — never from client input alone.
  */
 export type DocumentChunkSearchOptions = {
-  /** When set, restrict retrieval to these document ids (must already be user-owned READY). */
   documentIds?: string[];
-  /** When true, never search the full vault — empty documentIds returns no rows. */
   restrictToDocumentIds?: boolean;
+  retrievalProvider?: EmbeddingProviderName;
 };
 
 export async function searchDocumentChunksBySimilarity(
@@ -47,6 +48,34 @@ export async function searchDocumentChunksBySimilarity(
       ? Prisma.sql`AND d.id IN (${Prisma.join(scopeIds)})`
       : Prisma.empty;
 
+  const retrievalProvider = options?.retrievalProvider ?? getRetrievalProviderSpec().provider;
+  const spec = getProviderSpec(retrievalProvider);
+
+  if (retrievalProvider === "openai") {
+    return prisma.$queryRaw<DocumentChunkSearchRow[]>`
+      SELECT
+        dc.id AS "chunkId",
+        d.id AS "documentId",
+        d.title AS "documentTitle",
+        dc.content AS content,
+        dc.page_start AS "pageStart",
+        dc.page_end AS "pageEnd",
+        dc.chunk_index AS "chunkIndex",
+        1 - (dc.openai_embedding <=> ${vectorLiteral}::vector) AS similarity
+      FROM document_chunks dc
+      INNER JOIN documents d ON d.id = dc.document_id
+      WHERE d.user_id = ${userId}
+        AND d.status = 'READY'
+        AND d.archived_at IS NULL
+        AND dc.openai_embedding IS NOT NULL
+        AND dc.openai_embedding_model = ${spec.model}
+        AND dc.openai_embedding_dimensions = ${spec.dimensions}
+        ${documentScope}
+      ORDER BY dc.openai_embedding <=> ${vectorLiteral}::vector ASC
+      LIMIT ${topK}
+    `;
+  }
+
   return prisma.$queryRaw<DocumentChunkSearchRow[]>`
     SELECT
       dc.id AS "chunkId",
@@ -63,6 +92,8 @@ export async function searchDocumentChunksBySimilarity(
       AND d.status = 'READY'
       AND d.archived_at IS NULL
       AND dc.embedding IS NOT NULL
+      AND dc.embedding_model = ${spec.model}
+      AND dc.embedding_dimensions = ${spec.dimensions}
       ${documentScope}
     ORDER BY dc.embedding <=> ${vectorLiteral}::vector ASC
     LIMIT ${topK}
