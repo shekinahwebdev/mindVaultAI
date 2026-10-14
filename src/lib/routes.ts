@@ -20,6 +20,7 @@ export const routes = {
 
 export const vaultRoutes = {
   dashboard: "/vault",
+  library: "/vault/library",
   notes: "/vault/notes",
   categories: "/vault/categories",
   tags: "/vault/tags",

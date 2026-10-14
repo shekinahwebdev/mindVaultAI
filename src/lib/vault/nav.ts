@@ -4,6 +4,7 @@ import {
   Code2,
   FolderOpen,
   LayoutDashboard,
+  Library,
   Link2,
   MessageSquare,
   Plus,
@@ -32,6 +33,11 @@ export const vaultSidebarPrimaryNav: VaultNavItem[] = [
     label: "Dashboard",
     href: vaultRoutes.dashboard,
     icon: LayoutDashboard,
+  },
+  {
+    label: "Library",
+    href: vaultRoutes.library,
+    icon: Library,
   },
   {
     label: "Notes",
