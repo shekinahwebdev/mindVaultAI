@@ -41,7 +41,7 @@ export function VaultSidebarPlanCard({ collapsed, expanded }: VaultSidebarPlanCa
     return (
       <Link
         href={vaultRoutes.subscription}
-        className="group relative mx-auto flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-mv-panel/80 hover:text-foreground"
+        className="group relative mx-auto flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-[var(--mv-sidebar-nav-hover-bg)] hover:text-sidebar-foreground"
         aria-label={
           subscription
             ? `${planDisplayName(subscription.plan)} · ${subscription.usage.aiRequests.used} of ${subscription.usage.aiRequests.limit} AI requests`
@@ -60,7 +60,7 @@ export function VaultSidebarPlanCard({ collapsed, expanded }: VaultSidebarPlanCa
 
   if (loading || !subscription) {
     return (
-      <div className="mx-0.5 rounded-[var(--mv-radius-control)] border border-border/70 bg-mv-panel/40 px-3 py-2.5">
+      <div className="mx-0.5 rounded-[var(--mv-radius-control)] border border-sidebar-border bg-sidebar-accent/80 px-3 py-2.5">
         <p className="text-[0.75rem] text-muted-foreground">Loading plan…</p>
       </div>
     );
@@ -73,7 +73,7 @@ export function VaultSidebarPlanCard({ collapsed, expanded }: VaultSidebarPlanCa
   return (
     <div
       className={cn(
-        "mx-0.5 rounded-[var(--mv-radius-control)] border border-border/70 bg-mv-panel/40 px-3 py-3 transition-opacity",
+        "mx-0.5 rounded-[var(--mv-radius-control)] border border-sidebar-border bg-sidebar-accent/80 px-3 py-3 transition-opacity",
         !expanded && "opacity-0 pointer-events-none",
       )}
     >

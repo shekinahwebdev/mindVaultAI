@@ -1,12 +1,19 @@
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
-import { buildNotesListWhere } from "@/lib/notes/list-query";
-import { activeNoteWhere } from "@/lib/notes/note-scope";
+import {
+  documentTagSelect,
+  serializeDocumentTags,
+} from "@/lib/documents/document-tags-repository";
+import { serializeDocument } from "@/lib/documents/serialize";
 import { truncateNoteContent } from "@/lib/notes/note-display";
 import { noteSelect, serializeNote } from "@/lib/notes/serialize";
-import { serializeDocument } from "@/lib/documents/serialize";
 
 import { activeLibraryDocumentWhere, LIBRARY_DOCUMENT_STATUSES } from "./document-list-scope";
+import {
+  buildDocumentsLibraryWhere,
+  buildNotesLibraryWhere,
+  libraryFiltersAreValid,
+} from "./library-scope";
 import type { LibrarySortOption } from "./library-list-config";
 import type { LibraryListResult, SerializedLibraryItem } from "./library-types";
 import type { LibraryListQuery } from "./library-validation";
@@ -31,49 +38,35 @@ function libraryOrderSql(sort: LibrarySortOption): Prisma.Sql {
   }
 }
 
-function noteOrderBy(sort: LibrarySortOption) {
+function noteOrderBy(sort: LibrarySortOption): Prisma.NoteOrderByWithRelationInput[] {
   switch (sort) {
     case "updated_asc":
-      return { updatedAt: "asc" as const };
+      return [{ updatedAt: "asc" }, { id: "asc" }];
     case "created_desc":
-      return { createdAt: "desc" as const };
+      return [{ createdAt: "desc" }, { id: "desc" }];
     case "created_asc":
-      return { createdAt: "asc" as const };
+      return [{ createdAt: "asc" }, { id: "asc" }];
     case "title_asc":
-      return { title: "asc" as const };
+      return [{ title: "asc" }, { id: "asc" }];
     default:
-      return { updatedAt: "desc" as const };
+      return [{ updatedAt: "desc" }, { id: "desc" }];
   }
 }
 
-function documentOrderBy(sort: LibrarySortOption) {
-  return noteOrderBy(sort);
+function documentOrderBy(sort: LibrarySortOption): Prisma.DocumentOrderByWithRelationInput[] {
+  return noteOrderBy(sort) as Prisma.DocumentOrderByWithRelationInput[];
 }
 
-function buildDocumentSearchWhere(search: string | null): Prisma.DocumentWhereInput {
-  if (!search) {
-    return {};
-  }
+function emptyLibraryResult(query: LibraryListQuery): LibraryListResult {
   return {
-    OR: [
-      { title: { contains: search, mode: "insensitive" } },
-      { originalFilename: { contains: search, mode: "insensitive" } },
-    ],
+    items: [],
+    pagination: {
+      page: query.page,
+      limit: query.limit,
+      total: 0,
+      totalPages: 0,
+    },
   };
-}
-
-function buildNoteSearchWhere(userId: string, search: string | null): Prisma.NoteWhereInput {
-  return buildNotesListWhere(userId, {
-    page: 1,
-    limit: 20,
-    skip: 0,
-    type: null,
-    categoryId: null,
-    tagId: null,
-    uncategorizedOnly: false,
-    sort: "updated_desc",
-    search,
-  });
 }
 
 async function findJobForDocument(documentId: string, processingVersion: number) {
@@ -111,6 +104,7 @@ async function hydrateLibraryRows(
             id: { in: documentIds },
             ...activeLibraryDocumentWhere(userId),
           },
+          include: documentTagSelect,
         })
       : [],
   ]);
@@ -151,7 +145,7 @@ async function hydrateLibraryRows(
       preview: serialized.originalFilename,
       createdAt: serialized.createdAt,
       updatedAt: serialized.updatedAt,
-      tags: [],
+      tags: serializeDocumentTags(document.documentTags),
       noteType: null,
       processingDisplayStatus: serialized.processingDisplayStatus,
       processingLabel: serialized.processingLabel,
@@ -165,7 +159,7 @@ async function listNotesPage(
   userId: string,
   query: LibraryListQuery,
 ): Promise<LibraryListResult> {
-  const where = buildNoteSearchWhere(userId, query.search);
+  const where = buildNotesLibraryWhere(userId, query);
   const [total, rows] = await Promise.all([
     prisma.note.count({ where }),
     prisma.note.findMany({
@@ -208,10 +202,7 @@ async function listDocumentsPage(
   userId: string,
   query: LibraryListQuery,
 ): Promise<LibraryListResult> {
-  const where = {
-    ...activeLibraryDocumentWhere(userId),
-    ...buildDocumentSearchWhere(query.search),
-  };
+  const where = buildDocumentsLibraryWhere(userId, query);
 
   const [total, rows] = await Promise.all([
     prisma.document.count({ where }),
@@ -220,6 +211,7 @@ async function listDocumentsPage(
       orderBy: documentOrderBy(query.sort),
       skip: query.skip,
       take: query.limit,
+      include: documentTagSelect,
     }),
   ]);
 
@@ -234,7 +226,7 @@ async function listDocumentsPage(
       preview: serialized.originalFilename,
       createdAt: serialized.createdAt,
       updatedAt: serialized.updatedAt,
-      tags: [],
+      tags: serializeDocumentTags(row.documentTags),
       noteType: null,
       processingDisplayStatus: serialized.processingDisplayStatus,
       processingLabel: serialized.processingLabel,
@@ -252,20 +244,52 @@ async function listDocumentsPage(
   };
 }
 
+function libraryFilterSql(query: LibraryListQuery) {
+  const searchPattern = query.search ? `%${query.search}%` : null;
+  const noteSearchClause = searchPattern
+    ? Prisma.sql`AND (n.title ILIKE ${searchPattern} OR n.content ILIKE ${searchPattern})`
+    : Prisma.empty;
+  const documentSearchClause = searchPattern
+    ? Prisma.sql`AND (d.title ILIKE ${searchPattern} OR d.original_filename ILIKE ${searchPattern})`
+    : Prisma.empty;
+
+  const noteTagClause = query.tagId
+    ? Prisma.sql`AND EXISTS (SELECT 1 FROM note_tags nt WHERE nt.note_id = n.id AND nt.tag_id = ${query.tagId})`
+    : Prisma.empty;
+  const documentTagClause = query.tagId
+    ? Prisma.sql`AND EXISTS (SELECT 1 FROM document_tags dt WHERE dt.document_id = d.id AND dt.tag_id = ${query.tagId})`
+    : Prisma.empty;
+
+  const noteCollectionClause = query.collectionId
+    ? Prisma.sql`AND EXISTS (SELECT 1 FROM collection_items ci WHERE ci.collection_id = ${query.collectionId} AND ci.note_id = n.id)`
+    : Prisma.empty;
+  const documentCollectionClause = query.collectionId
+    ? Prisma.sql`AND EXISTS (SELECT 1 FROM collection_items ci WHERE ci.collection_id = ${query.collectionId} AND ci.document_id = d.id)`
+    : Prisma.empty;
+
+  return {
+    noteSearchClause,
+    documentSearchClause,
+    noteTagClause,
+    documentTagClause,
+    noteCollectionClause,
+    documentCollectionClause,
+  };
+}
+
 async function listMixedLibraryPage(
   userId: string,
   query: LibraryListQuery,
 ): Promise<LibraryListResult> {
-  const searchPattern = query.search ? `%${query.search}%` : null;
   const statuses = LIBRARY_DOCUMENT_STATUSES;
-
-  const noteSearchClause = searchPattern
-    ? Prisma.sql`AND (n.title ILIKE ${searchPattern} OR n.content ILIKE ${searchPattern})`
-    : Prisma.empty;
-
-  const documentSearchClause = searchPattern
-    ? Prisma.sql`AND (d.title ILIKE ${searchPattern} OR d.original_filename ILIKE ${searchPattern})`
-    : Prisma.empty;
+  const {
+    noteSearchClause,
+    documentSearchClause,
+    noteTagClause,
+    documentTagClause,
+    noteCollectionClause,
+    documentCollectionClause,
+  } = libraryFilterSql(query);
 
   const orderSql = libraryOrderSql(query.sort);
 
@@ -278,6 +302,8 @@ async function listMixedLibraryPage(
         WHERE n.user_id = ${userId}
           AND n.archived_at IS NULL
           ${noteSearchClause}
+          ${noteTagClause}
+          ${noteCollectionClause}
         UNION ALL
         SELECT d.id
         FROM documents d
@@ -285,6 +311,8 @@ async function listMixedLibraryPage(
           AND d.archived_at IS NULL
           AND d.status::text = ANY(${statuses})
           ${documentSearchClause}
+          ${documentTagClause}
+          ${documentCollectionClause}
       ) AS library_rows
     `,
     prisma.$queryRaw<LibraryUnionRow[]>`
@@ -295,6 +323,8 @@ async function listMixedLibraryPage(
         WHERE n.user_id = ${userId}
           AND n.archived_at IS NULL
           ${noteSearchClause}
+          ${noteTagClause}
+          ${noteCollectionClause}
         UNION ALL
         SELECT 'document'::text AS kind, d.id, d.title, d.updated_at, d.created_at
         FROM documents d
@@ -302,6 +332,8 @@ async function listMixedLibraryPage(
           AND d.archived_at IS NULL
           AND d.status::text = ANY(${statuses})
           ${documentSearchClause}
+          ${documentTagClause}
+          ${documentCollectionClause}
       ) AS library_union
       ORDER BY ${orderSql}
       LIMIT ${query.limit}
@@ -327,6 +359,11 @@ export async function listLibraryForUser(
   userId: string,
   query: LibraryListQuery,
 ): Promise<LibraryListResult> {
+  const filtersValid = await libraryFiltersAreValid(userId, query);
+  if (!filtersValid) {
+    return emptyLibraryResult(query);
+  }
+
   if (query.type === "note") {
     return listNotesPage(userId, query);
   }
@@ -338,9 +375,8 @@ export async function listLibraryForUser(
 
 /** @internal test helpers */
 export const libraryRepositoryInternals = {
-  activeNoteWhere,
   activeLibraryDocumentWhere,
-  buildNoteSearchWhere,
-  buildDocumentSearchWhere,
+  buildNotesLibraryWhere,
+  buildDocumentsLibraryWhere,
   libraryOrderSql,
 };

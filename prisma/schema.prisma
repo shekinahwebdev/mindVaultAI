@@ -49,6 +49,7 @@ model User {
   billingTransactions BillingTransaction[]
   documents           Document[]
   storageReservations StorageReservation[]
+  collections         Collection[]
 
   @@map("users")
 }
@@ -94,6 +95,8 @@ model Document {
   storageReservation StorageReservation?
   processingJobs     DocumentProcessingJob[]
   chunks             DocumentChunk[]
+  documentTags       DocumentTag[]
+  collectionItems    CollectionItem[]
 
   @@unique([storageKey])
   @@index([userId, createdAt])
@@ -438,7 +441,8 @@ model Tag {
   userId String @map("user_id")
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  noteTags NoteTag[]
+  noteTags     NoteTag[]
+  documentTags DocumentTag[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -446,6 +450,60 @@ model Tag {
   @@unique([userId, normalizedName])
   @@index([userId])
   @@map("tags")
+}
+
+model Collection {
+  id String @id @default(cuid())
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String? @db.Text
+
+  items CollectionItem[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@map("collections")
+}
+
+model CollectionItem {
+  id String @id @default(cuid())
+
+  collectionId String     @map("collection_id")
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  noteId String? @map("note_id")
+  note   Note?   @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  documentId String?   @map("document_id")
+  document   Document? @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([collectionId, noteId])
+  @@unique([collectionId, documentId])
+  @@index([collectionId])
+  @@index([noteId])
+  @@index([documentId])
+  @@map("collection_items")
+}
+
+model DocumentTag {
+  documentId String @map("document_id")
+  tagId      String @map("tag_id")
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  tag      Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([documentId, tagId])
+  @@index([documentId])
+  @@index([tagId])
+  @@map("document_tags")
 }
 
 model Note {
@@ -465,7 +523,8 @@ model Note {
 
   embedding NoteEmbedding?
 
-  noteTags NoteTag[]
+  noteTags          NoteTag[]
+  collectionItems   CollectionItem[]
 
   archivedAt DateTime? @map("archived_at")
 

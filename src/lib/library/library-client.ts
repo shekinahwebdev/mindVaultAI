@@ -20,6 +20,12 @@ export function buildLibraryQueryString(query: Partial<LibraryListQuery>): strin
   if (query.search) {
     params.set("q", query.search);
   }
+  if (query.tagId) {
+    params.set("tagId", query.tagId);
+  }
+  if (query.collectionId) {
+    params.set("collectionId", query.collectionId);
+  }
   const serialized = params.toString();
   return serialized ? `?${serialized}` : "";
 }
