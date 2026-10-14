@@ -5,8 +5,11 @@ import { buildGenerationContents, type AnswerQuestionInput } from "./answer-ques
 import { runAskVaultPipeline } from "./ask-vault";
 import type { RagSource } from "./types";
 
+const emptyAvailability = { noteSearchUnavailable: false, documentSearchUnavailable: false };
+
 const sampleSources: RagSource[] = [
   {
+    kind: "note",
     sourceNumber: 1,
     noteId: "note-1",
     title: "JWT",
@@ -34,7 +37,7 @@ describe("runAskVaultPipeline conversation memory", () => {
       {
         retrieve: async (_userId, query) => {
           capturedRetrievalQuery = query;
-          return { ok: true, sources: sampleSources };
+          return { ok: true, sources: sampleSources, availability: emptyAvailability };
         },
         answer: async (input) => {
           captured.answerInput = input;
@@ -70,7 +73,7 @@ describe("runAskVaultPipeline conversation memory", () => {
       {
         retrieve: async (_userId, query) => {
           capturedRetrievalQuery = query;
-          return { ok: true, sources: sampleSources };
+          return { ok: true, sources: sampleSources, availability: emptyAvailability };
         },
         answer: async () => ({
           ok: true,

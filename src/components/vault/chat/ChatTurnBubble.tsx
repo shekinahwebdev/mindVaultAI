@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 
 import {
@@ -8,9 +7,10 @@ import {
   CHAT_NO_RELEVANT_KNOWLEDGE_HINT,
 } from "@/lib/chat/chat-outcomes";
 import { createNoteRequest } from "@/lib/notes/capture-client";
-import { noteDetailPath, noteTypeLabels } from "@/lib/notes/note-display";
 import type { AskVaultSource } from "@/lib/rag/chat-client";
-import { getNoteTypeIcon } from "@/lib/vault/note-type-ui";
+import { noteTypeLabels } from "@/lib/notes/note-display";
+
+import { ChatSourceLinks } from "./ChatSourceLinks";
 import { toastSuccess } from "@/lib/vault-toast";
 import { cn } from "@/lib/utils";
 
@@ -20,7 +20,9 @@ import type { SessionData } from "@/lib/auth/session";
 
 import { UserAvatar } from "../UserAvatar";
 
+import { ChatAssistantAnswer } from "./ChatAssistantAnswer";
 import { ChatMessageActions, ChatMessageEditActions } from "./ChatMessageActions";
+import { ChatTurnAttachmentChips } from "./ChatTurnAttachmentChips";
 import type { ChatTurn } from "./chat-types";
 
 type ChatTurnBubbleProps = {
@@ -107,6 +109,12 @@ export function ChatTurnBubble({
   return (
     <div className="space-y-4">
       <div className="group flex flex-col items-end gap-1">
+        {turn.attachedDocuments?.length && !isEditing ? (
+          <ChatTurnAttachmentChips
+            attachments={turn.attachedDocuments}
+            className="max-w-[min(36rem,85%)] pr-9"
+          />
+        ) : null}
         <div className="flex justify-end gap-2.5">
           {isEditing ? (
             <textarea
@@ -157,9 +165,7 @@ export function ChatTurnBubble({
       ) : (
         <div className="group max-w-[min(42rem,92%)]">
         <AssistantCard>
-          <p className="text-[0.9rem] leading-relaxed whitespace-pre-wrap text-foreground">
-            {turn.answer}
-          </p>
+          <ChatAssistantAnswer text={turn.answer ?? ""} />
 
           {turn.answerOutcome === "no_relevant_knowledge" ? (
             <p className="text-[0.8125rem] text-muted-foreground">{CHAT_NO_RELEVANT_KNOWLEDGE_HINT}</p>
@@ -170,7 +176,7 @@ export function ChatTurnBubble({
           ) : null}
 
           {turn.sources && turn.sources.length > 0 ? (
-            <StructuredSources answer={turn.answer ?? ""} sources={turn.sources} />
+            <StructuredSources sources={turn.sources} />
           ) : null}
 
           {turn.status === "pending_action" && turn.action ? (
@@ -238,59 +244,13 @@ function AssistantCard({ children }: { children: React.ReactNode }) {
   );
 }
 
-function StructuredSources({
-  answer,
-  sources,
-}: {
-  answer: string;
-  sources: AskVaultSource[];
-}) {
-  const bullets = answer
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.startsWith("-") || line.startsWith("•"))
-    .slice(0, 6);
-
+function StructuredSources({ sources }: { sources: AskVaultSource[] }) {
   return (
-    <div className="space-y-4 border-t border-border pt-4">
-      {bullets.length > 0 ? (
-        <section>
-          <h3 className="text-[0.8125rem] font-semibold text-foreground">Key topics</h3>
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-[0.8125rem] text-muted-foreground">
-            {bullets.map((line) => (
-              <li key={line}>{line.replace(/^[-•]\s*/, "")}</li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
-      <section>
-        <h3 className="text-[0.8125rem] font-semibold text-foreground">Related content</h3>
-        <ul className="mt-2 space-y-2">
-          {sources.map((source) => {
-            const Icon = getNoteTypeIcon(source.type);
-            return (
-              <li key={source.noteId}>
-                <Link
-                  href={noteDetailPath(source.noteId)}
-                  className="flex items-start gap-2.5 rounded-[var(--mv-radius-control)] border border-border bg-mv-panel/40 px-3 py-2.5 transition-colors hover:bg-mv-panel/70"
-                >
-                  <Icon aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                  <span className="min-w-0">
-                    <span className="block text-[0.8125rem] font-medium text-foreground">
-                      {source.title}
-                    </span>
-                    <span className="text-[0.6875rem] text-mv-faint">
-                      {noteTypeLabels[source.type] ?? source.type}
-                      {source.categoryName ? ` · ${source.categoryName}` : ""}
-                    </span>
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
+    <div className="border-t border-border pt-4">
+      <h3 className="text-[0.8125rem] font-semibold text-foreground">Related content</h3>
+      <div className="mt-2">
+        <ChatSourceLinks sources={sources} />
+      </div>
     </div>
   );
 }

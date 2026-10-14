@@ -36,7 +36,12 @@ export const CHAT_LOAD_ERROR = CHAT_PROVIDER_FAILURE_MESSAGE;
 
 export async function askVaultRequest(
   question: string,
-  options?: { conversationId?: string; signal?: AbortSignal },
+  options?: {
+    conversationId?: string;
+    attachedDocumentIds?: string[];
+    attachmentIncludeNotes?: boolean;
+    signal?: AbortSignal;
+  },
 ) {
   const response = await fetch("/api/chat", {
     method: "POST",
@@ -44,6 +49,12 @@ export async function askVaultRequest(
     body: JSON.stringify({
       question,
       ...(options?.conversationId ? { conversationId: options.conversationId } : {}),
+      ...(options?.attachedDocumentIds?.length
+        ? {
+            attachedDocumentIds: options.attachedDocumentIds,
+            attachmentIncludeNotes: options.attachmentIncludeNotes === true,
+          }
+        : {}),
     }),
     signal: options?.signal,
   });

@@ -18,7 +18,8 @@ import { NoteType } from "@/generated/prisma/enums";
 import {
   CAPTURE_ANALYZE_MIN_LENGTH,
   CAPTURE_DEFAULT_TYPE,
-  CAPTURE_DISCARD_CONFIRM,
+  CAPTURE_DISCARD_DIALOG_DESCRIPTION,
+  CAPTURE_DISCARD_DIALOG_TITLE,
   CAPTURE_IMPORT_GENERIC_ERROR,
   CAPTURE_IMPORT_REPLACE_CONFIRM,
   CAPTURE_IMPORT_SUCCESS,
@@ -55,7 +56,10 @@ import { cn } from "@/lib/utils";
 import { captureMetaForType } from "@/lib/notes/capture-type-ui";
 import { NoteTypeIcon } from "@/lib/vault/note-type-ui";
 
+import { VaultDialog } from "@/components/vault/VaultDialog";
+
 import {
+  vaultDestructiveButton,
   vaultIconButton,
   vaultPanelClassName,
   vaultPrimaryButton,
@@ -100,6 +104,7 @@ export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
   const [dismissedAiTagKeys, setDismissedAiTagKeys] = useState<Set<string>>(
     () => new Set(),
   );
+  const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
   const analyzeAbortRef = useRef<AbortController | null>(null);
   const typeTouchedByUserRef = useRef(false);
   const {
@@ -160,23 +165,26 @@ export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
       return;
     }
 
-    if (window.confirm(CAPTURE_DISCARD_CONFIRM)) {
-      onRequestClose();
-    }
+    setDiscardDialogOpen(true);
   }, [loading, onRequestClose, success, formValues]);
+
+  const confirmDiscard = useCallback(() => {
+    setDiscardDialogOpen(false);
+    onRequestClose();
+  }, [onRequestClose]);
 
   useImperativeHandle(ref, () => ({ requestClose }), [requestClose]);
 
   const handleEscape = useCallback(
     (event: KeyboardEvent) => {
-      if (event.key !== "Escape" || loading || success) {
+      if (event.key !== "Escape" || loading || success || discardDialogOpen) {
         return;
       }
 
       event.preventDefault();
       requestClose();
     },
-    [loading, requestClose, success],
+    [discardDialogOpen, loading, requestClose, success],
   );
 
   useEffect(() => {
@@ -583,6 +591,26 @@ export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
           </button>
         </div>
       </div>
+
+      <VaultDialog
+        open={discardDialogOpen}
+        title={CAPTURE_DISCARD_DIALOG_TITLE}
+        description={CAPTURE_DISCARD_DIALOG_DESCRIPTION}
+        onClose={() => setDiscardDialogOpen(false)}
+      >
+        <div className="flex justify-end gap-2.5">
+          <button
+            type="button"
+            className={vaultSecondaryButton}
+            onClick={() => setDiscardDialogOpen(false)}
+          >
+            Keep editing
+          </button>
+          <button type="button" className={vaultDestructiveButton} onClick={confirmDiscard}>
+            Discard
+          </button>
+        </div>
+      </VaultDialog>
     </form>
   );
   },

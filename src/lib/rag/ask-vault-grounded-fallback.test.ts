@@ -14,6 +14,7 @@ const groundedTurn: DirectGroundedTurn = {
   assistantAnswer: "Your notes describe JWT bearer tokens for stateless auth.",
   sources: [
     {
+      kind: "note",
       noteId: "note-jwt",
       title: "JWT",
       categoryName: "Security",
@@ -34,7 +35,11 @@ describe("askVault grounded history fallback", () => {
         recentDirectGroundedTurn: groundedTurn,
       },
       {
-        retrieve: async () => ({ ok: true, sources: [] }),
+        retrieve: async () => ({
+          ok: true,
+          sources: [],
+          availability: { noteSearchUnavailable: false, documentSearchUnavailable: false },
+        }),
         answer: async () => {
           ragAnswerCalled = true;
           throw new Error("RAG should not run");
@@ -71,7 +76,11 @@ describe("askVault grounded history fallback", () => {
         recentDirectGroundedTurn: groundedTurn,
       },
       {
-        retrieve: async () => ({ ok: true, sources: [] }),
+        retrieve: async () => ({
+          ok: true,
+          sources: [],
+          availability: { noteSearchUnavailable: false, documentSearchUnavailable: false },
+        }),
         answer: async () => ({ ok: true, answer: { answer: "x", sourceNumbers: [1] }, meta: { model: "t", latencyMs: 1 } }),
         answerFromGroundedHistory: async () => {
           fallbackCalled = true;
@@ -97,7 +106,11 @@ describe("askVault grounded history fallback", () => {
         recentDirectGroundedTurn: null,
       },
       {
-        retrieve: async () => ({ ok: true, sources: [] }),
+        retrieve: async () => ({
+          ok: true,
+          sources: [],
+          availability: { noteSearchUnavailable: false, documentSearchUnavailable: false },
+        }),
         answerFromGroundedHistory: async () => {
           fallbackCalled = true;
           throw new Error("should not run");
@@ -125,6 +138,7 @@ describe("askVault grounded history fallback", () => {
           ok: true,
           sources: [
             {
+              kind: "note",
               sourceNumber: 1,
               noteId: "note-jwt",
               title: "JWT",
@@ -134,6 +148,7 @@ describe("askVault grounded history fallback", () => {
               similarity: 0.9,
             },
           ],
+          availability: { noteSearchUnavailable: false, documentSearchUnavailable: false },
         }),
         answer: async () => ({
           ok: true,
@@ -161,7 +176,11 @@ describe("askVault grounded history fallback", () => {
         recentDirectGroundedTurn: groundedTurn,
       },
       {
-        retrieve: async () => ({ ok: true, sources: [] }),
+        retrieve: async () => ({
+          ok: true,
+          sources: [],
+          availability: { noteSearchUnavailable: false, documentSearchUnavailable: false },
+        }),
         answerFromGroundedHistory: async () => ({
           ok: false,
           reason: "provider_error",

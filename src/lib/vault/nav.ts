@@ -4,10 +4,12 @@ import {
   Code2,
   FolderOpen,
   LayoutDashboard,
+  Library,
   Link2,
   MessageSquare,
   Plus,
   Quote,
+  FileText,
   Search,
   Settings,
   StickyNote,
@@ -33,6 +35,11 @@ export const vaultSidebarPrimaryNav: VaultNavItem[] = [
     icon: LayoutDashboard,
   },
   {
+    label: "Library",
+    href: vaultRoutes.library,
+    icon: Library,
+  },
+  {
     label: "Notes",
     expandedLabel: "All Notes",
     href: vaultRoutes.notes,
@@ -49,6 +56,11 @@ export const vaultSidebarPrimaryNav: VaultNavItem[] = [
     icon: Tag,
   },
   { label: "Search", href: vaultRoutes.search, icon: Search },
+  {
+    label: "Documents",
+    href: vaultRoutes.documents,
+    icon: FileText,
+  },
   {
     label: "AI Chat",
     href: vaultRoutes.chat,

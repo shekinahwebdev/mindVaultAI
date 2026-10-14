@@ -18,7 +18,15 @@ import { noopAskVaultBilling } from "@/lib/billing/billing-noop";
 import { getUserEntitlements } from "@/lib/billing/entitlements";
 import { recordAiUsage } from "@/lib/billing/usage-metering";
 
+import type { ChatAttachmentScope } from "@/lib/chat/chat-attachments";
+import {
+  buildAttachmentEmptyAnswer,
+  buildAttachmentIndexingDisclaimer,
+  buildRetrievalDisclaimer,
+} from "./retrieval-disclaimer";
+import type { RetrieveRagContextOptions } from "./retrieve-context";
 import type { AskVaultResult, RagSource } from "./types";
+import { ragSourceToAskVaultSource } from "./types";
 
 /** @deprecated Use CHAT_NO_RELEVANT_KNOWLEDGE_ANSWER */
 export const RAG_NO_ANSWER_MESSAGE = CHAT_NO_RELEVANT_KNOWLEDGE_ANSWER;
@@ -35,6 +43,7 @@ export type AskVaultInput = {
   conversationHistory?: ConversationContextMessage[];
   /** Most recent turn grounded directly from vault retrieval (not history fallback). */
   recentDirectGroundedTurn?: DirectGroundedTurn | null;
+  attachmentScope?: ChatAttachmentScope;
 };
 
 import type { AskVaultBilling } from "@/lib/billing/ask-vault-billing";
@@ -98,7 +107,16 @@ export async function runAskVaultPipeline(
 
   const totalStartedAt = Date.now();
   const retrievalStartedAt = Date.now();
-  const retrieval = await deps.retrieve(input.userId, retrievalQuery);
+  const scope = input.attachmentScope;
+  const retrieveOptions: RetrieveRagContextOptions | undefined = scope?.hasAttachments
+    ? {
+        documentIds: scope.readyDocumentIds,
+        includeNotes: scope.includeNotes,
+        restrictToAttachedDocuments: true,
+      }
+    : undefined;
+
+  const retrieval = await deps.retrieve(input.userId, retrievalQuery, retrieveOptions);
   const retrievalLatencyMs = Date.now() - retrievalStartedAt;
 
   if (!retrieval.ok) {
@@ -117,8 +135,55 @@ export async function runAskVaultPipeline(
   }
 
   const sources = retrieval.sources;
+  const availability = retrieval.availability;
+  const retrievalDisclaimer = [buildRetrievalDisclaimer(availability), buildAttachmentIndexingDisclaimer(scope)]
+    .filter(Boolean)
+    .join(" ") || undefined;
 
   if (sources.length === 0) {
+    if (scope?.hasAttachments) {
+      const fallbackResult = scope.includeNotes
+        ? await tryGroundedHistoryFallback({
+            userId: input.userId,
+            billing: deps.billing,
+            question,
+            history,
+            retrievalQuery,
+            retrievalLatencyMs,
+            totalStartedAt,
+            groundedTurn: input.recentDirectGroundedTurn ?? null,
+            answerFromGroundedHistory: deps.answerFromGroundedHistory,
+          })
+        : null;
+
+      if (fallbackResult) {
+        return fallbackResult;
+      }
+
+      console.log("[rag:ask]", {
+        operation: "rag_answer",
+        outcome: "no_relevant_knowledge",
+        attachmentScoped: true,
+        readyAttachmentCount: scope.readyDocumentIds.length,
+        notReadyAttachmentCount: scope.notReadyDocumentIds.length,
+        droppedAttachmentCount: scope.droppedDocumentIds.length,
+        retrievedCount: 0,
+        usedSourceCount: 0,
+        historyMessageCount: history.length,
+        retrievalQueryCharCount: retrievalQuery.length,
+        retrievalLatencyMs,
+        generationLatencyMs: 0,
+        totalLatencyMs: Date.now() - totalStartedAt,
+      });
+
+      return {
+        ok: true,
+        outcome: "no_relevant_knowledge",
+        answer: buildAttachmentEmptyAnswer(scope),
+        sources: [],
+      };
+    }
+
     const fallbackResult = await tryGroundedHistoryFallback({
       userId: input.userId,
       billing: deps.billing,
@@ -165,6 +230,7 @@ export async function runAskVaultPipeline(
     question,
     sources,
     conversationHistory: history,
+    retrievalDisclaimer,
   });
   const generationLatencyMs = Date.now() - generationStartedAt;
 
@@ -217,12 +283,8 @@ export async function runAskVaultPipeline(
     ok: true,
     outcome: "answered",
     answer: generation.answer.answer,
-    sources: citedSources.map((source) => ({
-      noteId: source.noteId,
-      title: source.title,
-      categoryName: source.categoryName,
-      type: source.type,
-    })),
+    sources: citedSources.map(ragSourceToAskVaultSource),
+    retrievalAvailability: availability,
   };
 }
 

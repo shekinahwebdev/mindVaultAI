@@ -20,6 +20,7 @@ export const routes = {
 
 export const vaultRoutes = {
   dashboard: "/vault",
+  library: "/vault/library",
   notes: "/vault/notes",
   categories: "/vault/categories",
   tags: "/vault/tags",
@@ -34,4 +35,12 @@ export const vaultRoutes = {
   subscription: "/vault/settings/subscription",
   plans: "/vault/plans",
   capture: "/vault/capture",
+  documents: "/vault/documents",
+  documentFocus: (documentId: string, page?: number) => {
+    const params = new URLSearchParams({ doc: documentId });
+    if (page !== undefined) {
+      params.set("page", String(page));
+    }
+    return `/vault/documents?${params.toString()}`;
+  },
 } as const;

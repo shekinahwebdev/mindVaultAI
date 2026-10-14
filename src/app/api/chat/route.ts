@@ -47,8 +47,10 @@ export async function POST(request: Request) {
   try {
     result = await processChatMessage({
       userId: session.userId,
-      question: parsed.question,
-      conversationId: parsed.conversationId,
+      question: parsed.data.question,
+      conversationId: parsed.data.conversationId,
+      attachedDocumentIds: parsed.data.attachedDocumentIds,
+      attachmentIncludeNotes: parsed.data.attachmentIncludeNotes,
       askVault: (input) => askVault(input),
     });
   } catch {

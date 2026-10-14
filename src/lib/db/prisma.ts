@@ -6,7 +6,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
  * (Stale singletons lack new models/enums e.g. BillingTransaction, AccentColor WHITE/BLACK.)
  */
 const PRISMA_CLIENT_GENERATION =
-  "mv-prisma-archive-v1-user-prefs-appearance-billing";
+  "mv-prisma-document-processing-jobs-v1";
 
 function createPrismaClient() {
   const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });

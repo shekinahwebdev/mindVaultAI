@@ -65,11 +65,23 @@ describe("chat UI truthfulness", () => {
     assert.equal(source.includes("Session chats"), false);
   });
 
-  it("ChatComposer gates Agent and disables attachment", () => {
+  it("ChatComposer gates Agent and exposes document attachments", () => {
     const source = readChatFile("ChatComposer.tsx");
     assert.match(source, /MindVault Agent \(Coming soon\)/);
-    assert.match(source, /Document upload coming soon/);
-    assert.match(source, /aria-disabled="true"/);
+    assert.match(source, /Choose from Vault/);
+    assert.match(source, /Upload New PDF/);
+    assert.match(source, /Attach document/);
+  });
+
+  it("ChatTurnBubble shows PDF attachments on sent user messages", () => {
+    const source = readChatFile("ChatTurnBubble.tsx");
+    assert.match(source, /ChatTurnAttachmentChips/);
+    assert.match(source, /attachedDocuments/);
+  });
+
+  it("ChatTurnBubble renders assistant answers with formatted markdown", () => {
+    const source = readChatFile("ChatTurnBubble.tsx");
+    assert.match(source, /ChatAssistantAnswer/);
   });
 
   it("ChatContextPanel is sources-only", () => {
