@@ -1,7 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-/* Turbopack does not resolve shadcn's package export; use the published file path. */
-@import "../../node_modules/shadcn/dist/tailwind.css";
+@import "./shadcn-tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
 
