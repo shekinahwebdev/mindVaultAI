@@ -1,11 +1,17 @@
-import { EMBEDDING_DIMENSIONS, EMBEDDING_MODEL, embedText } from "@/lib/ai/embed-text";
+import {
+  embedText,
+  embedTextForRetrieval,
+  getRetrievalProviderSpec,
+  getWriteProviderSpec,
+} from "@/lib/ai/embed-text";
 import { prisma } from "@/lib/db";
 
 import { buildNoteEmbeddingInput } from "./embedding-input";
 import {
   findNoteIdsNeedingEmbedding,
+  findNoteIdsNeedingOpenAIEmbedding,
   searchNotesBySimilarity,
-  upsertNoteEmbedding,
+  upsertNoteEmbeddingForProvider,
 } from "./embedding-repository";
 import type { SerializedNote } from "./serialize";
 
@@ -33,11 +39,12 @@ export async function generateAndStoreNoteEmbedding(
   const startedAt = Date.now();
   const text = buildNoteEmbeddingInput(note.title, note.content);
 
+  const writeSpec = getWriteProviderSpec();
   const result = await embedText({ text, taskType: "note" });
 
   if (!result.ok) {
     console.log("[ai:embed-note]", {
-      provider: "gemini",
+      provider: writeSpec.provider,
       model: result.meta.model,
       operation: "embed_note",
       ok: false,
@@ -48,14 +55,20 @@ export async function generateAndStoreNoteEmbedding(
   }
 
   try {
-    await upsertNoteEmbedding(note.id, result.embedding, result.meta.model, result.meta.dimensions);
+    await upsertNoteEmbeddingForProvider(
+      writeSpec.provider,
+      note.id,
+      result.embedding,
+      result.meta.model,
+      result.meta.dimensions,
+    );
   } catch (error) {
     console.error("[ai:embed-note] storage failed:", error);
     return { ok: false, reason: "provider_error" };
   }
 
   console.log("[ai:embed-note]", {
-    provider: "gemini",
+    provider: writeSpec.provider,
     model: result.meta.model,
     operation: "embed_note",
     ok: true,
@@ -79,11 +92,11 @@ export type BackfillResult = {
  * is already current is simply not selected next time.
  */
 export async function backfillEmbeddingsForUser(userId: string): Promise<BackfillResult> {
-  const idsNeedingEmbedding = await findNoteIdsNeedingEmbedding(
-    userId,
-    EMBEDDING_MODEL,
-    EMBEDDING_DIMENSIONS,
-  );
+  const writeSpec = getWriteProviderSpec();
+  const idsNeedingEmbedding =
+    writeSpec.provider === "openai"
+      ? await findNoteIdsNeedingOpenAIEmbedding(userId, writeSpec.model, writeSpec.dimensions)
+      : await findNoteIdsNeedingEmbedding(userId, writeSpec.model, writeSpec.dimensions);
 
   if (idsNeedingEmbedding.length === 0) {
     return { total: 0, succeeded: 0, failed: 0 };
@@ -154,11 +167,12 @@ export async function semanticSearchNotes(
   const boundedTopK = Math.max(1, Math.min(topK, SEMANTIC_SEARCH_MAX_TOP_K));
   const startedAt = Date.now();
 
-  const embedded = await embedText({ text: query, taskType: "query" });
+  const retrievalSpec = getRetrievalProviderSpec();
+  const embedded = await embedTextForRetrieval({ text: query, taskType: "query" });
 
   if (!embedded.ok) {
     console.log("[ai:embed-query]", {
-      provider: "gemini",
+      provider: retrievalSpec.provider,
       model: embedded.meta.model,
       operation: "embed_query",
       ok: false,
@@ -168,10 +182,12 @@ export async function semanticSearchNotes(
     return { ok: false, reason: embedded.reason };
   }
 
-  const rows = await searchNotesBySimilarity(userId, embedded.embedding, boundedTopK);
+  const rows = await searchNotesBySimilarity(userId, embedded.embedding, boundedTopK, {
+    retrievalProvider: retrievalSpec.provider,
+  });
 
   console.log("[ai:embed-query]", {
-    provider: "gemini",
+    provider: retrievalSpec.provider,
     model: embedded.meta.model,
     operation: "embed_query",
     ok: true,

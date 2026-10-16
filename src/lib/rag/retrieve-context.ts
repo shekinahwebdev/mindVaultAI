@@ -1,4 +1,4 @@
-import { embedText } from "@/lib/ai/embed-text";
+import { embedTextForRetrieval, getRetrievalProviderSpec } from "@/lib/ai/embed-text";
 import { searchDocumentChunksBySimilarity } from "@/lib/documents/document-chunk-search";
 import { searchNotesBySimilarity } from "@/lib/notes/embedding-repository";
 
@@ -62,7 +62,8 @@ export async function retrieveRagContext(
     return { ok: false, reason: "invalid_query" };
   }
 
-  const embedded = await embedText({ text: query, taskType: "query" });
+  const retrievalSpec = getRetrievalProviderSpec();
+  const embedded = await embedTextForRetrieval({ text: query, taskType: "query" });
   if (!embedded.ok) {
     return { ok: false, reason: embedded.reason };
   }
@@ -79,14 +80,18 @@ export async function retrieveRagContext(
   const documentScoped = options.restrictToAttachedDocuments === true;
   const includeNotes = documentScoped ? (options.includeNotes ?? false) : true;
 
+  const retrievalProvider = retrievalSpec.provider;
   const noteSearchPromise = includeNotes
-    ? withRetrievalTimeout(searchNotesBySimilarity(userId, embedded.embedding, RAG_NOTE_TOP_K))
+    ? withRetrievalTimeout(
+        searchNotesBySimilarity(userId, embedded.embedding, RAG_NOTE_TOP_K, { retrievalProvider }),
+      )
     : Promise.resolve([] as Awaited<ReturnType<typeof searchNotesBySimilarity>>);
 
   const documentSearchPromise = withRetrievalTimeout(
     searchDocumentChunksBySimilarity(userId, embedded.embedding, RAG_DOCUMENT_CHUNK_TOP_K, {
       documentIds: documentScoped ? scopedDocumentIds : undefined,
       restrictToDocumentIds: documentScoped,
+      retrievalProvider,
     }),
   );
 

@@ -135,6 +135,12 @@ html.dark,
   --mv-scrollbar-thumb: rgb(255 255 255 / 0.14);
   --mv-scrollbar-thumb-hover: rgb(255 255 255 / 0.26);
   --mv-scrollbar-thumb-active: rgb(255 255 255 / 0.34);
+  --mv-sidebar-nav-active-bg: #171717;
+  --mv-sidebar-nav-active-ring: rgb(255 255 255 / 0.14);
+  --mv-sidebar-nav-hover-bg: rgb(255 255 255 / 0.06);
+  --mv-sidebar-section-label: #707070;
+  --mv-sidebar-group-divider: rgb(255 255 255 / 0.12);
+  --mv-sidebar-footer-border: rgb(255 255 255 / 0.08);
 }
 
 html.light {
@@ -190,6 +196,12 @@ html.light {
   --mv-scrollbar-thumb: rgb(21 21 21 / 0.12);
   --mv-scrollbar-thumb-hover: rgb(21 21 21 / 0.22);
   --mv-scrollbar-thumb-active: rgb(21 21 21 / 0.32);
+  --mv-sidebar-nav-active-bg: #eef0f2;
+  --mv-sidebar-nav-active-ring: rgb(21 21 21 / 0.14);
+  --mv-sidebar-nav-hover-bg: rgb(21 21 21 / 0.05);
+  --mv-sidebar-section-label: #9a9a95;
+  --mv-sidebar-group-divider: rgb(21 21 21 / 0.12);
+  --mv-sidebar-footer-border: #e4e4e1;
 }
 
 @layer base {
@@ -655,14 +667,72 @@ html.light .mv-logo,
 
 html.dark .mv-rail-capsule,
 .mv-app.dark .mv-rail-capsule {
-  border: 1px solid var(--mv-border);
+  border: 1px solid var(--sidebar-border);
+  background: var(--sidebar);
+  color: var(--sidebar-foreground);
   box-shadow: none;
 }
 
 html.light .mv-rail-capsule,
 .mv-app.light .mv-rail-capsule {
-  border: 1px solid var(--border);
-  box-shadow: 0 1px 2px rgb(21 21 21 / 0.04);
+  border: 1px solid var(--sidebar-border);
+  background: var(--sidebar);
+  color: var(--sidebar-foreground);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.9) inset,
+    0 1px 2px rgb(21 21 21 / 0.05),
+    0 8px 24px rgb(21 21 21 / 0.04);
+}
+
+/* Vault sidebar nav — theme-aware scroll + section labels */
+.mv-vault-sidebar-scroll {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--mv-scrollbar-thumb) var(--mv-scrollbar-track);
+}
+
+.mv-vault-sidebar-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.mv-vault-sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.mv-vault-sidebar-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background-color: transparent;
+}
+
+.mv-vault-sidebar-scroll:hover::-webkit-scrollbar-thumb,
+.mv-vault-sidebar-scroll:focus-within::-webkit-scrollbar-thumb {
+  background-color: var(--mv-scrollbar-thumb);
+}
+
+.mv-vault-sidebar-scroll:hover::-webkit-scrollbar-thumb:hover {
+  background-color: var(--mv-scrollbar-thumb-hover);
+}
+
+.mv-sidebar-section-label {
+  color: var(--mv-sidebar-section-label);
+}
+
+.mv-sidebar-nav-active {
+  background: var(--mv-sidebar-nav-active-bg);
+  color: var(--sidebar-foreground);
+  box-shadow: inset 0 0 0 1px var(--mv-sidebar-nav-active-ring);
+}
+
+.mv-sidebar-nav-idle {
+  color: var(--muted-foreground);
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.mv-sidebar-nav-idle:hover {
+  background: var(--mv-sidebar-nav-hover-bg);
+  color: var(--sidebar-foreground);
 }
 
 @keyframes problem-card-float {

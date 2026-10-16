@@ -16,6 +16,8 @@ export type LibraryListQuery = {
   type: LibraryTypeFilter;
   sort: LibrarySortOption;
   search: string | null;
+  tagId: string | null;
+  collectionId: string | null;
 };
 
 export function parseLibraryListQuery(searchParams: URLSearchParams): LibraryListQuery {
@@ -50,6 +52,13 @@ export function parseLibraryListQuery(searchParams: URLSearchParams): LibraryLis
   const search =
     trimmedSearch.length > 0 ? trimmedSearch.slice(0, MAX_SEARCH_LENGTH) : null;
 
+  const rawTagId = searchParams.get("tagId");
+  const tagId = rawTagId && rawTagId.trim() ? rawTagId.trim() : null;
+
+  const rawCollectionId = searchParams.get("collectionId");
+  const collectionId =
+    rawCollectionId && rawCollectionId.trim() ? rawCollectionId.trim() : null;
+
   return {
     page,
     limit,
@@ -57,5 +66,7 @@ export function parseLibraryListQuery(searchParams: URLSearchParams): LibraryLis
     type,
     sort,
     search,
+    tagId,
+    collectionId,
   };
 }

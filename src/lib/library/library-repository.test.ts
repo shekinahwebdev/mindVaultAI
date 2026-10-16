@@ -12,15 +12,20 @@ const runIntegration = Boolean(process.env.DATABASE_URL);
 
 describe("library repository scope helpers", () => {
   it("scopes notes and documents to active library rows", () => {
-    const noteWhere = libraryRepositoryInternals.buildNoteSearchWhere("user-1", null);
-    assert.deepEqual(noteWhere, libraryRepositoryInternals.activeNoteWhere("user-1"));
+    const noteWhere = libraryRepositoryInternals.buildNotesLibraryWhere("user-1", {
+      search: null,
+      tagId: null,
+      collectionId: null,
+    });
+    assert.equal(noteWhere.userId, "user-1");
+    assert.equal(noteWhere.archivedAt, null);
 
-    const docWhere = {
-      ...libraryRepositoryInternals.activeLibraryDocumentWhere("user-1"),
-      ...libraryRepositoryInternals.buildDocumentSearchWhere("pdf"),
-    };
-    assert.equal(docWhere.userId, "user-1");
-    assert.equal(docWhere.archivedAt, null);
+    const docWhere = libraryRepositoryInternals.buildDocumentsLibraryWhere("user-1", {
+      search: "pdf",
+      tagId: null,
+      collectionId: null,
+    });
+    assert.ok(docWhere.AND && Array.isArray(docWhere.AND) && docWhere.AND.length === 2);
   });
 });
 
@@ -90,6 +95,8 @@ describe("listLibraryForUser integration", { skip: !runIntegration }, () => {
       type: "all",
       sort: "title_asc",
       search: null,
+      tagId: null,
+      collectionId: null,
     });
 
     assert.ok(result.items.length >= 2);
@@ -108,6 +115,8 @@ describe("listLibraryForUser integration", { skip: !runIntegration }, () => {
       type: "note",
       sort: "updated_desc",
       search: "keyword",
+      tagId: null,
+      collectionId: null,
     });
     assert.ok(notesOnly.items.every((item) => item.kind === "note"));
 
@@ -118,6 +127,8 @@ describe("listLibraryForUser integration", { skip: !runIntegration }, () => {
       type: "document",
       sort: "updated_desc",
       search: "alpha.pdf",
+      tagId: null,
+      collectionId: null,
     });
     assert.ok(docsOnly.items.every((item) => item.kind === "document"));
   });
@@ -130,6 +141,8 @@ describe("listLibraryForUser integration", { skip: !runIntegration }, () => {
       type: "all",
       sort: "title_asc",
       search: null,
+      tagId: null,
+      collectionId: null,
     });
     const page2 = await listLibraryForUser(userA, {
       page: 2,
@@ -138,6 +151,8 @@ describe("listLibraryForUser integration", { skip: !runIntegration }, () => {
       type: "all",
       sort: "title_asc",
       search: null,
+      tagId: null,
+      collectionId: null,
     });
 
     assert.equal(page1.pagination.total, page2.pagination.total);

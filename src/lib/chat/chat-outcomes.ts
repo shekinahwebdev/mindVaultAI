@@ -1,4 +1,6 @@
 /** User-facing copy for chat / RAG outcomes (not errors). */
+export const CHAT_INVALID_QUESTION = "Ask a real question about your vault.";
+
 export const CHAT_NO_RELEVANT_KNOWLEDGE_ANSWER =
   "I couldn't find anything in your vault that answers that question.";
 
