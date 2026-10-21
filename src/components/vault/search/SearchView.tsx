@@ -1,33 +1,39 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Search, Sparkles } from "lucide-react";
+import { Search, Sparkles, X } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 
-import { NoteCard } from "@/components/vault/notes/NoteCard";
-import { fetchNotes } from "@/lib/notes/notes-client";
-import {
-  semanticSearchRequest,
-  type SemanticSearchMatch,
-} from "@/lib/notes/semantic-search-client";
-import type { SerializedNote } from "@/lib/notes/serialize";
+import { fetchCollections } from "@/lib/collections/collections-client";
+import { fetchSearch, SEARCH_LOAD_ERROR } from "@/lib/search/search-client";
+import type { SearchContentType, SearchMode, SerializedSearchResult } from "@/lib/search/search-types";
 import { usePreferences } from "@/lib/settings/preferences-context";
+import { fetchTags } from "@/lib/tags/tags-client";
 import { toastError } from "@/lib/vault-toast";
 import { cn } from "@/lib/utils";
 
+import { NotesToolbarSelect } from "../notes/NotesToolbarSelect";
 import {
   vaultPageLeadClassName,
   vaultPageTitleClassName,
   vaultPrimaryButton,
+  vaultSecondaryButton,
 } from "../vault-controls";
 import { VaultSegmentedControl } from "../VaultSegmentedControl";
 
 import { vaultEase } from "../vault-motion";
 
-type SearchMode = "keyword" | "semantic";
+import { SearchResultCard } from "./SearchResultCard";
 
 const KEYWORD_DEBOUNCE_MS = 300;
+const SEARCH_PAGE_SIZE = 20;
+
+const TYPE_OPTIONS: { value: SearchContentType; label: string }[] = [
+  { value: "all", label: "All content" },
+  { value: "note", label: "Notes" },
+  { value: "document", label: "Documents" },
+];
 
 export function SearchView() {
   const searchParams = useSearchParams();
@@ -36,142 +42,203 @@ export function SearchView() {
   const preferredMode: SearchMode =
     preferences.defaultSearchMode === "SEMANTIC" ? "semantic" : "keyword";
   const mode = modeOverride ?? (preferencesLoading ? "keyword" : preferredMode);
+
   const initialUrlQuery = searchParams.get("q")?.trim() ?? "";
   const [input, setInput] = useState(initialUrlQuery);
-  const urlQueryBootstrappedRef = useRef(false);
+  const [typeFilter, setTypeFilter] = useState<SearchContentType>("all");
+  const [tagId, setTagId] = useState<string | null>(null);
+  const [collectionId, setCollectionId] = useState<string | null>(null);
+  const [tagLabel, setTagLabel] = useState<string | null>(null);
+  const [collectionLabel, setCollectionLabel] = useState<string | null>(null);
+  const [collectionOptions, setCollectionOptions] = useState<{ value: string; label: string }[]>([]);
+  const [tagOptions, setTagOptions] = useState<{ value: string; label: string }[]>([]);
 
-  const [keywordResults, setKeywordResults] = useState<SerializedNote[]>([]);
-  const [keywordLoading, setKeywordLoading] = useState(false);
-  const [keywordError, setKeywordError] = useState("");
-  const [keywordSearched, setKeywordSearched] = useState(false);
-
-  const [semanticResults, setSemanticResults] = useState<SemanticSearchMatch[]>([]);
-  const [semanticLoading, setSemanticLoading] = useState(false);
-  const [semanticError, setSemanticError] = useState("");
-  const [semanticSearched, setSemanticSearched] = useState(false);
+  const [items, setItems] = useState<SerializedSearchResult[]>([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState("");
+  const [searched, setSearched] = useState(false);
+  const [semanticBounded, setSemanticBounded] = useState(false);
 
   const keywordDebounceRef = useRef<number | null>(null);
-  const semanticAbortRef = useRef<AbortController | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const urlQueryBootstrappedRef = useRef(false);
 
-  async function runKeywordSearch(query: string) {
-    if (!query.trim()) {
-      setKeywordResults([]);
-      setKeywordSearched(false);
-      setKeywordError("");
-      return;
-    }
+  useEffect(() => {
+    void (async () => {
+      const [{ data: collections }, { data: tags }] = await Promise.all([
+        fetchCollections(),
+        fetchTags({ sort: "name_asc" }),
+      ]);
+      if (collections?.ok) {
+        setCollectionOptions(
+          collections.collections.map((c) => ({ value: c.id, label: c.name })),
+        );
+      }
+      if (tags?.ok) {
+        setTagOptions(tags.tags.map((t) => ({ value: t.id, label: t.name })));
+      }
+    })();
+  }, []);
 
-    setKeywordLoading(true);
-    setKeywordError("");
+  const runSearch = useCallback(
+    async (
+      query: string,
+      pageToLoad: number,
+      append: boolean,
+      filters?: {
+        mode?: SearchMode;
+        type?: SearchContentType;
+        tagId?: string | null;
+        collectionId?: string | null;
+      },
+    ) => {
+      const effectiveMode = filters?.mode ?? mode;
+      const effectiveType = filters?.type ?? typeFilter;
+      const effectiveTagId = filters?.tagId !== undefined ? filters.tagId : tagId;
+      const effectiveCollectionId =
+        filters?.collectionId !== undefined ? filters.collectionId : collectionId;
+      if (!query.trim()) {
+        setItems([]);
+        setSearched(false);
+        setError("");
+        setHasMore(false);
+        setSemanticBounded(false);
+        return;
+      }
 
-    const { data } = await fetchNotes({ q: query, limit: 10 });
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
 
-    if (data?.ok) {
-      setKeywordResults(data.notes);
-    } else {
-      setKeywordError(data?.message || "Could not search your vault. Please try again.");
-      setKeywordResults([]);
-    }
-
-    setKeywordSearched(true);
-    setKeywordLoading(false);
-  }
-
-  async function runSemanticSearch(query: string) {
-    if (!query.trim()) {
-      return;
-    }
-
-    semanticAbortRef.current?.abort();
-    const controller = new AbortController();
-    semanticAbortRef.current = controller;
-
-    setSemanticLoading(true);
-    setSemanticError("");
-
-    try {
-      const { data } = await semanticSearchRequest(query, controller.signal);
-
-      if (data?.ok) {
-        setSemanticResults(data.matches);
+      if (append) {
+        setLoadingMore(true);
       } else {
-        setSemanticError(
-          data?.message ||
-            "Semantic search isn't available right now. You can still search your vault normally.",
+        setLoading(true);
+      }
+      setError("");
+
+      try {
+        const { data } = await fetchSearch(
+          {
+            q: query.trim(),
+            mode: effectiveMode,
+            type: effectiveType,
+            tagId: effectiveTagId,
+            collectionId: effectiveCollectionId,
+            page: pageToLoad,
+            limit: SEARCH_PAGE_SIZE,
+          },
+          controller.signal,
         );
-        toastError("Semantic search isn't available right now.");
-        setSemanticResults([]);
-      }
-      setSemanticSearched(true);
-    } catch (error) {
-      if ((error as { name?: string }).name !== "AbortError") {
-        toastError("Semantic search isn't available right now.");
-        setSemanticError(
-          "Semantic search isn't available right now. You can still search your vault normally.",
+
+        if (controller.signal.aborted) return;
+
+        if (!data?.ok) {
+          setError(data?.message ?? SEARCH_LOAD_ERROR);
+          if (!append) setItems([]);
+          setSearched(true);
+          return;
+        }
+
+        setItems((current) =>
+          append ? [...current, ...data.search.items] : data.search.items,
         );
-        setSemanticResults([]);
-        setSemanticSearched(true);
+        setHasMore(data.search.pagination.hasMore);
+        setSemanticBounded(Boolean(data.search.meta.semanticDiscoveryBounded));
+        setSearched(true);
+      } catch (err) {
+        if ((err as { name?: string }).name === "AbortError") return;
+        setError(SEARCH_LOAD_ERROR);
+        toastError(SEARCH_LOAD_ERROR);
+        if (!append) setItems([]);
+        setSearched(true);
+      } finally {
+        if (abortRef.current === controller) {
+          setLoading(false);
+          setLoadingMore(false);
+          abortRef.current = null;
+        }
       }
-    } finally {
-      if (semanticAbortRef.current === controller) {
-        setSemanticLoading(false);
-        semanticAbortRef.current = null;
-      }
-    }
+    },
+    [collectionId, mode, tagId, typeFilter],
+  );
+
+  function resetAndSearch(query: string) {
+    setPage(1);
+    void runSearch(query, 1, false);
   }
 
   function handleInputChange(value: string) {
     setInput(value);
-
-    if (mode !== "keyword") {
-      return;
-    }
+    if (mode !== "keyword") return;
 
     if (keywordDebounceRef.current) {
       window.clearTimeout(keywordDebounceRef.current);
     }
     keywordDebounceRef.current = window.setTimeout(() => {
-      runKeywordSearch(value);
+      resetAndSearch(value);
     }, KEYWORD_DEBOUNCE_MS);
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (mode === "semantic") {
-      runSemanticSearch(input);
-    } else {
-      runKeywordSearch(input);
-    }
+    resetAndSearch(input);
   }
 
   function handleModeChange(nextMode: SearchMode) {
     setModeOverride(nextMode);
-    // Each mode keeps its own result set — switching tabs never fires an
-    // API call by itself, especially not a Gemini one for semantic mode.
   }
 
   useEffect(() => {
-    if (!initialUrlQuery || urlQueryBootstrappedRef.current) {
-      return;
-    }
+    if (!initialUrlQuery || urlQueryBootstrappedRef.current) return;
     urlQueryBootstrappedRef.current = true;
-    void runKeywordSearch(initialUrlQuery);
-  }, [initialUrlQuery]);
+    void runSearch(initialUrlQuery, 1, false);
+  }, [initialUrlQuery, runSearch]);
+
+  function refetchWithFilters(
+    nextInput: string = input,
+    filters?: {
+      mode?: SearchMode;
+      type?: SearchContentType;
+      tagId?: string | null;
+      collectionId?: string | null;
+    },
+  ) {
+    if (!nextInput.trim()) return;
+    setPage(1);
+    void runSearch(nextInput, 1, false, filters);
+  }
 
   useEffect(() => {
     return () => {
       if (keywordDebounceRef.current) {
         window.clearTimeout(keywordDebounceRef.current);
       }
-      semanticAbortRef.current?.abort();
+      abortRef.current?.abort();
     };
   }, []);
 
-  const loading = mode === "keyword" ? keywordLoading : semanticLoading;
-  const error = mode === "keyword" ? keywordError : semanticError;
-  const searched = mode === "keyword" ? keywordSearched : semanticSearched;
-  const hasResults =
-    mode === "keyword" ? keywordResults.length > 0 : semanticResults.length > 0;
+  function onCollectionChange(value: string) {
+    const nextId = value || null;
+    setCollectionId(nextId);
+    setCollectionLabel(
+      nextId ? (collectionOptions.find((o) => o.value === value)?.label ?? null) : null,
+    );
+    refetchWithFilters(input, { collectionId: nextId });
+  }
+
+  function onTagChange(value: string) {
+    const nextId = value || null;
+    setTagId(nextId);
+    setTagLabel(nextId ? (tagOptions.find((o) => o.value === value)?.label ?? null) : null);
+    refetchWithFilters(input, { tagId: nextId });
+  }
+
+  const hasResults = items.length > 0;
+  const hasActiveFilters = typeFilter !== "all" || tagId || collectionId;
 
   return (
     <motion.div
@@ -219,13 +286,13 @@ export function SearchView() {
           {mode === "semantic" ? (
             <button
               type="submit"
-              disabled={semanticLoading || !input.trim()}
+              disabled={loading || !input.trim()}
               className={cn(
                 vaultPrimaryButton,
                 "absolute top-1/2 right-1.5 h-8 min-h-8 -translate-y-1/2 px-3 text-[0.78rem]",
               )}
             >
-              {semanticLoading ? "Searching..." : "Search"}
+              {loading ? "Searching..." : "Search"}
             </button>
           ) : null}
         </form>
@@ -233,8 +300,62 @@ export function SearchView() {
         {mode === "semantic" ? (
           <p className="mt-2.5 flex items-start gap-1.5 text-[0.76rem] leading-relaxed text-mv-faint">
             <Sparkles aria-hidden className="mt-0.5 size-3.5 shrink-0" />
-            Search by meaning — find related notes even when the exact words are different.
+            Search by meaning across notes and PDFs — related content even when the words differ.
           </p>
+        ) : null}
+
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          <NotesToolbarSelect
+            id="search-type-filter"
+            label="Content"
+            value={typeFilter}
+            onChange={(value) => {
+              const nextType = value as SearchContentType;
+              setTypeFilter(nextType);
+              refetchWithFilters(input, { type: nextType });
+            }}
+            options={TYPE_OPTIONS}
+          />
+          <NotesToolbarSelect
+            id="search-collection-filter"
+            label="Collection"
+            value={collectionId ?? ""}
+            onChange={onCollectionChange}
+            options={[{ value: "", label: "Any collection" }, ...collectionOptions]}
+          />
+          <NotesToolbarSelect
+            id="search-tag-filter"
+            label="Tag"
+            value={tagId ?? ""}
+            onChange={onTagChange}
+            options={[{ value: "", label: "Any tag" }, ...tagOptions]}
+          />
+        </div>
+
+        {hasActiveFilters ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {typeFilter !== "all" ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-border bg-mv-panel px-2.5 py-1 text-[0.75rem]">
+                {TYPE_OPTIONS.find((o) => o.value === typeFilter)?.label}
+              </span>
+            ) : null}
+            {collectionLabel ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-border bg-mv-panel px-2.5 py-1 text-[0.75rem]">
+                {collectionLabel}
+                <button type="button" aria-label="Clear collection" onClick={() => onCollectionChange("")}>
+                  <X className="size-3" />
+                </button>
+              </span>
+            ) : null}
+            {tagLabel ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-border bg-mv-panel px-2.5 py-1 text-[0.75rem]">
+                {tagLabel}
+                <button type="button" aria-label="Clear tag" onClick={() => onTagChange("")}>
+                  <X className="size-3" />
+                </button>
+              </span>
+            ) : null}
+          </div>
         ) : null}
       </section>
 
@@ -244,39 +365,56 @@ export function SearchView() {
         </div>
       ) : null}
 
-      {loading ? (
+      {semanticBounded && searched && mode === "semantic" ? (
+        <p className="text-[0.78rem] text-mv-faint">
+          Showing the strongest semantic matches from a bounded scan — use Load more for the next
+          batch, or refine with filters.
+        </p>
+      ) : null}
+
+      {loading && page === 1 ? (
         <p className="py-16 text-center text-[0.84rem] text-muted-foreground">
           {mode === "semantic" ? "Searching by meaning..." : "Searching..."}
         </p>
-      ) : !searched ? null : !hasResults ? (
+      ) : null}
+
+      {!loading && searched && !hasResults ? (
         <section className="rounded-2xl border border-border bg-mv-panel px-6 py-14 text-center">
-          <p className="text-[1.1rem] font-medium text-foreground">
-            Nothing matches this search.
-          </p>
+          <p className="text-[1.1rem] font-medium text-foreground">Nothing matches this search.</p>
           <p className="mt-2 text-[0.86rem] text-muted-foreground">
             {mode === "semantic"
-              ? "Try describing it a different way."
-              : "Try different words, or switch to Semantic search."}
+              ? "Try describing it a different way, or switch to Keyword search."
+              : "Try different words, filters, or Semantic search."}
           </p>
         </section>
-      ) : (
+      ) : null}
+
+      {hasResults ? (
         <ul className="grid gap-2.5">
-          {mode === "keyword"
-            ? keywordResults.map((note) => (
-                <li key={note.id}>
-                  <NoteCard note={note} />
-                </li>
-              ))
-            : semanticResults.map((match) => (
-                <li key={match.note.id}>
-                  <NoteCard
-                    note={match.note}
-                    matchLabel={`${Math.round(Math.max(0, Math.min(1, match.similarity)) * 100)}% match`}
-                  />
-                </li>
-              ))}
+          {items.map((item) => (
+            <li key={`${item.kind}-${item.id}`}>
+              <SearchResultCard item={item} />
+            </li>
+          ))}
         </ul>
-      )}
+      ) : null}
+
+      {hasMore && hasResults ? (
+        <div className="flex justify-center pt-2">
+          <button
+            type="button"
+            disabled={loadingMore}
+            className={vaultSecondaryButton}
+            onClick={() => {
+              const next = page + 1;
+              setPage(next);
+              void runSearch(input, next, true);
+            }}
+          >
+            {loadingMore ? "Loading…" : "Load more"}
+          </button>
+        </div>
+      ) : null}
     </motion.div>
   );
 }

@@ -3,14 +3,13 @@ import { NextResponse } from "next/server";
 import { AI_LIMIT_REACHED_CODE } from "@/lib/billing/messages";
 import { isUnauthorizedResponse, requireApiSession } from "@/lib/auth/guards";
 import {
+  CHAT_INVALID_QUESTION,
   CHAT_PROVIDER_FAILURE_MESSAGE,
   CHAT_SERVER_FAILURE_MESSAGE,
 } from "@/lib/chat/chat-outcomes";
 import { parseChatPostBody } from "@/lib/chat/chat-validation";
 import { processChatMessage } from "@/lib/chat/process-chat-message";
 import { askVault } from "@/lib/rag/ask-vault";
-
-export const CHAT_INVALID_QUESTION = "Ask a real question about your vault.";
 
 export async function POST(request: Request) {
   const auth = await requireApiSession();

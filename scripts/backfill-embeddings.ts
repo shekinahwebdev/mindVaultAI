@@ -15,16 +15,19 @@ import "dotenv/config";
 
 import { prisma } from "@/lib/db";
 import { backfillEmbeddingsForUser } from "@/lib/notes/embedding-service";
-import { EMBEDDING_DIMENSIONS, EMBEDDING_MODEL } from "@/lib/ai/embed-text";
-import { findNoteIdsNeedingEmbedding } from "@/lib/notes/embedding-repository";
+import { getWriteProviderSpec, validateEmbeddingEnvironment } from "@/lib/ai/embedding-providers/config";
+import {
+  findNoteIdsNeedingEmbedding,
+  findNoteIdsNeedingOpenAIEmbedding,
+} from "@/lib/notes/embedding-repository";
 
 const isDryRun = process.argv.includes("--dry-run");
 
 async function main() {
-  if (!process.env.GEMINI_API_KEY && !isDryRun) {
-    console.error(
-      "GEMINI_API_KEY is not set. Set it in .env, or run with --dry-run to only report counts.",
-    );
+  const writeSpec = getWriteProviderSpec();
+  const configError = validateEmbeddingEnvironment(writeSpec.provider);
+  if (configError && !isDryRun) {
+    console.error(configError);
     process.exitCode = 1;
     return;
   }
@@ -37,7 +40,10 @@ async function main() {
 
   for (const user of users) {
     if (isDryRun) {
-      const ids = await findNoteIdsNeedingEmbedding(user.id, EMBEDDING_MODEL, EMBEDDING_DIMENSIONS);
+      const ids =
+        writeSpec.provider === "openai"
+          ? await findNoteIdsNeedingOpenAIEmbedding(user.id, writeSpec.model, writeSpec.dimensions)
+          : await findNoteIdsNeedingEmbedding(user.id, writeSpec.model, writeSpec.dimensions);
       if (ids.length > 0) {
         // Note ids only — never note titles/content, which are private.
         console.log(`[dry-run] user ${user.id}: ${ids.length} note(s) need embedding`);

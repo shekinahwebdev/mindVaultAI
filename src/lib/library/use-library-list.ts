@@ -15,6 +15,9 @@ type UseLibraryListParams = {
   sort: LibrarySortOption;
   searchQuery: string;
   page: number;
+  tagId: string | null;
+  collectionId: string | null;
+  refreshToken?: number;
 };
 
 export function useLibraryList({
@@ -22,6 +25,9 @@ export function useLibraryList({
   sort,
   searchQuery,
   page,
+  tagId,
+  collectionId,
+  refreshToken = 0,
 }: UseLibraryListParams) {
   const router = useRouter();
   const [items, setItems] = useState<SerializedLibraryItem[]>([]);
@@ -49,6 +55,8 @@ export function useLibraryList({
         type: typeFilter,
         sort,
         search: searchQuery.trim() || null,
+        tagId,
+        collectionId,
       });
 
       if (cancelled) {
@@ -84,15 +92,7 @@ export function useLibraryList({
     return () => {
       cancelled = true;
     };
-  }, [page, router, searchQuery, sort, typeFilter]);
+  }, [collectionId, page, refreshToken, router, searchQuery, sort, tagId, typeFilter]);
 
-  return {
-    items,
-    total,
-    totalPages,
-    loading,
-    loadingMore,
-    error,
-    setItems,
-  };
+  return { items, total, totalPages, loading, loadingMore, error };
 }

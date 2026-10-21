@@ -16,7 +16,7 @@ import { vaultRoutes } from "@/lib/routes";
 import {
   isVaultNavActive,
   vaultSidebarCaptureNav,
-  vaultSidebarPrimaryNav,
+  vaultSidebarNavGroups,
   vaultSidebarUtilityNav,
   type VaultNavItem,
 } from "@/lib/vault/nav";
@@ -26,10 +26,11 @@ import { cn } from "@/lib/utils";
 
 import {
   vaultActionFocus,
-  vaultRailActive,
-  vaultRailIdle,
   vaultRailTooltipClassName,
 } from "./vault-controls";
+
+const vaultSidebarNavActive = "mv-sidebar-nav-active";
+const vaultSidebarNavIdle = "mv-sidebar-nav-idle";
 import { useVaultSession } from "./VaultSessionProvider";
 import { useVaultSidebar } from "./VaultSidebarProvider";
 import { VaultSidebarPlanCard } from "./VaultSidebarPlanCard";
@@ -52,7 +53,45 @@ const railExpandedIconClassName = cn(railIconClassName, "shrink-0");
 function railStackClassName(collapsed: boolean) {
   return cn(
     "flex w-full flex-col",
-    collapsed ? "items-center gap-1" : "gap-0.5",
+    collapsed ? "items-center gap-1" : "gap-1",
+  );
+}
+
+function SidebarNavGroupLabel({
+  children,
+  visible,
+  reduceMotion,
+  first,
+}: {
+  children: string;
+  visible: boolean;
+  reduceMotion: boolean | null;
+  first?: boolean;
+}) {
+  if (reduceMotion) {
+    return visible ? (
+      <p
+        className={cn(
+          "mv-sidebar-section-label px-2 pb-0.5 text-[0.6875rem] font-semibold uppercase tracking-[0.06em]",
+          first ? "pt-0.5" : "pt-3",
+        )}
+      >
+        {children}
+      </p>
+    ) : null;
+  }
+
+  return (
+    <p
+      className={cn(
+        "mv-sidebar-section-label px-2 pb-0.5 text-[0.6875rem] font-semibold uppercase tracking-[0.06em] transition-opacity ease-out",
+        first ? "pt-0.5" : "pt-3",
+        visible ? "opacity-100" : "opacity-0",
+      )}
+      style={{ transitionDuration: `${LABEL_MS}ms` }}
+    >
+      {children}
+    </p>
   );
 }
 
@@ -127,7 +166,7 @@ function SidebarNavLink({
         collapsed ? "flex" : undefined,
         railRowClassName(collapsed),
         vaultActionFocus,
-        active ? vaultRailActive : vaultRailIdle,
+        active ? vaultSidebarNavActive : vaultSidebarNavIdle,
         className,
       )}
     >
@@ -223,7 +262,7 @@ function ThemeToggleRow({
         collapsed ? "flex" : undefined,
         railRowClassName(collapsed),
         vaultActionFocus,
-        vaultRailIdle,
+        vaultSidebarNavIdle,
       )}
     >
       {collapsed ? (
@@ -265,7 +304,7 @@ function SidebarProfile({
       href={vaultRoutes.settings}
       aria-label={`Account settings for ${displayName}`}
       className={cn(
-        "group relative transition-colors duration-200 hover:bg-mv-panel",
+        "group relative transition-colors duration-200 hover:bg-[var(--mv-sidebar-nav-hover-bg)]",
         vaultActionFocus,
         collapsed ? "flex" : undefined,
         railRowClassName(collapsed),
@@ -327,7 +366,7 @@ export function VaultSidebar() {
             aria-expanded={expanded}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             className={cn(
-              "group relative flex size-9 shrink-0 items-center justify-center rounded-[12px] transition-colors hover:bg-mv-panel",
+              "group relative flex size-9 shrink-0 items-center justify-center rounded-[12px] transition-colors hover:bg-[var(--mv-sidebar-nav-hover-bg)]",
               vaultActionFocus,
             )}
           >
@@ -367,24 +406,46 @@ export function VaultSidebar() {
         <nav
           aria-label="Primary"
           className={cn(
-            railStackClassName(collapsed),
-            "min-h-0 flex-1 overflow-y-auto overscroll-contain",
+            "mv-vault-sidebar-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain",
             !collapsed && "pr-0.5",
           )}
         >
-          {vaultSidebarPrimaryNav.map((item) => (
-            <SidebarNavLink
-              key={item.href}
-              item={item}
-              active={isVaultNavActive(pathname, item.href)}
-              collapsed={collapsed}
-              expanded={expanded}
-              reduceMotion={reduceMotion}
-            />
+          {vaultSidebarNavGroups.map((group, groupIndex) => (
+            <div
+              key={group.label ?? `group-${groupIndex}`}
+              className={cn(railStackClassName(collapsed), groupIndex > 0 && "mt-1")}
+            >
+              {group.label ? (
+                !collapsed ? (
+                  <SidebarNavGroupLabel
+                    visible={expanded}
+                    reduceMotion={reduceMotion}
+                    first={groupIndex === 0}
+                  >
+                    {group.label}
+                  </SidebarNavGroupLabel>
+                ) : (
+                  <div
+                    className="mx-auto my-1.5 h-px w-5 shrink-0 bg-[var(--mv-sidebar-group-divider)]"
+                    aria-hidden
+                  />
+                )
+              ) : null}
+              {group.items.map((item) => (
+                <SidebarNavLink
+                  key={item.href}
+                  item={item}
+                  active={isVaultNavActive(pathname, item.href)}
+                  collapsed={collapsed}
+                  expanded={expanded}
+                  reduceMotion={reduceMotion}
+                />
+              ))}
+            </div>
           ))}
         </nav>
 
-        <div className={cn("mt-2 w-full", collapsed ? "px-0" : "px-0.5")}>
+        <div className={cn("mt-3 w-full", collapsed ? "px-0" : "px-0.5")}>
           <SidebarNavLink
             item={vaultSidebarCaptureNav}
             active={isVaultNavActive(pathname, vaultSidebarCaptureNav.href)}
@@ -395,7 +456,10 @@ export function VaultSidebar() {
           />
         </div>
 
-        <div className="mt-auto w-full shrink-0 border-t border-border/60 pt-3">
+        <div
+          className="mt-auto w-full shrink-0 border-t pt-3"
+          style={{ borderColor: "var(--mv-sidebar-footer-border)" }}
+        >
           <div className={cn("mb-3 w-full", collapsed ? "flex justify-center" : "")}>
             <VaultSidebarPlanCard collapsed={collapsed} expanded={expanded} />
           </div>

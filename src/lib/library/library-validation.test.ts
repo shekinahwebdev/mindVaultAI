@@ -11,6 +11,8 @@ describe("parseLibraryListQuery", () => {
     assert.equal(query.page, 1);
     assert.equal(query.limit, 20);
     assert.equal(query.search, null);
+    assert.equal(query.tagId, null);
+    assert.equal(query.collectionId, null);
   });
 
   it("parses filters, search, and pagination", () => {
@@ -40,5 +42,16 @@ describe("parseLibraryListQuery", () => {
     );
     assert.equal(query.type, "all");
     assert.equal(query.search?.length, 200);
+  });
+
+  it("parses tag and collection filters", () => {
+    const query = parseLibraryListQuery(
+      new URLSearchParams({
+        tagId: " tag-1 ",
+        collectionId: "coll-2",
+      }),
+    );
+    assert.equal(query.tagId, "tag-1");
+    assert.equal(query.collectionId, "coll-2");
   });
 });

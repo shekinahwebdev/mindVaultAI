@@ -27,74 +27,98 @@ export type VaultNavItem = {
   badge?: string;
 };
 
-/** Main sidebar list — matches product reference order. */
-export const vaultSidebarPrimaryNav: VaultNavItem[] = [
+export type VaultNavGroup = {
+  /** Section title in the expanded sidebar. */
+  label?: string;
+  items: VaultNavItem[];
+};
+
+/** Grouped sidebar navigation — flat list derived for mobile “more” menu. */
+export const vaultSidebarNavGroups: VaultNavGroup[] = [
   {
-    label: "Dashboard",
-    href: vaultRoutes.dashboard,
-    icon: LayoutDashboard,
+    items: [
+      {
+        label: "Dashboard",
+        href: vaultRoutes.dashboard,
+        icon: LayoutDashboard,
+      },
+      {
+        label: "Library",
+        href: vaultRoutes.library,
+        icon: Library,
+      },
+    ],
   },
   {
-    label: "Library",
-    href: vaultRoutes.library,
-    icon: Library,
+    label: "Content",
+    items: [
+      {
+        label: "Notes",
+        expandedLabel: "All Notes",
+        href: vaultRoutes.notes,
+        icon: StickyNote,
+      },
+      {
+        label: "Documents",
+        href: vaultRoutes.documents,
+        icon: FileText,
+      },
+      {
+        label: "Links",
+        expandedLabel: "Saved Links",
+        href: vaultRoutes.links,
+        icon: Link2,
+      },
+      {
+        label: "Quotes",
+        href: vaultRoutes.quotes,
+        icon: Quote,
+      },
+      {
+        label: "Code",
+        expandedLabel: "Code Snippets",
+        href: vaultRoutes.code,
+        icon: Code2,
+      },
+    ],
   },
   {
-    label: "Notes",
-    expandedLabel: "All Notes",
-    href: vaultRoutes.notes,
-    icon: StickyNote,
+    label: "Organize",
+    items: [
+      {
+        label: "Categories",
+        href: vaultRoutes.categories,
+        icon: FolderOpen,
+      },
+      {
+        label: "Tags",
+        href: vaultRoutes.tags,
+        icon: Tag,
+      },
+      { label: "Search", href: vaultRoutes.search, icon: Search },
+      {
+        label: "Archive",
+        href: vaultRoutes.archive,
+        icon: Archive,
+      },
+    ],
   },
   {
-    label: "Categories",
-    href: vaultRoutes.categories,
-    icon: FolderOpen,
-  },
-  {
-    label: "Tags",
-    href: vaultRoutes.tags,
-    icon: Tag,
-  },
-  { label: "Search", href: vaultRoutes.search, icon: Search },
-  {
-    label: "Documents",
-    href: vaultRoutes.documents,
-    icon: FileText,
-  },
-  {
-    label: "AI Chat",
-    href: vaultRoutes.chat,
-    icon: MessageSquare,
-    badge: "Beta",
-  },
-  {
-    label: "Links",
-    expandedLabel: "Saved Links",
-    href: vaultRoutes.links,
-    icon: Link2,
-  },
-  {
-    label: "Quotes",
-    href: vaultRoutes.quotes,
-    icon: Quote,
-  },
-  {
-    label: "Code",
-    expandedLabel: "Code Snippets",
-    href: vaultRoutes.code,
-    icon: Code2,
-  },
-  {
-    label: "Archive",
-    href: vaultRoutes.archive,
-    icon: Archive,
-  },
-  {
-    label: "Settings",
-    href: vaultRoutes.settings,
-    icon: Settings,
+    label: "Tools",
+    items: [
+      {
+        label: "AI Chat",
+        href: vaultRoutes.chat,
+        icon: MessageSquare,
+        badge: "Beta",
+      },
+    ],
   },
 ];
+
+/** @deprecated Prefer `vaultSidebarNavGroups`; kept for callers that need a flat list. */
+export const vaultSidebarPrimaryNav: VaultNavItem[] =
+  vaultSidebarNavGroups.flatMap((group) => group.items);
 
 export const vaultSidebarCaptureNav: VaultNavItem = {
   label: "Add to Vault",
@@ -102,8 +126,13 @@ export const vaultSidebarCaptureNav: VaultNavItem = {
   icon: Plus,
 };
 
-/** Footer utilities (appearance) — settings live in primary nav. */
-export const vaultSidebarUtilityNav: VaultNavItem[] = [];
+export const vaultSidebarUtilityNav: VaultNavItem[] = [
+  {
+    label: "Settings",
+    href: vaultRoutes.settings,
+    icon: Settings,
+  },
+];
 
 export const vaultSidebarNav: VaultNavItem[] = [
   ...vaultSidebarPrimaryNav,

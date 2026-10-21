@@ -4,10 +4,13 @@ import {
   isUnauthorizedResponse,
   requireApiSession,
 } from "@/lib/auth/guards";
-import { EMBEDDING_DIMENSIONS, EMBEDDING_MODEL } from "@/lib/ai/embed-text";
+import { getWriteProviderSpec } from "@/lib/ai/embed-text";
 import { prisma } from "@/lib/db";
 import { backfillEmbeddingsForUser } from "@/lib/notes/embedding-service";
-import { findNoteIdsNeedingEmbedding } from "@/lib/notes/embedding-repository";
+import {
+  findNoteIdsNeedingEmbedding,
+  findNoteIdsNeedingOpenAIEmbedding,
+} from "@/lib/notes/embedding-repository";
 import { SETTINGS_SERVER_ERROR } from "@/lib/settings/settings-config";
 
 export async function GET() {
@@ -17,20 +20,29 @@ export async function GET() {
   }
 
   try {
+    const writeSpec = getWriteProviderSpec();
     const [totalNotes, embeddedNotes, missingIds] = await Promise.all([
       prisma.note.count({ where: { userId: auth.session.userId } }),
       prisma.noteEmbedding.count({
         where: { note: { userId: auth.session.userId } },
       }),
-      findNoteIdsNeedingEmbedding(
-        auth.session.userId,
-        EMBEDDING_MODEL,
-        EMBEDDING_DIMENSIONS,
-      ),
+      writeSpec.provider === "openai"
+        ? findNoteIdsNeedingOpenAIEmbedding(
+            auth.session.userId,
+            writeSpec.model,
+            writeSpec.dimensions,
+          )
+        : findNoteIdsNeedingEmbedding(
+            auth.session.userId,
+            writeSpec.model,
+            writeSpec.dimensions,
+          ),
     ]);
 
     return NextResponse.json({
       ok: true,
+      embeddingProvider: writeSpec.provider,
+      embeddingModel: writeSpec.model,
       totalNotes,
       embeddedNotes,
       missingEmbeddings: missingIds.length,
