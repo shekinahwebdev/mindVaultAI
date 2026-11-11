@@ -29,7 +29,7 @@ export function DashboardHero({ session, lead }: DashboardHeroProps) {
         className="min-w-0 flex-1"
         size="compact"
         title={
-          <span className="inline-flex max-w-full flex-wrap items-end gap-x-2.5 gap-y-1 sm:gap-x-3">
+          <span className="inline-flex max-w-full flex-wrap items-end gap-x-3 gap-y-2 sm:gap-x-4">
             <span className="min-w-0">
               {greeting}, {name}
             </span>

@@ -1,18 +1,17 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, useReducedMotion } from "framer-motion";
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { useCallback, useId, useState } from "react";
 
-import {
-  heroCompanionSizeClassName,
-  MindVaultHeroCompanion,
-} from "@/components/vault/MindVaultHeroCompanion";
+import { MindVaultHeroCompanion } from "@/components/vault/MindVaultHeroCompanion";
 import { usePreferences } from "@/lib/settings/preferences-context";
 import { vaultRoutes } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 import { vaultEase } from "../vault-motion";
+
+import { VaultThoughtBubble, VaultThoughtBubbleTail } from "./VaultThoughtBubble";
 
 type DashboardGreetingMascotProps = {
   firstName: string;
@@ -23,63 +22,69 @@ export function DashboardGreetingMascot({ firstName }: DashboardGreetingMascotPr
   const systemReducedMotion = useReducedMotion();
   const { preferences } = usePreferences();
   const reduceMotion = Boolean(preferences.reducedMotion || systemReducedMotion);
+  const bubbleId = useId();
 
   const showBubble = peek;
-  const bubbleMessage = `Hello ${firstName}! Have anything to save?`;
+  const line1 = `Hello, ${firstName}!`;
+  const line2 = "Have anything to save?";
+  const ariaMessage = `${line1} ${line2}`;
 
   const openPeek = useCallback(() => setPeek(true), []);
   const closePeek = useCallback(() => setPeek(false), []);
 
+  const bubbleMotion = reduceMotion
+    ? { initial: false as const, animate: { opacity: 1 }, exit: { opacity: 0 } }
+    : {
+        initial: { opacity: 0, scale: 0.94 },
+        animate: { opacity: 1, scale: 1 },
+        exit: { opacity: 0, scale: 0.96 },
+        transition: { duration: 0.22, ease: vaultEase },
+      };
+
   return (
     <span
       className={cn(
-        "relative inline-flex shrink-0 align-bottom",
-        heroCompanionSizeClassName,
+        "relative inline-flex max-w-full shrink-0",
+        "flex-col-reverse items-end gap-0.5 max-sm:pt-1",
+        "sm:flex-row sm:items-center sm:gap-2.5",
       )}
     >
-      <motion.span
-        role="tooltip"
-        aria-hidden={!showBubble}
-        initial={false}
-        animate={
-          reduceMotion
-            ? { opacity: showBubble ? 1 : 0 }
-            : { opacity: showBubble ? 1 : 0, y: showBubble ? 0 : 6, scale: showBubble ? 1 : 0.96 }
-        }
-        transition={{ duration: 0.2, ease: vaultEase }}
-        className={cn(
-          "pointer-events-none absolute z-20 w-max max-w-[min(16rem,calc(100vw-2rem))]",
-          "bottom-[calc(100%+0.35rem)] max-sm:right-0 sm:left-1/2 sm:-translate-x-1/2",
-          showBubble ? "visible" : "invisible",
-        )}
-      >
-        <span
-          className={cn(
-            "relative block rounded-[var(--mv-radius-control)] border border-border",
-            "bg-surface px-3 py-2 text-[0.75rem] leading-snug text-foreground",
-            "shadow-[var(--mv-shadow-elevated)] sm:text-[0.8125rem]",
-            "max-sm:text-right",
-          )}
-        >
-          {bubbleMessage}
-          <span
-            aria-hidden
-            className={cn(
-              "absolute top-full size-2.5 rotate-45 border-r border-b border-border bg-surface",
-              "max-sm:right-4 sm:left-1/2 sm:-translate-x-1/2",
-            )}
+      <AnimatePresence mode="wait">
+        {showBubble ? (
+          <VaultThoughtBubble
+            key="greeting-thought"
+            line1={line1}
+            line2={line2}
+            className="z-10 sm:order-1"
+            motionProps={{
+              id: bubbleId,
+              ...bubbleMotion,
+            }}
           />
-        </span>
-      </motion.span>
+        ) : null}
+      </AnimatePresence>
+
+      <VaultThoughtBubbleTail
+        layout="vertical-up"
+        visible={showBubble}
+        className="z-[5] sm:hidden"
+      />
+      <VaultThoughtBubbleTail
+        layout="horizontal-right"
+        visible={showBubble}
+        className="z-[5] hidden sm:order-2 sm:flex"
+      />
 
       <Link
         href={vaultRoutes.capture}
         className={cn(
-          "relative inline-flex rounded-[var(--mv-radius-control)] text-foreground",
+          "relative z-[6] inline-flex shrink-0 rounded-[var(--mv-radius-control)] text-foreground",
           "outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
           "active:scale-[0.98] motion-safe:transition-transform",
+          "sm:order-3",
         )}
-        aria-label={`${bubbleMessage} Open capture.`}
+        aria-label={`${ariaMessage} Open capture.`}
+        aria-describedby={showBubble ? bubbleId : undefined}
         onMouseEnter={openPeek}
         onMouseLeave={closePeek}
         onFocus={openPeek}
