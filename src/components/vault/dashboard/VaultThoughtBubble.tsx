@@ -1,87 +1,77 @@
 "use client";
 
-import { motion, type MotionProps } from "framer-motion";
+import { motion } from "framer-motion";
 
 import { cn } from "@/lib/utils";
 
 import { vaultEase } from "../vault-motion";
 
-type VaultThoughtBubbleProps = {
-  line1: string;
-  line2: string;
+export const vaultDashboardGreetingMessage =
+  "Welcome back! What's on your mind today?";
+
+type VaultGreetingBubbleProps = {
+  message?: string;
+  id?: string;
   className?: string;
-  motionProps?: Pick<
-    MotionProps,
-    "id" | "initial" | "animate" | "exit" | "transition"
-  >;
 };
 
-/** Comic-inspired thought bubble — two stacked lines, oval body. */
-export function VaultThoughtBubble({
-  line1,
-  line2,
+/** Persistent dashboard greeting bubble — dark surface, thin border. */
+export function VaultGreetingBubble({
+  message = vaultDashboardGreetingMessage,
+  id,
   className,
-  motionProps,
-}: VaultThoughtBubbleProps) {
+}: VaultGreetingBubbleProps) {
   return (
-    <motion.div
+    <div
+      id={id}
       role="status"
       className={cn(
-        "relative max-w-[min(18rem,calc(100vw-2.5rem))] rounded-[1.75rem] border-2 border-foreground/85",
-        "bg-surface px-4 py-3 text-center shadow-[var(--mv-shadow-elevated)]",
-        "sm:max-w-[14.5rem] sm:px-5 sm:py-3.5",
+        "max-w-[15rem] rounded-2xl border border-border bg-surface px-4 py-3",
+        "text-pretty text-[0.8125rem] leading-snug text-foreground",
+        "shadow-[var(--mv-shadow-elevated)] sm:text-[0.875rem]",
         className,
       )}
-      {...motionProps}
     >
-      <p className="text-pretty text-[0.8125rem] font-semibold leading-tight tracking-tight text-foreground sm:text-[0.875rem]">
-        <span className="block">{line1}</span>
-        <span className="mt-1 block text-[0.75rem] font-medium text-muted-foreground sm:text-[0.8125rem]">
-          {line2}
-        </span>
-      </p>
-    </motion.div>
+      {message}
+    </div>
   );
 }
 
 type VaultThoughtBubbleTailProps = {
-  /** Tail points from bubble toward the mascot (robot). */
-  layout: "vertical-up" | "horizontal-right";
-  visible?: boolean;
+  /** Tail points from bubble toward the mascot head. */
+  variant: "to-robot-below" | "to-robot-left";
   className?: string;
 };
 
 const tailDots = [
-  "size-2.5 border-2 border-foreground/70 bg-surface",
-  "size-2 border-2 border-foreground/75 bg-surface",
-  "size-1.5 border-2 border-foreground/80 bg-surface",
+  "size-2 border border-border/80 bg-surface",
+  "size-1.5 border border-border/85 bg-surface",
 ] as const;
 
 export function VaultThoughtBubbleTail({
-  layout,
-  visible = true,
+  variant,
   className,
 }: VaultThoughtBubbleTailProps) {
-  const isVertical = layout === "vertical-up";
+  const toRobotBelow = variant === "to-robot-below";
 
   return (
     <span
       aria-hidden
       className={cn(
-        "pointer-events-none flex shrink-0 items-center justify-center gap-1.5",
-        "transition-opacity duration-200",
-        isVertical ? "flex-col-reverse py-0.5" : "flex-row px-0.5",
-        visible ? "opacity-100" : "opacity-0",
+        "pointer-events-none flex shrink-0 items-center justify-center gap-1.25",
+        toRobotBelow
+          ? "flex-col pt-0.5"
+          : "flex-col items-end gap-1 py-0.5 pl-1",
         className,
       )}
     >
-      {tailDots.map((dotClass, index) => (
+      {tailDots.map((dotClass) => (
         <motion.span
           key={dotClass}
           className={cn("rounded-full", dotClass)}
           initial={false}
-          animate={{ scale: visible ? 1 : 0.6, opacity: visible ? 1 : 0 }}
-          transition={{ duration: 0.18, delay: visible ? index * 0.04 : 0, ease: vaultEase }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.18, ease: vaultEase }}
         />
       ))}
     </span>

@@ -21,31 +21,32 @@ export function DashboardHero({ session, lead }: DashboardHeroProps) {
   return (
     <div
       className={cn(
-        "flex flex-col gap-4",
-        "lg:flex-row lg:items-start lg:justify-between lg:gap-8",
+        "flex min-w-0 flex-col gap-5",
+        "sm:flex-row sm:items-center sm:gap-8 lg:gap-12",
       )}
     >
-      <PageHeader
-        className="min-w-0 flex-1"
-        size="compact"
-        title={
-          <span className="inline-flex max-w-full flex-wrap items-end gap-x-3 gap-y-2 sm:gap-x-4">
+      <div className="min-w-0 flex-1">
+        <PageHeader
+          className="!flex-col !gap-0"
+          size="compact"
+          title={
             <span className="min-w-0">
               {greeting}, {name}
             </span>
-            <DashboardGreetingMascot firstName={name} />
-          </span>
-        }
-        lead={lead}
-      />
-      <p
-        className={cn(
-          "font-editorial max-w-[15rem] text-pretty text-[0.9375rem] leading-snug text-muted-foreground italic",
-          "lg:pt-1 lg:text-right",
-        )}
-      >
-        &ldquo;{dashboardInspirationalQuote}&rdquo;
-      </p>
+          }
+          lead={lead}
+        />
+        <p
+          className={cn(
+            "mt-3 max-w-md text-pretty font-editorial text-[0.8125rem] leading-snug text-muted-foreground italic",
+            "sm:text-[0.875rem]",
+          )}
+        >
+          &ldquo;{dashboardInspirationalQuote}&rdquo;
+        </p>
+      </div>
+
+      <DashboardGreetingMascot />
     </div>
   );
 }

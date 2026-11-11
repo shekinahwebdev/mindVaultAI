@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 import { useCallback, useId, useState } from "react";
 
@@ -9,89 +9,86 @@ import { usePreferences } from "@/lib/settings/preferences-context";
 import { vaultRoutes } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
-import { vaultEase } from "../vault-motion";
-
-import { VaultThoughtBubble, VaultThoughtBubbleTail } from "./VaultThoughtBubble";
+import {
+  VaultGreetingBubble,
+  VaultThoughtBubbleTail,
+  vaultDashboardGreetingMessage,
+} from "./VaultThoughtBubble";
 
 type DashboardGreetingMascotProps = {
-  firstName: string;
+  className?: string;
 };
 
-export function DashboardGreetingMascot({ firstName }: DashboardGreetingMascotProps) {
-  const [peek, setPeek] = useState(false);
+/**
+ * Robot + persistent greeting bubble in a fixed footprint so layout never shifts.
+ * Bubble is anchored to the robot inside this wrapper (not the page).
+ */
+export function DashboardGreetingMascot({ className }: DashboardGreetingMascotProps) {
+  const [hovered, setHovered] = useState(false);
   const systemReducedMotion = useReducedMotion();
   const { preferences } = usePreferences();
   const reduceMotion = Boolean(preferences.reducedMotion || systemReducedMotion);
   const bubbleId = useId();
 
-  const showBubble = peek;
-  const line1 = `Hello, ${firstName}!`;
-  const line2 = "Have anything to save?";
-  const ariaMessage = `${line1} ${line2}`;
-
-  const openPeek = useCallback(() => setPeek(true), []);
-  const closePeek = useCallback(() => setPeek(false), []);
-
-  const bubbleMotion = reduceMotion
-    ? { initial: false as const, animate: { opacity: 1 }, exit: { opacity: 0 } }
-    : {
-        initial: { opacity: 0, scale: 0.94 },
-        animate: { opacity: 1, scale: 1 },
-        exit: { opacity: 0, scale: 0.96 },
-        transition: { duration: 0.22, ease: vaultEase },
-      };
+  const openHover = useCallback(() => setHovered(true), []);
+  const closeHover = useCallback(() => setHovered(false), []);
 
   return (
-    <span
+    <motion.div
       className={cn(
-        "relative inline-flex max-w-full shrink-0",
-        "flex-col-reverse items-end gap-0.5 max-sm:pt-1",
-        "sm:flex-row sm:items-center sm:gap-2.5",
+        "dashboard-greeting-mascot relative mx-auto w-full max-w-[min(100%,21rem)] shrink-0",
+        "flex flex-col items-center gap-1 max-sm:pb-0.5 sm:mx-0 sm:block sm:gap-0",
+        "sm:h-[12.5rem] sm:w-[19rem] md:h-[13.25rem] md:w-[20.5rem]",
+        className,
       )}
+      animate={reduceMotion ? undefined : { y: [0, -5, 0] }}
+      transition={{
+        duration: 4.2,
+        repeat: Infinity,
+        ease: "easeInOut",
+      }}
     >
-      <AnimatePresence mode="wait">
-        {showBubble ? (
-          <VaultThoughtBubble
-            key="greeting-thought"
-            line1={line1}
-            line2={line2}
-            className="z-10 sm:order-1"
-            motionProps={{
-              id: bubbleId,
-              ...bubbleMotion,
-            }}
-          />
-        ) : null}
-      </AnimatePresence>
+      <div
+        className={cn(
+          "z-10 w-full max-w-[15rem] px-1",
+          "max-sm:relative",
+          "sm:absolute sm:top-0 sm:left-0 sm:w-[15rem]",
+        )}
+      >
+        <VaultGreetingBubble id={bubbleId} />
+      </div>
 
       <VaultThoughtBubbleTail
-        layout="vertical-up"
-        visible={showBubble}
-        className="z-[5] sm:hidden"
+        variant="to-robot-below"
+        className="z-[4] max-sm:relative sm:absolute sm:hidden"
       />
       <VaultThoughtBubbleTail
-        layout="horizontal-right"
-        visible={showBubble}
-        className="z-[5] hidden sm:order-2 sm:flex"
+        variant="to-robot-left"
+        className={cn(
+          "z-[4] hidden sm:absolute sm:flex",
+          "top-[4.25rem] left-[7.75rem] md:top-[4.5rem] md:left-[8.25rem]",
+        )}
       />
 
       <Link
         href={vaultRoutes.capture}
         className={cn(
-          "relative z-[6] inline-flex shrink-0 rounded-[var(--mv-radius-control)] text-foreground",
+          "relative z-[5] inline-flex shrink-0 rounded-[var(--mv-radius-control)] text-foreground",
           "outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-          "active:scale-[0.98] motion-safe:transition-transform",
-          "sm:order-3",
+          "motion-safe:transition-[filter,transform] active:scale-[0.98]",
+          "max-sm:order-last",
+          "sm:absolute sm:right-0 sm:bottom-0",
+          hovered && "brightness-105",
         )}
-        aria-label={`${ariaMessage} Open capture.`}
-        aria-describedby={showBubble ? bubbleId : undefined}
-        onMouseEnter={openPeek}
-        onMouseLeave={closePeek}
-        onFocus={openPeek}
-        onBlur={closePeek}
+        aria-label={`${vaultDashboardGreetingMessage} Open capture.`}
+        aria-describedby={bubbleId}
+        onMouseEnter={openHover}
+        onMouseLeave={closeHover}
+        onFocus={openHover}
+        onBlur={closeHover}
       >
-        <MindVaultHeroCompanion active={peek} />
+        <MindVaultHeroCompanion active={hovered} />
       </Link>
-    </span>
+    </motion.div>
   );
 }
