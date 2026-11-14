@@ -53,7 +53,7 @@ const railExpandedIconClassName = cn(railIconClassName, "shrink-0");
 function railStackClassName(collapsed: boolean) {
   return cn(
     "flex w-full flex-col",
-    collapsed ? "items-center gap-1" : "gap-1",
+    collapsed ? "items-center gap-0.5" : "gap-1",
   );
 }
 
@@ -350,7 +350,7 @@ export function VaultSidebar() {
         className={cn(
           vaultSidebarRailClassName,
           collapsed
-            ? "w-[3.25rem] items-center px-0"
+            ? "w-[3.25rem] items-center overflow-hidden px-0"
             : "mx-1.5 w-[calc(100%-0.75rem)] overflow-hidden px-2",
         )}
       >
@@ -406,8 +406,9 @@ export function VaultSidebar() {
         <nav
           aria-label="Primary"
           className={cn(
-            "mv-vault-sidebar-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain",
-            !collapsed && "pr-0.5",
+            "mv-vault-sidebar-scroll min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain",
+            collapsed && "mv-vault-sidebar-scroll--collapsed py-0.5",
+            !collapsed && "mv-vault-sidebar-scroll--expanded pr-0.5",
           )}
         >
           {vaultSidebarNavGroups.map((group, groupIndex) => (
@@ -457,7 +458,10 @@ export function VaultSidebar() {
         </div>
 
         <div
-          className="mt-auto w-full shrink-0 border-t pt-3"
+          className={cn(
+            "mt-auto w-full shrink-0 border-t pt-3",
+            collapsed && "pb-0.5",
+          )}
           style={{ borderColor: "var(--mv-sidebar-footer-border)" }}
         >
           <div className={cn("mb-3 w-full", collapsed ? "flex justify-center" : "")}>

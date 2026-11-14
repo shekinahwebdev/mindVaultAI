@@ -18,7 +18,6 @@ export function LandingCosmicBackdrop() {
         className="object-cover object-[72%_100%] sm:object-[64%_100%] lg:object-[56%_100%]"
       />
 
-      {/* Light veil so the centered hero stays readable without hiding the horizon */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/15 via-[24%] to-black/20" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_15%,rgba(0,0,0,0.42)_100%)]" />
     </div>

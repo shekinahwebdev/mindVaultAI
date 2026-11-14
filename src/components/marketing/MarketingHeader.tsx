@@ -11,7 +11,7 @@ import { marketingRoutes } from "@/lib/marketing/landing-content";
 import { cn } from "@/lib/utils";
 
 const navLinkClassName =
-  "rounded-md px-1 py-2 text-[0.875rem] text-white/55 transition-colors hover:text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-black";
+  "landing-nav-link rounded-md px-1 py-2 text-[0.875rem] text-white/55 transition-colors hover:text-white/92 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-black";
 
 type MarketingHeaderProps = {
   blogSearch?: {
@@ -19,11 +19,14 @@ type MarketingHeaderProps = {
     onChange: (value: string) => void;
   };
   primaryCtaLabel?: string;
+  /** Tighter chrome on the home hero */
+  onLanding?: boolean;
 };
 
 export function MarketingHeader({
   blogSearch,
   primaryCtaLabel = "Create account",
+  onLanding = false,
 }: MarketingHeaderProps) {
   const pathname = usePathname();
   const onFeatures =
@@ -37,10 +40,18 @@ export function MarketingHeader({
       : marketingRoutes.createAccount;
 
   return (
-    <header className="relative z-20 px-[var(--mv-page-padding-x)] pt-6 sm:pt-8">
+    <header
+      className={cn(
+        "relative z-20 px-[var(--mv-page-padding-x)] pt-5 sm:pt-7",
+        onLanding && "landing-marketing-header !pt-3 sm:!pt-4",
+      )}
+    >
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/55 to-transparent"
+        className={cn(
+          "pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b to-transparent",
+          onLanding ? "from-black/80" : "from-black/55",
+        )}
       />
       <div
         className={cn(
