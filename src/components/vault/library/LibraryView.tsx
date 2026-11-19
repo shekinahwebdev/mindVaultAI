@@ -6,6 +6,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EmptyState } from "@/components/mv/EmptyState";
 import { PageHeader } from "@/components/mv/PageHeader";
 import { PageStack } from "@/components/mv/PageStack";
+import { VaultEntrance } from "@/components/mv/VaultEntrance";
+import { vaultEditorialPageTitleClassName } from "@/lib/vault/vault-typography";
+import { vaultInputClassName } from "@/components/vault/vault-controls";
 import {
   LIBRARY_SORT_LABELS,
   LIBRARY_SORT_OPTIONS,
@@ -14,6 +17,8 @@ import {
 } from "@/lib/library/library-list-config";
 import { useLibraryList } from "@/lib/library/use-library-list";
 import { vaultSecondaryButton } from "../vault-controls";
+import { cn } from "@/lib/utils";
+
 import { NotesToolbarSelect } from "../notes/NotesToolbarSelect";
 
 import { LibraryCollectionsPanel } from "./LibraryCollectionsPanel";
@@ -108,11 +113,13 @@ export function LibraryView() {
   }
 
   return (
-    <PageStack>
-      <PageHeader
-        title="Library"
-        lead="Notes and PDFs from your vault in one place."
-      />
+    <PageStack className="w-full min-w-0 lg:max-w-6xl">
+      <VaultEntrance>
+        <PageHeader
+          title={<span className={vaultEditorialPageTitleClassName}>Library</span>}
+          lead="Notes and PDFs from your vault in one place."
+        />
+      </VaultEntrance>
 
       <LibrarySectionTabs
         value={section}
@@ -136,9 +143,9 @@ export function LibraryView() {
       {section === "items" ? (
         <>
           {organizeFilterLabel ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-2 rounded-full border border-border bg-mv-panel px-3 py-1 text-[0.8125rem] text-foreground">
-                {organizeFilterLabel}
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <span className="inline-flex max-w-full min-w-0 items-center gap-2 rounded-full border border-border bg-mv-panel px-3 py-1 text-[0.8125rem] text-foreground">
+                <span className="min-w-0 truncate">{organizeFilterLabel}</span>
                 <button
                   type="button"
                   aria-label="Clear filter"
@@ -151,8 +158,8 @@ export function LibraryView() {
             </div>
           ) : null}
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-            <label className="relative min-w-[12rem] flex-1">
+          <div className="flex w-full min-w-0 flex-col gap-3 md:flex-row md:flex-wrap md:items-center">
+            <label className="relative w-full min-w-0 md:min-w-[12rem] md:flex-1">
               <span className="sr-only">Search library</span>
               <Search
                 aria-hidden
@@ -163,34 +170,38 @@ export function LibraryView() {
                 value={searchInput}
                 onChange={(event) => handleSearchChange(event.target.value)}
                 placeholder="Search titles and text…"
-                className="h-10 w-full rounded-[var(--mv-radius-control)] border border-border bg-surface pl-9 pr-3 text-[0.875rem] text-foreground outline-none placeholder:text-mv-faint"
+                className={cn(vaultInputClassName, "w-full max-w-full pl-9")}
               />
             </label>
 
-            <NotesToolbarSelect
-              id="library-type-filter"
-              label="Content type"
-              value={typeFilter}
-              onChange={(value) => {
-                setTypeFilter(value as LibraryTypeFilter);
-                resetToFirstPage();
-              }}
-              options={TYPE_FILTER_OPTIONS}
-            />
+            <div className="grid w-full min-w-0 grid-cols-2 gap-2 sm:flex sm:w-auto sm:grid-cols-none">
+              <NotesToolbarSelect
+                id="library-type-filter"
+                label="Content type"
+                value={typeFilter}
+                onChange={(value) => {
+                  setTypeFilter(value as LibraryTypeFilter);
+                  resetToFirstPage();
+                }}
+                options={TYPE_FILTER_OPTIONS}
+                className="min-w-0 w-full sm:min-w-[7.25rem]"
+              />
 
-            <NotesToolbarSelect
-              id="library-sort"
-              label="Sort"
-              value={sort}
-              onChange={(value) => {
-                setSort(value as LibrarySortOption);
-                resetToFirstPage();
-              }}
-              options={LIBRARY_SORT_OPTIONS.map((option) => ({
-                value: option,
-                label: LIBRARY_SORT_LABELS[option],
-              }))}
-            />
+              <NotesToolbarSelect
+                id="library-sort"
+                label="Sort"
+                value={sort}
+                onChange={(value) => {
+                  setSort(value as LibrarySortOption);
+                  resetToFirstPage();
+                }}
+                options={LIBRARY_SORT_OPTIONS.map((option) => ({
+                  value: option,
+                  label: LIBRARY_SORT_LABELS[option],
+                }))}
+                className="min-w-0 w-full sm:min-w-[7.25rem]"
+              />
+            </div>
           </div>
 
           {error ? (
@@ -215,7 +226,7 @@ export function LibraryView() {
           ) : null}
 
           {items.length > 0 ? (
-            <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <ul className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:gap-4 xl:grid-cols-3">
               {items.map((item) => (
                 <li key={`${item.kind}-${item.id}`}>
                   <LibraryItemCard item={item} onTagsUpdated={bumpList} />
@@ -225,14 +236,23 @@ export function LibraryView() {
           ) : null}
 
           {page < totalPages ? (
-            <div className="flex justify-center pt-2">
+            <div className="flex justify-center px-1 pt-2">
               <button
                 type="button"
                 disabled={loadingMore}
                 onClick={() => setPage((current) => current + 1)}
-                className={vaultSecondaryButton}
+                className={cn(vaultSecondaryButton, "max-w-full text-center")}
               >
-                {loadingMore ? "Loading…" : `Load more (${items.length} of ${total})`}
+                {loadingMore ? (
+                  "Loading…"
+                ) : (
+                  <>
+                    <span className="sm:hidden">Load more</span>
+                    <span className="hidden sm:inline">
+                      {`Load more (${items.length} of ${total})`}
+                    </span>
+                  </>
+                )}
               </button>
             </div>
           ) : null}

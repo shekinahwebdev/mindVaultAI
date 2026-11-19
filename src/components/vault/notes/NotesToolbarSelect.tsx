@@ -24,7 +24,7 @@ export function NotesToolbarSelect({
   className,
 }: NotesToolbarSelectProps) {
   return (
-    <div className={cn("relative min-w-[6.5rem] shrink-0 sm:min-w-[7.25rem]", className)}>
+    <div className={cn("relative min-w-0 sm:min-w-[7.25rem]", className)}>
       <label htmlFor={id} className="sr-only">
         {label}
       </label>

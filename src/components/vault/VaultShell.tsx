@@ -34,6 +34,7 @@ type VaultAppRootProps = {
   children: ReactNode;
   isCapture: boolean;
   isChat: boolean;
+  isNoteDetail: boolean;
   isFixedViewport: boolean;
 };
 
@@ -42,6 +43,7 @@ function VaultAppRoot({
   children,
   isCapture,
   isChat,
+  isNoteDetail,
   isFixedViewport,
 }: VaultAppRootProps) {
   const { resolved } = useTheme();
@@ -63,26 +65,31 @@ function VaultAppRoot({
       >
         <VaultSidebar />
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-mv-page">
           {!isCapture ? <VaultMobileHeader /> : null}
           {!isCapture ? <VaultTopBar /> : null}
 
           <main
             className={cn(
-              "flex min-h-0 flex-1 flex-col",
+              "mv-scrollbar flex min-h-0 min-w-0 flex-1 flex-col bg-mv-page",
               isFixedViewport ? "overflow-hidden" : "overflow-y-auto overscroll-y-contain",
             )}
           >
             <div
               className={cn(
                 isCapture
-                  ? "flex h-full min-h-0 flex-1 flex-col px-[var(--mv-page-padding-x)] py-3 sm:py-4"
+                  ? "mv-vault-main--flush flex h-full min-h-0 flex-1 flex-col px-[var(--mv-page-padding-x)] py-3 sm:py-4 lg:px-8"
                   : isChat
                     ? cn(
                         vaultMainContentClassName,
-                        "flex h-full min-h-0 flex-1 flex-col py-2 sm:py-3 pb-20 md:pb-4",
+                        "mv-vault-main--flush flex h-full min-h-0 flex-1 flex-col py-2 sm:py-3 pb-20 md:pb-4",
                       )
-                    : cn(vaultMainContentClassName, "pb-24 md:pb-6"),
+                    : isNoteDetail
+                      ? cn(
+                          vaultMainContentClassName,
+                          "mv-vault-main--flush flex h-full min-h-0 flex-1 flex-col px-0 py-0 pb-20 md:px-2 md:py-2 md:pb-2",
+                        )
+                      : cn(vaultMainContentClassName, "pb-24 md:pb-6"),
               )}
             >
               {children}
@@ -143,7 +150,10 @@ export function VaultShell({
   const pathname = usePathname();
   const isCapture = pathname === vaultRoutes.capture;
   const isChat = pathname === vaultRoutes.chat;
-  const isFixedViewport = isCapture || isChat;
+  const isNoteDetail =
+    pathname.startsWith(`${vaultRoutes.notes}/`) &&
+    pathname.length > vaultRoutes.notes.length + 1;
+  const isFixedViewport = isCapture || isChat || isNoteDetail;
 
   return (
     <VaultSessionProvider session={session}>
@@ -157,6 +167,7 @@ export function VaultShell({
               <VaultAppRoot
                 isCapture={isCapture}
                 isChat={isChat}
+                isNoteDetail={isNoteDetail}
                 isFixedViewport={isFixedViewport}
               >
                 {children}

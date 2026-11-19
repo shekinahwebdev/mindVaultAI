@@ -57,10 +57,7 @@ export function DashboardActivityStream({
   );
 
   return (
-    <ContentCard
-      padding="sm"
-      className={cn("flex min-h-[18rem] flex-col lg:min-h-[24rem]", className)}
-    >
+    <ContentCard padding="sm" className={cn("flex flex-col", className)}>
       <DashboardSectionHeader
         title="Recent Notes"
         action={
@@ -89,7 +86,7 @@ export function DashboardActivityStream({
           }
         />
       ) : (
-        <div className="mt-1 min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <div className="mt-1 min-h-0">
           <ul className="space-y-0.5">
             {activityNotes.map((note) => (
               <li key={note.id}>

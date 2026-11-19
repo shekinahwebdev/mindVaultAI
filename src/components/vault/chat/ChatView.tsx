@@ -443,7 +443,7 @@ export function ChatView() {
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.28, ease: vaultEase }}
-      className="-mx-[var(--mv-page-padding-x)] flex h-full min-h-0 flex-1 flex-col overflow-hidden border-y border-border bg-surface md:mx-0 md:rounded-[var(--mv-radius-card)] md:border"
+      className="-mx-[var(--mv-page-padding-x)] flex h-full min-h-0 flex-1 flex-col overflow-hidden border-y border-border bg-[#111111] md:mx-0 md:rounded-[var(--mv-radius-card)] md:border md:shadow-[var(--mv-shadow-card)]"
     >
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <div className="hidden lg:flex">
@@ -502,14 +502,14 @@ export function ChatView() {
             ) : turns.length === 0 ? (
               <div className="flex h-full min-h-[16rem] flex-col items-center justify-center text-center">
                 <Sparkles aria-hidden className="size-6 text-mv-faint" />
-                <p className="mt-3 text-[1rem] font-medium text-foreground">Ask your vault</p>
+                <p className="font-editorial mt-3 text-[1.25rem] text-foreground">Ask your vault</p>
                 <p className="mt-1 max-w-sm text-[0.8125rem] text-muted-foreground">
                   Ask questions, compare ideas, or summarize what you&apos;ve saved. Citations
                   appear in the Sources panel when available.
                 </p>
               </div>
             ) : (
-              <ul className="mx-auto flex max-w-3xl flex-col gap-6">
+              <ul className="mx-auto flex w-full max-w-3xl flex-col gap-6 lg:max-w-[42rem]">
                 <AnimatePresence initial={false}>
                   {turns.map((turn) => (
                     <motion.li

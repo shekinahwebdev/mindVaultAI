@@ -15,7 +15,6 @@ import { preferenceToPrismaTheme } from "@/lib/theme";
 import { vaultRoutes } from "@/lib/routes";
 import {
   isVaultNavActive,
-  vaultSidebarCaptureNav,
   vaultSidebarNavGroups,
   vaultSidebarUtilityNav,
   type VaultNavItem,
@@ -34,7 +33,7 @@ const vaultSidebarNavIdle = "mv-sidebar-nav-idle";
 import { useVaultSession } from "./VaultSessionProvider";
 import { useVaultSidebar } from "./VaultSidebarProvider";
 import { VaultSidebarPlanCard } from "./VaultSidebarPlanCard";
-import { vaultCaptureNavClassName, vaultSidebarRailClassName } from "./vault-shell-ui";
+import { vaultSidebarRailClassName } from "./vault-shell-ui";
 
 const railIconClassName = "size-[1.125rem] stroke-[1.75]";
 const SIDEBAR_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
@@ -388,7 +387,7 @@ export function VaultSidebar() {
             <Link
               href={vaultRoutes.dashboard}
               className={cn(
-                "min-w-0 flex-1 truncate text-[0.9375rem] font-semibold tracking-[-0.02em] text-foreground transition-opacity ease-out hover:text-foreground/90",
+                "font-editorial min-w-0 flex-1 truncate text-[1.125rem] font-normal tracking-[-0.02em] text-foreground transition-opacity ease-out hover:text-foreground/90",
                 vaultActionFocus,
                 "rounded-[6px]",
               )}
@@ -445,17 +444,6 @@ export function VaultSidebar() {
             </div>
           ))}
         </nav>
-
-        <div className={cn("mt-3 w-full", collapsed ? "px-0" : "px-0.5")}>
-          <SidebarNavLink
-            item={vaultSidebarCaptureNav}
-            active={isVaultNavActive(pathname, vaultSidebarCaptureNav.href)}
-            collapsed={collapsed}
-            expanded={expanded}
-            reduceMotion={reduceMotion}
-            className={vaultCaptureNavClassName}
-          />
-        </div>
 
         <div
           className={cn(

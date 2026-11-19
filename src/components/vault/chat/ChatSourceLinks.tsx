@@ -17,7 +17,7 @@ type ChatSourceLinksProps = {
 };
 
 const defaultCardClass =
-  "rounded-[var(--mv-radius-control)] border border-border bg-mv-panel/40 transition-colors hover:border-foreground/15 hover:bg-mv-panel/70";
+  "rounded-[var(--mv-radius-control)] border border-border bg-surface transition-colors hover:border-foreground/18 hover:bg-mv-panel";
 
 export function ChatSourceLinks({ sources, linkClassName }: ChatSourceLinksProps) {
   const grouped = groupSourcesForDisplay(sources);

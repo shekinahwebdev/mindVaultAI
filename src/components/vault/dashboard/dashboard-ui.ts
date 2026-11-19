@@ -38,3 +38,12 @@ export const dashboardBentoTotalClassName = cn(
   dashboardBentoCellClassName,
   "flex flex-col px-4 py-3.5",
 );
+
+/** Dashboard capture shortcut tiles (desktop home). */
+export const dashboardCaptureShortcutClassName = cn(
+  mvRadiusCardClassName,
+  "border border-border bg-surface px-4 py-3",
+  "text-[0.8125rem] font-medium text-foreground transition-colors",
+  "hover:border-foreground/20 hover:bg-mv-panel",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+);

@@ -449,7 +449,7 @@ export const CaptureForm = forwardRef<CaptureFormHandle, CaptureFormProps>(
                   {typeMeta.eyebrow}
                 </p>
               </div>
-              <h1 className="mt-2 text-[1.5rem] font-semibold leading-tight tracking-[-0.02em] text-foreground sm:text-[1.75rem]">
+              <h1 className="font-editorial mt-2 text-[1.625rem] font-normal leading-tight tracking-[-0.02em] text-foreground sm:text-[2rem]">
                 {typeMeta.heading}
               </h1>
               <p className="mt-1.5 max-w-xl text-[0.875rem] leading-relaxed text-muted-foreground">

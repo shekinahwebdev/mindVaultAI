@@ -8,6 +8,10 @@
 export const vaultPageTitleClassName =
   "text-[1.875rem] font-semibold leading-tight tracking-[-0.025em] text-foreground sm:text-[2.125rem]";
 
+/** Serif display for desktop vault headers (editorial, calm). */
+export const vaultEditorialPageTitleClassName =
+  "font-editorial text-[2rem] font-normal leading-[1.15] tracking-[-0.02em] text-foreground sm:text-[2.25rem]";
+
 export const vaultPageLeadClassName =
   "mt-1.5 max-w-2xl text-[0.9375rem] leading-relaxed text-muted-foreground";
 
