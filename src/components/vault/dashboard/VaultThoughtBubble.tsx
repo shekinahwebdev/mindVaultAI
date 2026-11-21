@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { vaultEase } from "../vault-motion";
 
 export const vaultDashboardGreetingMessage =
-  "Welcome back! What's on your mind today?";
+  "Welcome back — what should we find today?";
 
 type VaultGreetingBubbleProps = {
   message?: string;

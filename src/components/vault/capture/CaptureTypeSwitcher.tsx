@@ -22,7 +22,7 @@ export function CaptureTypeSwitcher({
     <div
       role="tablist"
       aria-label="Capture type"
-      className="flex flex-wrap gap-1.5"
+      className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap md:grid md:grid-cols-3 md:gap-2 lg:grid-cols-3"
     >
       {captureNoteTypeOptions.map((option) => {
         const active = option.value === value;
@@ -40,7 +40,7 @@ export function CaptureTypeSwitcher({
               }
             }}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-[var(--mv-radius-control)] border px-2.5 py-1.5 text-[0.8125rem] font-medium transition-colors",
+              "inline-flex w-full items-center justify-center gap-1.5 rounded-[var(--mv-radius-control)] border px-2.5 py-2 text-[0.8125rem] font-medium transition-colors sm:w-auto sm:justify-start",
               vaultActionFocus,
               active
                 ? "border-foreground/15 bg-mv-panel text-foreground shadow-[0_1px_2px_rgb(0_0_0/0.04)]"

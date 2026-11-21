@@ -12,6 +12,8 @@ import { RelativeTime } from "@/components/vault/RelativeTime";
 import { NoteTypeIcon } from "@/lib/vault/note-type-ui";
 import { cn } from "@/lib/utils";
 
+import { noteDetailRailWidthClassName } from "./note-detail-ui";
+
 type TypeFilter = "" | "NOTE" | "ARTICLE" | "LINK";
 
 const TYPE_TABS: Array<{ value: TypeFilter; label: string }> = [
@@ -46,7 +48,12 @@ export function NoteDetailNotesRail({ activeNoteId }: NoteDetailNotesRailProps) 
   const grouped = useMemo(() => groupNotesByRecency(notes), [notes]);
 
   return (
-    <aside className="hidden h-full min-h-0 w-[17rem] shrink-0 flex-col border-r border-border bg-surface lg:flex xl:w-[18.5rem]">
+    <aside
+      className={cn(
+        "hidden h-full min-h-0 shrink-0 flex-col border-r border-border bg-surface lg:flex",
+        noteDetailRailWidthClassName,
+      )}
+    >
       <div className="space-y-3 border-b border-border p-3">
         <div className="flex gap-2">
           <label className="relative min-w-0 flex-1">
@@ -101,7 +108,7 @@ export function NoteDetailNotesRail({ activeNoteId }: NoteDetailNotesRailProps) 
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-2">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2" tabIndex={0}>
         {loading ? (
           <p className="px-2 py-6 text-[0.8125rem] text-muted-foreground">Loading…</p>
         ) : (

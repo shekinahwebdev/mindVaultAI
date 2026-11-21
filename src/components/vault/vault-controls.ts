@@ -48,7 +48,7 @@ export const vaultIconButton = `inline-flex size-9 items-center justify-center b
 export const vaultInputClassName = `h-10 w-full rounded-[8px] border border-border bg-surface px-3 text-[0.875rem] text-foreground outline-none transition-colors placeholder:text-mv-faint focus:border-foreground/25 disabled:cursor-not-allowed disabled:opacity-60`;
 
 export const vaultPanelClassName =
-  "rounded-[12px] border border-border bg-surface";
+  "rounded-[var(--mv-radius-card)] border border-border bg-surface shadow-[var(--mv-shadow-card)]";
 
 export const vaultSegmentedTrack =
   "inline-flex rounded-[8px] border border-border bg-mv-panel p-0.5";

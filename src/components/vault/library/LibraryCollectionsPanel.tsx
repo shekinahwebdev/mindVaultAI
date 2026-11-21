@@ -89,7 +89,7 @@ export function LibraryCollectionsPanel({ onOpenCollection }: LibraryCollections
           description="Create a collection to group related notes and PDFs."
         />
       ) : (
-        <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <ul className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {collections.map((collection) => (
             <li key={collection.id}>
               <ContentCard padding="md" className="flex h-full flex-col gap-3">

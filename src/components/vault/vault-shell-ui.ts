@@ -5,7 +5,7 @@ import { mvPageContainerClassName } from "@/lib/mv/layout-tokens";
 /** Default authenticated page content wrapper (Phase A tokens). */
 export const vaultMainContentClassName = cn(
   mvPageContainerClassName,
-  "mv-vault-main py-[var(--mv-space-page-y)] sm:py-[calc(var(--mv-space-page-y)+0.25rem)] lg:py-[calc(var(--mv-space-page-y)+0.5rem)]",
+  "mv-vault-main py-[var(--mv-space-page-y)] sm:py-[calc(var(--mv-space-page-y)+0.25rem)] lg:px-6 lg:py-6",
 );
 
 export const vaultShellFrameClassName =
@@ -16,6 +16,6 @@ export const vaultSidebarRailClassName = cn(
 );
 
 export const vaultCaptureNavClassName = cn(
-  "border border-sidebar-border bg-[var(--mv-sidebar-nav-hover-bg)] font-medium text-sidebar-foreground",
+  "mv-capture-nav-highlight border border-sidebar-border bg-[var(--mv-sidebar-nav-hover-bg)] font-medium text-sidebar-foreground",
   "hover:border-foreground/12 hover:bg-[var(--mv-sidebar-nav-active-bg)]",
 );

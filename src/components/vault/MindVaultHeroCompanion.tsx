@@ -10,21 +10,26 @@ import { cn } from "@/lib/utils";
 export const dashboardGreetingRobotClassName =
   "h-[8.75rem] w-[7.25rem] sm:h-[9.375rem] sm:w-[7.75rem] md:h-[11.25rem] md:w-[9.25rem]";
 
+export const dashboardGreetingRobotCompactClassName =
+  "h-[5.75rem] w-[4.75rem] sm:h-[6.25rem] sm:w-[5.25rem]";
+
 type MindVaultHeroCompanionProps = {
   active?: boolean;
+  compact?: boolean;
   className?: string;
 };
 
 /** Dashboard greeting robot — sizing only; idle motion lives on the parent wrapper. */
 export function MindVaultHeroCompanion({
   active = false,
+  compact = false,
   className,
 }: MindVaultHeroCompanionProps) {
   return (
     <span
       className={cn(
         "relative inline-flex shrink-0 items-end justify-center",
-        dashboardGreetingRobotClassName,
+        compact ? dashboardGreetingRobotCompactClassName : dashboardGreetingRobotClassName,
         className,
       )}
       aria-hidden

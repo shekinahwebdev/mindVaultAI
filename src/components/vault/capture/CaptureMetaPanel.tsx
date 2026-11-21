@@ -71,13 +71,18 @@ export function CaptureMetaPanel({
     aiEnabled && formValues.content.trim().length >= CAPTURE_ANALYZE_MIN_LENGTH;
 
   return (
-    <aside className="flex flex-col gap-3 overflow-visible lg:sticky lg:top-4 lg:self-start">
-      <div className={cn(vaultPanelClassName, "p-4 shadow-[var(--mv-shadow-card)]")}>
+    <aside className="flex min-h-0 flex-col gap-3 lg:h-full lg:max-h-full">
+      <div
+        className={cn(
+          vaultPanelClassName,
+          "mv-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 shadow-[var(--mv-shadow-card)] lg:min-h-0",
+        )}
+      >
         <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
           Organize
         </p>
 
-        <div className="mt-3 space-y-3 overflow-visible">
+        <div className="mt-3 space-y-3">
           <CaptureSelectField
             id="capture-category"
             label="Category"
@@ -135,7 +140,7 @@ export function CaptureMetaPanel({
         </div>
       </div>
 
-      <div className={cn(vaultPanelClassName, "p-4")}>
+      <div className={cn(vaultPanelClassName, "shrink-0 p-4")}>
         <div className="flex items-center justify-between gap-2">
           <p className="text-[0.8125rem] text-muted-foreground">
             <span className="font-medium tabular-nums text-foreground">{wordCount}</span>{" "}

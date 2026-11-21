@@ -6,7 +6,10 @@ import {
   ChevronRight,
   ExternalLink,
   Maximize2,
+  Minimize2,
   MoreHorizontal,
+  PanelLeft,
+  PanelRight,
   Pencil,
   Share2,
   Star,
@@ -61,12 +64,14 @@ import {
 } from "../vault-controls";
 
 import { vaultEase } from "../vault-motion";
-import { NoteTagBadges } from "@/components/vault/tags/NoteTagBadges";
-
 import { NoteDetailBody } from "./NoteDetailBody";
 import { NoteDetailMetaSidebar } from "./NoteDetailMetaSidebar";
 import { NoteDetailNotesRail } from "./NoteDetailNotesRail";
-import { NoteFormFields } from "./NoteFormFields";
+import { NoteDetailEditForm } from "./NoteDetailEditForm";
+import {
+  noteDetailArticleMeasureClassName,
+  noteDetailWorkspaceClassName,
+} from "./note-detail-ui";
 
 type NoteDetailViewProps = {
   noteId: string;
@@ -96,6 +101,36 @@ export function NoteDetailView({ noteId }: NoteDetailViewProps) {
   const [archiving, setArchiving] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [starred, setStarred] = useState(false);
+  const [notesPanelOpen, setNotesPanelOpen] = useState(false);
+  const [metaPanelOpen, setMetaPanelOpen] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
+
+  useEffect(() => {
+  function syncPanels() {
+    const lg = window.matchMedia("(min-width: 1024px)");
+    const xl = window.matchMedia("(min-width: 1280px)");
+    if (focusMode) {
+      return;
+    }
+    if (!lg.matches) {
+      setNotesPanelOpen(false);
+      setMetaPanelOpen(false);
+      return;
+    }
+    setNotesPanelOpen(true);
+    setMetaPanelOpen(xl.matches);
+  }
+
+    syncPanels();
+    const lg = window.matchMedia("(min-width: 1024px)");
+    const xl = window.matchMedia("(min-width: 1280px)");
+    lg.addEventListener("change", syncPanels);
+    xl.addEventListener("change", syncPanels);
+    return () => {
+      lg.removeEventListener("change", syncPanels);
+      xl.removeEventListener("change", syncPanels);
+    };
+  }, [noteId, focusMode]);
 
   const { notes: relatedPool } = useNotesList({
     typeFilter: "",
@@ -402,211 +437,244 @@ export function NoteDetailView({ noteId }: NoteDetailViewProps) {
     writeNoteStarred(noteId, next);
   }
 
+  function toggleFocusMode() {
+    setFocusMode((prev) => {
+      const next = !prev;
+      if (next) {
+        setNotesPanelOpen(false);
+        setMetaPanelOpen(false);
+      } else {
+        const lg = window.matchMedia("(min-width: 1024px)");
+        const xl = window.matchMedia("(min-width: 1280px)");
+        setNotesPanelOpen(lg.matches);
+        setMetaPanelOpen(xl.matches);
+      }
+      return next;
+    });
+  }
+
+  const panelToggleClassName =
+    "flex size-8 items-center justify-center rounded-[var(--mv-radius-control)] border border-transparent text-muted-foreground hover:border-border hover:bg-mv-panel hover:text-foreground";
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.28, ease: vaultEase }}
-      className={cn(
-        "-mx-[var(--mv-page-padding-x)] flex min-h-[calc(100dvh-7.5rem)] flex-col overflow-hidden border-y border-border bg-surface md:mx-0 md:rounded-[var(--mv-radius-card)] md:border",
-        editing && "min-h-0",
-      )}
+      className={cn(noteDetailWorkspaceClassName, editing && "overflow-hidden")}
     >
       {editing ? (
-        <div className="space-y-5 overflow-y-auto p-4 sm:p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+        <NoteDetailEditForm
+          idPrefix="edit-note"
+          values={values}
+          errors={errors}
+          onChange={updateField}
+          onSubmit={handleSave}
+          onCancel={() => exitEditMode()}
+          saving={saving}
+          formError={formError}
+          categories={categories}
+          categoriesLoading={categoriesLoading}
+          categoriesError={categoriesError}
+        />
+      ) : (
+        <>
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border px-3 py-2 sm:px-4">
             <Link
               href={vaultRoutes.notes}
-              className="inline-flex items-center gap-2 text-[0.8125rem] text-muted-foreground hover:text-foreground"
+              className="inline-flex items-center gap-1.5 text-[0.75rem] text-muted-foreground hover:text-foreground lg:hidden"
             >
               <ArrowLeft aria-hidden className="size-3.5" />
               All Notes
             </Link>
-          </div>
-          <form onSubmit={handleSave} className="mx-auto max-w-3xl space-y-5">
-            <NoteFormFields
-              idPrefix="edit-note"
-              values={values}
-              errors={errors}
-              onChange={updateField}
-              disabled={saving}
-              categories={categories}
-              categoriesLoading={categoriesLoading}
-              categoriesError={categoriesError}
-              contentLabel="Content"
-            />
-            {formError ? (
-              <p role="alert" className="text-[0.8125rem] text-muted-foreground">
-                {formError}
-              </p>
-            ) : null}
-            <div className="flex flex-wrap justify-end gap-2.5">
+            <div className="hidden items-center gap-1 lg:flex">
               <button
                 type="button"
-                onClick={() => exitEditMode()}
-                disabled={saving}
-                className={vaultSecondaryButton}
+                aria-pressed={notesPanelOpen && !focusMode}
+                aria-label={notesPanelOpen ? "Hide notes list" : "Show notes list"}
+                onClick={() => {
+                  setFocusMode(false);
+                  setNotesPanelOpen((open) => !open);
+                }}
+                className={cn(
+                  panelToggleClassName,
+                  notesPanelOpen && !focusMode && "border-border bg-mv-panel text-foreground",
+                )}
               >
-                Cancel
+                <PanelLeft aria-hidden className="size-4" />
               </button>
               <button
-                type="submit"
-                disabled={saving}
-                className={cn(vaultPrimaryButton, saving && "opacity-80")}
+                type="button"
+                aria-pressed={metaPanelOpen && !focusMode}
+                aria-label={metaPanelOpen ? "Hide details" : "Show details"}
+                onClick={() => {
+                  setFocusMode(false);
+                  setMetaPanelOpen((open) => !open);
+                }}
+                className={cn(
+                  panelToggleClassName,
+                  metaPanelOpen && !focusMode && "border-border bg-mv-panel text-foreground",
+                )}
               >
-                {saving ? "Saving..." : "Save Changes"}
+                <PanelRight aria-hidden className="size-4" />
+              </button>
+              <button
+                type="button"
+                aria-pressed={focusMode}
+                aria-label={focusMode ? "Exit focus reading mode" : "Focus reading mode"}
+                onClick={toggleFocusMode}
+                className={cn(panelToggleClassName, focusMode && "border-border bg-mv-panel text-foreground")}
+              >
+                {focusMode ? (
+                  <Minimize2 aria-hidden className="size-4" />
+                ) : (
+                  <Maximize2 aria-hidden className="size-4" />
+                )}
               </button>
             </div>
-          </form>
-        </div>
-      ) : (
-        <div className="flex min-h-0 flex-1">
-          <NoteDetailNotesRail activeNoteId={noteId} />
+            <div className="ml-auto flex items-center gap-1">
+              <button
+                type="button"
+                aria-label={starred ? "Remove favorite" : "Add favorite"}
+                onClick={toggleStar}
+                className={panelToggleClassName}
+              >
+                <Star
+                  aria-hidden
+                  className={cn("size-4", starred && "fill-amber-400 text-amber-400")}
+                />
+              </button>
+              <button
+                type="button"
+                aria-label="Share"
+                className={panelToggleClassName}
+                onClick={() => toastInfo("Sharing is coming soon.")}
+              >
+                <Share2 aria-hidden className="size-4" />
+              </button>
+              <button
+                type="button"
+                aria-label="More actions"
+                className={panelToggleClassName}
+                onClick={() => {
+                  setDeleteError("");
+                  setDeleteOpen(true);
+                }}
+              >
+                <MoreHorizontal aria-hidden className="size-4" />
+              </button>
+            </div>
+          </div>
 
-          <section className="flex min-w-0 flex-1 flex-col">
-            <header className="shrink-0 border-b border-border px-4 py-3 sm:px-6">
-              <nav className="flex flex-wrap items-center gap-1 text-[0.75rem] text-muted-foreground">
-                <Link href={vaultRoutes.notes} className="hover:text-foreground">
-                  All Notes
-                </Link>
-                <ChevronRight aria-hidden className="size-3.5" />
-                <span className="line-clamp-1 text-foreground">{note.title}</span>
-              </nav>
+          <div className="flex min-h-0 min-w-0 flex-1">
+            {notesPanelOpen && !focusMode ? (
+              <NoteDetailNotesRail activeNoteId={noteId} />
+            ) : null}
 
-              <div className="mt-2 flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1" />
-                <div className="flex shrink-0 items-center gap-1">
-                  <button
-                    type="button"
-                    aria-label={starred ? "Remove favorite" : "Add favorite"}
-                    onClick={toggleStar}
-                    className="flex size-8 items-center justify-center rounded-[var(--mv-radius-control)] text-muted-foreground hover:bg-mv-panel hover:text-foreground"
+            <article className="flex min-h-0 min-w-0 flex-1 flex-col border-border lg:min-w-0 lg:border-x">
+              <header className="shrink-0 border-b border-border px-4 py-3 sm:px-5">
+                <nav className="hidden flex-wrap items-center gap-1 text-[0.75rem] text-muted-foreground lg:flex">
+                  <Link href={vaultRoutes.notes} className="hover:text-foreground">
+                    All Notes
+                  </Link>
+                  <ChevronRight aria-hidden className="size-3.5" />
+                  <span className="line-clamp-1 break-words text-foreground">{note.title}</span>
+                </nav>
+
+                <h1 className="mt-1 font-serif text-[1.875rem] leading-[1.15] tracking-[-0.02em] text-foreground sm:text-[2rem] lg:mt-2">
+                  <span className="break-words">{note.title}</span>
+                </h1>
+
+                <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.75rem] text-muted-foreground">
+                  {isArchived ? (
+                    <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 font-medium text-amber-800 dark:text-amber-200">
+                      Archived
+                    </span>
+                  ) : null}
+                  <span>{readMinutes} min read</span>
+                  <span aria-hidden>·</span>
+                  <span className="whitespace-nowrap">Updated {formatNoteDateTime(note.updatedAt)}</span>
+                  <span
+                    className={cn(
+                      "rounded-full border border-border bg-mv-panel px-2 py-0.5 text-foreground",
+                      vaultMetaClassName,
+                    )}
                   >
-                    <Star
-                      aria-hidden
-                      className={cn("size-4", starred && "fill-amber-400 text-amber-400")}
-                    />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Share"
-                    className="flex size-8 items-center justify-center rounded-[var(--mv-radius-control)] text-muted-foreground hover:bg-mv-panel"
-                    onClick={() => toastInfo("Sharing is coming soon.")}
-                  >
-                    <Share2 aria-hidden className="size-4" />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="More"
-                    className="flex size-8 items-center justify-center rounded-[var(--mv-radius-control)] text-muted-foreground hover:bg-mv-panel"
-                    onClick={() => {
-                      setDeleteError("");
-                      setDeleteOpen(true);
-                    }}
-                  >
-                    <MoreHorizontal aria-hidden className="size-4" />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Fullscreen"
-                    className="hidden size-8 items-center justify-center rounded-[var(--mv-radius-control)] text-muted-foreground hover:bg-mv-panel sm:flex"
-                    onClick={() => toastInfo("Fullscreen is coming soon.")}
-                  >
-                    <Maximize2 aria-hidden className="size-4" />
-                  </button>
+                    {typeLabel}
+                  </span>
+                </div>
+
+                <div className="mt-2.5 flex flex-wrap gap-2">
+                  {isArchived ? (
+                    <>
+                      <button
+                        type="button"
+                        disabled={restoring}
+                        onClick={() => void handleRestore()}
+                        className={cn(vaultSecondaryButton, "h-8 gap-1.5 px-2.5 text-[0.8125rem]")}
+                      >
+                        {restoring ? "Restoring…" : "Restore"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDeleteError("");
+                          setDeleteOpen(true);
+                        }}
+                        className={cn(vaultDestructiveButton, "h-8 px-2.5 text-[0.8125rem]")}
+                      >
+                        Delete permanently
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleEditClick}
+                        className={cn(vaultSecondaryButton, "h-8 gap-1.5 px-2.5 text-[0.8125rem]")}
+                      >
+                        <Pencil aria-hidden className="size-3.5" />
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        disabled={archiving}
+                        onClick={() => void handleArchive()}
+                        className={cn(vaultSecondaryButton, "h-8 px-2.5 text-[0.8125rem]")}
+                      >
+                        {archiving ? "Archiving…" : "Archive"}
+                      </button>
+                    </>
+                  )}
+                </div>
+              </header>
+
+              <div
+                className="mv-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-5"
+                tabIndex={0}
+              >
+                <div className={noteDetailArticleMeasureClassName}>
+                  {note.sourceUrl ? (
+                    <a
+                      href={note.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mb-4 inline-flex max-w-full items-start gap-1.5 break-all text-[0.8125rem] text-muted-foreground hover:text-foreground hover:underline"
+                    >
+                      <ExternalLink aria-hidden className="mt-0.5 size-3.5 shrink-0" />
+                      {note.sourceUrl}
+                    </a>
+                  ) : null}
+                  <NoteDetailBody content={note.content} type={note.type} />
                 </div>
               </div>
+            </article>
 
-              <h1 className="mt-3 font-serif text-[1.75rem] leading-tight tracking-[-0.02em] text-foreground sm:text-[2rem]">
-                {note.title}
-              </h1>
-
-              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[0.75rem] text-muted-foreground">
-                {isArchived ? (
-                  <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 font-medium text-amber-800 dark:text-amber-200">
-                    Archived
-                  </span>
-                ) : null}
-                <span>Created {formatNoteDateTime(note.createdAt)}</span>
-                <span aria-hidden>·</span>
-                <span>{readMinutes} min read</span>
-                {note.category ? (
-                  <span className="rounded-full border border-border bg-mv-panel px-2 py-0.5 text-foreground">
-                    {note.category.name}
-                  </span>
-                ) : null}
-              </div>
-
-              <NoteTagBadges tags={note.tags} className="mt-2" />
-
-              <div className="mt-3 flex flex-wrap gap-2">
-                {isArchived ? (
-                  <>
-                    <button
-                      type="button"
-                      disabled={restoring}
-                      onClick={() => void handleRestore()}
-                      className={cn(vaultSecondaryButton, "h-8 gap-1.5 px-2.5 text-[0.8125rem]")}
-                    >
-                      {restoring ? "Restoring…" : "Restore"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setDeleteError("");
-                        setDeleteOpen(true);
-                      }}
-                      className={cn(vaultDestructiveButton, "h-8 px-2.5 text-[0.8125rem]")}
-                    >
-                      Delete permanently
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={handleEditClick}
-                      className={cn(vaultSecondaryButton, "h-8 gap-1.5 px-2.5 text-[0.8125rem]")}
-                    >
-                      <Pencil aria-hidden className="size-3.5" />
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      disabled={archiving}
-                      onClick={() => void handleArchive()}
-                      className={cn(vaultSecondaryButton, "h-8 px-2.5 text-[0.8125rem]")}
-                    >
-                      {archiving ? "Archiving…" : "Archive"}
-                    </button>
-                  </>
-                )}
-                <span className={cn("inline-flex h-8 items-center rounded-[var(--mv-radius-control)] border border-border px-2.5", vaultMetaClassName)}>
-                  {typeLabel}
-                </span>
-              </div>
-            </header>
-
-            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8 sm:py-8">
-              <div className="mx-auto max-w-3xl">
-                {note.sourceUrl ? (
-                  <a
-                    href={note.sourceUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mb-6 inline-flex items-center gap-1.5 text-[0.8125rem] text-muted-foreground hover:text-foreground hover:underline"
-                  >
-                    <ExternalLink aria-hidden className="size-3.5" />
-                    {note.sourceUrl}
-                  </a>
-                ) : null}
-                <NoteDetailBody content={note.content} type={note.type} />
-              </div>
-            </div>
-          </section>
-
-          <NoteDetailMetaSidebar note={note} relatedNotes={relatedNotes} />
-        </div>
+            {metaPanelOpen && !focusMode ? (
+              <NoteDetailMetaSidebar note={note} relatedNotes={relatedNotes} />
+            ) : null}
+          </div>
+        </>
       )}
 
       <VaultDialog

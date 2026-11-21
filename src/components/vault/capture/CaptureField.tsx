@@ -223,7 +223,7 @@ export const CaptureTextareaField = forwardRef<
         disabled={disabled}
         className={cn(
           fieldInputClassName,
-          "mt-1.5 min-h-[11rem] resize-y px-3.5 py-3 leading-relaxed sm:min-h-[14rem]",
+          "mt-1.5 min-h-[11rem] resize-y px-3.5 py-3 leading-[1.65] sm:min-h-[14rem]",
           textareaClassName,
           error && "border-foreground/25",
         )}

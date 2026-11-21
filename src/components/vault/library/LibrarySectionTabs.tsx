@@ -18,7 +18,10 @@ export function LibrarySectionTabs({ value, onChange }: LibrarySectionTabsProps)
     <div
       role="tablist"
       aria-label="Library sections"
-      className="inline-flex rounded-[var(--mv-radius-control)] border border-border bg-mv-panel p-1"
+      className={cn(
+        "grid w-full min-w-0 grid-cols-3 gap-1 rounded-[var(--mv-radius-control)] border border-border bg-mv-panel p-1",
+        "sm:inline-flex sm:w-auto sm:grid-cols-none",
+      )}
     >
       {tabs.map((tab) => (
         <button
@@ -28,7 +31,7 @@ export function LibrarySectionTabs({ value, onChange }: LibrarySectionTabsProps)
           aria-selected={value === tab.id}
           onClick={() => onChange(tab.id)}
           className={cn(
-            "rounded-[calc(var(--mv-radius-control)-2px)] px-3 py-1.5 text-[0.8125rem] font-medium transition-colors",
+            "min-w-0 truncate rounded-[calc(var(--mv-radius-control)-2px)] px-2 py-1.5 text-[0.8125rem] font-medium transition-colors sm:px-3",
             value === tab.id
               ? "bg-surface text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground",

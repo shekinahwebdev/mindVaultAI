@@ -33,6 +33,7 @@ type NoteFormFieldsProps = {
   contentRef?: RefObject<HTMLTextAreaElement | null>;
   contentLabel?: string;
   contentPlaceholder?: string;
+  contentTextareaClassName?: string;
 };
 
 export function NoteFormFields({
@@ -47,6 +48,7 @@ export function NoteFormFields({
   contentRef,
   contentLabel = "Content",
   contentPlaceholder = "Write your note...",
+  contentTextareaClassName,
 }: NoteFormFieldsProps) {
   return (
     <div className="space-y-5">
@@ -59,6 +61,7 @@ export function NoteFormFields({
         placeholder={contentPlaceholder}
         disabled={disabled}
         error={errors.content}
+        textareaClassName={contentTextareaClassName}
       />
 
       <CaptureInputField

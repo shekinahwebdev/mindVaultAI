@@ -7,6 +7,8 @@ import type { SerializedNote } from "@/lib/notes/capture-client";
 import { countWords, estimateReadMinutes } from "@/lib/notes/note-detail-utils";
 import { NoteTagBadges } from "@/components/vault/tags/NoteTagBadges";
 import { formatNoteDate, noteDetailPath, noteTypeLabels } from "@/lib/notes/note-display";
+import { noteDetailRailWidthClassName } from "./note-detail-ui";
+import { cn } from "@/lib/utils";
 type NoteDetailMetaSidebarProps = {
   note: SerializedNote;
   relatedNotes: SerializedNote[];
@@ -18,7 +20,13 @@ export function NoteDetailMetaSidebar({ note, relatedNotes }: NoteDetailMetaSide
   const typeLabel = noteTypeLabels[note.type] ?? note.type;
 
   return (
-    <aside className="hidden h-full min-h-0 w-[17.5rem] shrink-0 flex-col overflow-y-auto border-l border-border bg-surface p-4 xl:flex">
+    <aside
+      className={cn(
+        "mv-scrollbar flex h-full min-h-0 shrink-0 flex-col overflow-y-auto overscroll-contain border-l border-border bg-surface p-4",
+        noteDetailRailWidthClassName,
+      )}
+      tabIndex={0}
+    >
       <MetaSection title="Note details">
         <MetaRow label="Type" value={typeLabel} />
         <MetaRow label="Created" value={formatNoteDate(note.createdAt)} />

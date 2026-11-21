@@ -26,17 +26,25 @@ export type DashboardCategoryPreview = {
   noteCount: number;
 };
 
+export type DashboardCollectionPreview = {
+  id: string;
+  name: string;
+  itemCount: number;
+};
+
 export type DashboardData = {
   stats: DashboardStats;
   recentNotes: DashboardNotePreview[];
   recentlyEdited: DashboardNotePreview[];
   categories: DashboardCategoryPreview[];
+  collections: DashboardCollectionPreview[];
   isEmpty: boolean;
 };
 
 const RECENT_NOTES_LIMIT = 5;
 const RECENTLY_EDITED_LIMIT = 5;
 const CATEGORY_PREVIEW_LIMIT = 6;
+const COLLECTION_PREVIEW_LIMIT = 5;
 
 const dashboardNotePreviewSelect = {
   id: true,
@@ -88,6 +96,7 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
     recentNotesRaw,
     recentlyEditedRaw,
     categoriesRaw,
+    collectionsRaw,
   ] = await Promise.all([
     prisma.note.count({ where: noteWhere }),
     prisma.category.count({ where: { userId } }),
@@ -122,6 +131,16 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
         },
       },
     }),
+    prisma.collection.findMany({
+      where: { userId },
+      orderBy: { updatedAt: "desc" },
+      take: COLLECTION_PREVIEW_LIMIT,
+      select: {
+        id: true,
+        name: true,
+        _count: { select: { items: true } },
+      },
+    }),
   ]);
 
   const typeCountMap = Object.fromEntries(
@@ -146,6 +165,11 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
       id: category.id,
       name: category.name,
       noteCount: category._count.notes,
+    })),
+    collections: collectionsRaw.map((collection) => ({
+      id: collection.id,
+      name: collection.name,
+      itemCount: collection._count.items,
     })),
     isEmpty: totalNotes === 0,
   };
